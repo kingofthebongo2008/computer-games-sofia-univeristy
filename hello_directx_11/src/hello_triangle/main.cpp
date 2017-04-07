@@ -12,6 +12,7 @@
 #include <winrt/Windows.UI.ViewManagement.h>
 
 #include <triangle_vertex.h>
+#include <triangle_pixel.h>
 
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
@@ -99,7 +100,34 @@ static ComPtr<ID3D11VertexShader> CreateTriangleVertexShader(ID3D11Device3* devi
 static ComPtr<ID3D11PixelShader> CreateTrianglePixelShader(ID3D11Device3* device)
 {
 	ComPtr<ID3D11PixelShader> r;
-	ThrowIfFailed(device->CreatePixelShader(g_triangle_vertex, sizeof(g_triangle_vertex), nullptr, r.GetAddressOf()));
+	ThrowIfFailed(device->CreatePixelShader(g_triangle_pixel, sizeof(g_triangle_pixel), nullptr, r.GetAddressOf()));
+	return r;
+}
+
+static ComPtr<ID3D11RasterizerState2> CreateRasterizerState(ID3D11Device3* device)
+{
+	ComPtr<ID3D11RasterizerState2> r;
+
+	D3D11_RASTERIZER_DESC2 state = {};
+
+	state.FillMode				= D3D11_FILL_SOLID;
+	state.CullMode				= D3D11_CULL_BACK;
+	state.FrontCounterClockwise = TRUE;
+	state.DepthClipEnable		= TRUE;
+	state.ScissorEnable			= TRUE;
+
+	ThrowIfFailed(device->CreateRasterizerState2(&state, r.GetAddressOf()));
+	return r;
+}
+
+static ComPtr<ID3D11BlendState1> CreateBlendState(ID3D11Device3* device)
+{
+	ComPtr<ID3D11BlendState1> r;
+
+	D3D11_BLEND_DESC1 state = {};
+	state.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	ThrowIfFailed(device->CreateBlendState1(&state, r.GetAddressOf()));
+
 	return r;
 }
 
@@ -133,8 +161,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 			{
 				ComPtr<ID3D11RenderTargetView1> m_swap_chain_view = CreateSwapChainView(m_swap_chain.Get(), m_device.Get());
 
-				//ID3D11RenderTargetView* views[1] = { m_swap_chain_view.Get() };
-				//m_device_context->OMSetRenderTargets(1, views, nullptr);
+				ID3D11RenderTargetView* views[1] = { m_swap_chain_view.Get() };
+				m_device_context->OMSetRenderTargets(1, views, nullptr);
 
 				float clear_value[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
 				m_device_context->ClearRenderTargetView(m_swap_chain_view.Get(), clear_value);
@@ -147,6 +175,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	{
 		m_triangle_vertex = CreateTriangleVertexShader(m_device.Get());
 		m_triangle_pixel = CreateTrianglePixelShader(m_device.Get());
+
+		m_blend_state = CreateBlendState(m_device.Get());
+		m_rasterizer_state = CreateRasterizerState(m_device.Get());
 	}
 
 	void SetWindow(const CoreWindow& w)
@@ -185,6 +216,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 	ComPtr<ID3D11VertexShader>					m_triangle_vertex;
 	ComPtr<ID3D11PixelShader>					m_triangle_pixel;
+	ComPtr<ID3D11RasterizerState2>				m_rasterizer_state;
+	ComPtr<ID3D11BlendState1>					m_blend_state;
+	
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
