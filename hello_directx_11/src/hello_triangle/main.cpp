@@ -11,6 +11,8 @@
 #include <winrt/Windows.ApplicationModel.Activation.h>
 #include <winrt/Windows.UI.ViewManagement.h>
 
+#include <triangle_vertex.h>
+
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::ApplicationModel::Activation;
@@ -87,6 +89,20 @@ static ComPtr<ID3D11RenderTargetView1> CreateSwapChainView(IDXGISwapChain1* swap
 	return r;
 }
 
+static ComPtr<ID3D11VertexShader> CreateTriangleVertexShader(ID3D11Device3* device)
+{
+	ComPtr<ID3D11VertexShader> r;
+	ThrowIfFailed(device->CreateVertexShader(g_triangle_vertex, sizeof(g_triangle_vertex), nullptr, r.GetAddressOf()));
+	return r;
+}
+
+static ComPtr<ID3D11PixelShader> CreateTrianglePixelShader(ID3D11Device3* device)
+{
+	ComPtr<ID3D11PixelShader> r;
+	ThrowIfFailed(device->CreatePixelShader(g_triangle_vertex, sizeof(g_triangle_vertex), nullptr, r.GetAddressOf()));
+	return r;
+}
+
 class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFrameworkViewSource>
 {
 	public:
@@ -129,7 +145,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 	void Load(winrt::hstring_view h)
 	{
-
+		m_triangle_vertex = CreateTriangleVertexShader(m_device.Get());
+		m_triangle_pixel = CreateTrianglePixelShader(m_device.Get());
 	}
 
 	void SetWindow(const CoreWindow& w)
@@ -165,6 +182,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	ComPtr<ID3D11Device3>						m_device;
 	ComPtr<ID3D11DeviceContext>					m_device_context;
 	ComPtr<IDXGISwapChain1>						m_swap_chain;
+
+	ComPtr<ID3D11VertexShader>					m_triangle_vertex;
+	ComPtr<ID3D11PixelShader>					m_triangle_pixel;
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
