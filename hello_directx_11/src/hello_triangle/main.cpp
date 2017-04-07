@@ -113,8 +113,8 @@ static ComPtr<ID3D11RasterizerState2> CreateRasterizerState(ID3D11Device3* devic
 	state.FillMode				= D3D11_FILL_SOLID;
 	state.CullMode				= D3D11_CULL_NONE;
 	state.FrontCounterClockwise = TRUE;
-	state.DepthClipEnable		= FALSE;
-	state.ScissorEnable			= FALSE;
+	state.DepthClipEnable		= TRUE;
+	state.ScissorEnable			= TRUE;
 
 	ThrowIfFailed(device->CreateRasterizerState2(&state, r.GetAddressOf()));
 	return r;
@@ -172,11 +172,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 				ComPtr<ID3D11RenderTargetView1> m_swap_chain_view = CreateSwapChainView(m_swap_chain.Get(), m_device.Get());
 
 				m_device_context->ClearState();
-				{
-					ID3D11RenderTargetView* views[1] = { m_swap_chain_view.Get() };
-					m_device_context->OMSetRenderTargets(1, views, nullptr);
-					m_device_context->OMSetDepthStencilState(m_depth_stencil_state.Get(), 0);
-				}
 
 				{
 					float clear_value[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
@@ -184,7 +179,12 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 				}
 
 				{
-					float factor[4] = { 0.f,0.0f,0.0f,0.0f };
+					ID3D11RenderTargetView* views[1] = { m_swap_chain_view.Get() };
+					m_device_context->OMSetRenderTargets(1, views, nullptr);
+					m_device_context->OMSetDepthStencilState(m_depth_stencil_state.Get(), 0);
+				}
+
+				{
 					m_device_context->OMSetBlendState(m_blend_state.Get(), nullptr, 0xFFFFFFFF);
 				}
 
