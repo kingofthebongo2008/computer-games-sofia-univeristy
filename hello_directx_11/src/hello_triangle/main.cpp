@@ -127,7 +127,17 @@ static ComPtr<ID3D11BlendState1> CreateBlendState(ID3D11Device3* device)
 	D3D11_BLEND_DESC1 state = {};
 	state.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
 	ThrowIfFailed(device->CreateBlendState1(&state, r.GetAddressOf()));
+	return r;
+}
 
+static ComPtr<ID3D11DepthStencilState> CreateDepthStencilState(ID3D11Device3* device)
+{
+	ComPtr<ID3D11DepthStencilState> r;
+
+	D3D11_DEPTH_STENCIL_DESC state = {};
+	state.DepthEnable = FALSE;
+	state.DepthFunc = D3D11_COMPARISON_LESS;
+	ThrowIfFailed(device->CreateDepthStencilState(&state, r.GetAddressOf()));
 	return r;
 }
 
@@ -161,9 +171,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 			{
 				ComPtr<ID3D11RenderTargetView1> m_swap_chain_view = CreateSwapChainView(m_swap_chain.Get(), m_device.Get());
 
+				m_device_context->ClearState();
 				{
 					ID3D11RenderTargetView* views[1] = { m_swap_chain_view.Get() };
 					m_device_context->OMSetRenderTargets(1, views, nullptr);
+					m_device_context->OMSetDepthStencilState(m_depth_stencil_state.Get(), 0);
 				}
 
 				{
@@ -173,7 +185,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 				{
 					float factor[4] = { 0.f,0.0f,0.0f,0.0f };
-					m_device_context->OMSetBlendState(m_blend_state.Get(), factor, 0xFFFFFFFF);
+					m_device_context->OMSetBlendState(m_blend_state.Get(), nullptr, 0xFFFFFFFF);
 				}
 
 				{
@@ -181,6 +193,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 					D3D11_RECT r = { 0, 0, m_back_buffer_width, m_back_buffer_height };
 					m_device_context->RSSetScissorRects(1, &r);
+					
 
 					D3D11_VIEWPORT v;
 					v.TopLeftX = 0;
@@ -220,6 +233,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 		m_blend_state = CreateBlendState(m_device.Get());
 		m_rasterizer_state = CreateRasterizerState(m_device.Get());
+		m_depth_stencil_state = CreateDepthStencilState(m_device.Get());
 	}
 
 	void SetWindow(const CoreWindow& w)
@@ -264,6 +278,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	ComPtr<ID3D11PixelShader>					m_triangle_pixel;
 	ComPtr<ID3D11RasterizerState2>				m_rasterizer_state;
 	ComPtr<ID3D11BlendState1>					m_blend_state;
+	ComPtr<ID3D11DepthStencilState>				m_depth_stencil_state;
 
 	uint32_t									m_back_buffer_width = 0;
 	uint32_t									m_back_buffer_height = 0;
