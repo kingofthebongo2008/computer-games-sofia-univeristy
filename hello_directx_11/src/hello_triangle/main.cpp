@@ -111,10 +111,10 @@ static ComPtr<ID3D11RasterizerState2> CreateRasterizerState(ID3D11Device3* devic
 	D3D11_RASTERIZER_DESC2 state = {};
 
 	state.FillMode				= D3D11_FILL_SOLID;
-	state.CullMode				= D3D11_CULL_BACK;
+	state.CullMode				= D3D11_CULL_NONE;
 	state.FrontCounterClockwise = TRUE;
-	state.DepthClipEnable		= TRUE;
-	state.ScissorEnable			= TRUE;
+	state.DepthClipEnable		= FALSE;
+	state.ScissorEnable			= FALSE;
 
 	ThrowIfFailed(device->CreateRasterizerState2(&state, r.GetAddressOf()));
 	return r;
@@ -161,11 +161,53 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 			{
 				ComPtr<ID3D11RenderTargetView1> m_swap_chain_view = CreateSwapChainView(m_swap_chain.Get(), m_device.Get());
 
-				ID3D11RenderTargetView* views[1] = { m_swap_chain_view.Get() };
-				m_device_context->OMSetRenderTargets(1, views, nullptr);
+				{
+					ID3D11RenderTargetView* views[1] = { m_swap_chain_view.Get() };
+					m_device_context->OMSetRenderTargets(1, views, nullptr);
+				}
 
-				float clear_value[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
-				m_device_context->ClearRenderTargetView(m_swap_chain_view.Get(), clear_value);
+				{
+					float clear_value[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
+					m_device_context->ClearRenderTargetView(m_swap_chain_view.Get(), clear_value);
+				}
+
+				{
+					float factor[4] = { 0.f,0.0f,0.0f,0.0f };
+					m_device_context->OMSetBlendState(m_blend_state.Get(), factor, 0xFFFFFFFF);
+				}
+
+				{
+					m_device_context->RSSetState(m_rasterizer_state.Get());
+
+					D3D11_RECT r = { 0, 0, m_back_buffer_width, m_back_buffer_height };
+					m_device_context->RSSetScissorRects(1, &r);
+
+					D3D11_VIEWPORT v;
+					v.TopLeftX = 0;
+					v.TopLeftY = 0;
+					v.MinDepth = 0.0f;
+					v.MaxDepth = 1.0f;
+					v.Width = static_cast<float>(m_back_buffer_width);
+					v.Height = static_cast<float>(m_back_buffer_height);
+
+					m_device_context->RSSetViewports(1, &v);
+				}
+
+				{
+					m_device_context->VSSetShader(m_triangle_vertex.Get(), nullptr, 0);
+				}
+
+				{
+					m_device_context->PSSetShader(m_triangle_pixel.Get(), nullptr, 0);
+				}
+				{
+					m_device_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				}
+
+				{
+					m_device_context->Draw(3, 0);
+				}
+				
 			}
 			m_swap_chain->Present(0, 0);
 		}
@@ -187,7 +229,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 		m_swap_chain		= CreateSwapChain(w, m_device.Get());
 
-		//m_swap_chain_view	= CreateSwapChainView(m_swap_chain.Get(), m_device.Get());
+		m_back_buffer_width = static_cast<UINT>(w.Bounds().Width);
+		m_back_buffer_height = static_cast<UINT>(w.Bounds().Height);
 	}
 
 	void OnWindowClosed(const CoreWindow&w, const CoreWindowEventArgs& a)
@@ -203,6 +246,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	void OnWindowSizeChanged(const CoreWindow& w, const WindowSizeChangedEventArgs& a)
 	{
 		ThrowIfFailed(m_swap_chain->ResizeBuffers(3, static_cast<UINT>(a.Size().Width), static_cast<UINT>(a.Size().Height), DXGI_FORMAT_R8G8B8A8_UNORM, 0));
+
+		m_back_buffer_width = static_cast<UINT>(a.Size().Width);
+		m_back_buffer_height = static_cast<UINT>(a.Size().Height);
 	}
 
 	bool m_window_running = true;
@@ -218,6 +264,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	ComPtr<ID3D11PixelShader>					m_triangle_pixel;
 	ComPtr<ID3D11RasterizerState2>				m_rasterizer_state;
 	ComPtr<ID3D11BlendState1>					m_blend_state;
+
+	uint32_t									m_back_buffer_width = 0;
+	uint32_t									m_back_buffer_height = 0;
+
+	
 	
 };
 
