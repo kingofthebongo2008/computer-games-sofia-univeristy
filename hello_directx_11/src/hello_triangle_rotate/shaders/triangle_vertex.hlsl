@@ -21,10 +21,39 @@ float4x4 make_float4x4_translation(float3 v)
 
 float4x4 make_float4x4_rotation_y(float radians)
 {
+	float s = sin(radians);
+	float c = cos(radians);
+
 	float4x4 m = {
-		{ 1.0f, 0.0f, 0.0f, 0.0f },
+		{ c,	0.0f, s,	0.0f },
 		{ 0.0f, 1.0f, 0.0f, 0.0f },
-		{ 0.0f, 0.0f, 1.0f, 0.0f },
+		{ -s,	0.0f, c,	0.0f },
+		{ 0.0f, 0.0f, 0.0f, 1.0f }
+	};
+	return m;
+}
+
+float4x4 make_float4x4_rotation_z(float radians)
+{
+	float s = sin(radians);
+	float c = cos(radians);
+
+	float4x4 m = {
+		{ c,	s, 1.0f,	0.0f },
+		{ -s,	c, 0.0f,	0.0f },
+		{ 0.0f,	0.0f, 1.0f,	0.0f },
+		{ 0.0f, 0.0f, 0.0f, 1.0f }
+	};
+	return m;
+}
+
+float4x4 make_float4x4_scale(float scale)
+{
+	float s = scale;
+	float4x4 m = {
+		{ s,	0.0f, 0.0f,	0.0f },
+		{ 0.0f,	s, 0.0f,	0.0f },
+		{ 0.0f,	0.0f, s,	0.0f },
 		{ 0.0f, 0.0f, 0.0f, 1.0f }
 	};
 	return m;
@@ -34,8 +63,11 @@ interpolated_value main(uint v : SV_VERTEXID)
 {
 	interpolated_value r;
 
-	float4		position	 = float4(0.0f, 0.0f, 0.0f, 1.0f);
-	float4x4	translation  = make_float4x4_translation(float3(-0.3, 0.0f, 0.0f));
+	const float		pi			 = 3.1415f;
+	float4			position	 = float4(0.0f, 0.0f, 0.0f, 1.0f);
+	float4x4		translation  = make_float4x4_translation(float3(0.0, -0.5f, 0.0f));
+	float4x4		rotation	 = make_float4x4_rotation_z( pi / 2.0f);
+	float4x4		scale		 = make_float4x4_scale(0.5f);
 	
 
 	if (v == 0)
@@ -51,7 +83,10 @@ interpolated_value main(uint v : SV_VERTEXID)
 		position = float4(0.5f, 0.0f, 0.5f, 1.0f);
 	}
 
-	position = mul(position, translation);
-	r.m_position = position;
+	position		= mul(position, scale);
+	position		= mul(position, rotation);
+	position		= mul(position, translation);
+
+	r.m_position	= position;
 	return r;
 }
