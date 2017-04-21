@@ -141,6 +141,49 @@ static ComPtr<ID3D11DepthStencilState> CreateDepthStencilState(ID3D11Device3* de
 	return r;
 }
 
+struct ComPtr<ID3D11Buffer> CreateRotationAnglesBuffer(ID3D11Device3* device)
+{
+	ComPtr<ID3D11Buffer> r;
+	D3D11_BUFFER_DESC desc = {};
+
+	desc.ByteWidth = sizeof(float) * 4;
+	desc.StructureByteStride = sizeof(float);
+	desc.Usage				= D3D11_USAGE_DYNAMIC;
+	desc.CPUAccessFlags	= D3D11_CPU_ACCESS_WRITE;
+	desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE;
+
+	const float pi = 3.14159265358979323846f;
+	const float initial_angles[4] =
+	{
+		0.0f,
+		pi / 2.0f,
+		pi / 4.0f,
+		3.0f * pi / 4.0f
+	};
+
+	D3D11_SUBRESOURCE_DATA d = {};
+	d.pSysMem = &initial_angles[0];
+	d.SysMemPitch = sizeof(initial_angles);
+
+	ThrowIfFailed(device->CreateBuffer(&desc, &d, r.GetAddressOf()));
+	return r;
+}
+
+static ComPtr<ID3D11ShaderResourceView1> CreateRotationAnglesView(ID3D11Device3* d, ID3D11Buffer* buffer)
+{
+	ComPtr<ID3D11ShaderResourceView1> r;
+	D3D11_SHADER_RESOURCE_VIEW_DESC1 desc = {};
+
+	desc.ViewDimension			= D3D11_SRV_DIMENSION_BUFFER;
+	desc.Format					= DXGI_FORMAT_R32_FLOAT;
+	desc.Buffer.ElementWidth	= sizeof(float);
+	desc.Buffer.NumElements		= 4;
+	
+
+	ThrowIfFailed(d->CreateShaderResourceView1(buffer, &desc, r.GetAddressOf()));
+	return r;
+}
+
 class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFrameworkViewSource>
 {
 	public:
@@ -155,6 +198,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_activated			= v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
 		m_device			= CreateDevice();
 		m_device_context	= CreateImmediateContext(m_device.Get());
+
+		m_rotation_angles	= CreateRotationAnglesBuffer(m_device.Get());
+		m_rotation_angles_view = CreateRotationAnglesView(m_device.Get(), m_rotation_angles.Get());
 	}
 
 	void Uninitialize() 
@@ -207,6 +253,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 				}
 
 				{
+					ID3D11ShaderResourceView* v[1] = { m_rotation_angles_view.Get() };
+					m_device_context->VSSetShaderResources(0, 1, v);
+
 					m_device_context->VSSetShader(m_triangle_vertex.Get(), nullptr, 0);
 				}
 
@@ -281,6 +330,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 	uint32_t									m_back_buffer_width = 0;
 	uint32_t									m_back_buffer_height = 0;
+
+	ComPtr<ID3D11Buffer>						m_rotation_angles;
+	ComPtr<ID3D11ShaderResourceView1>			m_rotation_angles_view;
 
 	
 	

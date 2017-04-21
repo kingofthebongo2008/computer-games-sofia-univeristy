@@ -63,6 +63,13 @@ static const float3 translations[4] =
 	{ 0.5f,  -0.5f, 0.0f }
 };
 
+Buffer<float> rotation_angles : register(t0);
+
+float load_rotation_angle(uint instance)
+{
+	return rotation_angles.Load(instance);
+}
+
 interpolated_value main(uint v : SV_VERTEXID, uint inst : SV_INSTANCEID)
 {
 	interpolated_value r;
@@ -70,7 +77,7 @@ interpolated_value main(uint v : SV_VERTEXID, uint inst : SV_INSTANCEID)
 	const float		pi			 = 3.1415f;
 	float4			position	 = float4(0.0f, 0.0f, 0.0f, 1.0f);
 	float4x4		translation	 = make_float4x4_translation(translations[inst]);
-	float4x4		rotation	 = make_float4x4_rotation_z( pi / 2.0f);
+	float4x4		rotation	 = make_float4x4_rotation_z(load_rotation_angle(inst));
 	float4x4		scale		 = make_float4x4_scale(0.5f);
 
 
