@@ -14,6 +14,8 @@
 #include <triangle_vertex.h>
 #include <triangle_pixel.h>
 
+#include "sys_profile_timer.h"
+
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::ApplicationModel::Activation;
@@ -141,6 +143,15 @@ static ComPtr<ID3D11DepthStencilState> CreateDepthStencilState(ID3D11Device3* de
 	return r;
 }
 
+static const float pi = 3.14159265358979323846f;
+static const float initial_angles[4] =
+{
+	0.0f,
+	pi / 2.0f,
+	pi / 4.0f,
+	3.0f * pi / 4.0f
+};
+
 struct ComPtr<ID3D11Buffer> CreateRotationAnglesBuffer(ID3D11Device3* device)
 {
 	ComPtr<ID3D11Buffer> r;
@@ -151,15 +162,6 @@ struct ComPtr<ID3D11Buffer> CreateRotationAnglesBuffer(ID3D11Device3* device)
 	desc.Usage				= D3D11_USAGE_DYNAMIC;
 	desc.CPUAccessFlags	= D3D11_CPU_ACCESS_WRITE;
 	desc.BindFlags			= D3D11_BIND_SHADER_RESOURCE;
-
-	const float pi = 3.14159265358979323846f;
-	const float initial_angles[4] =
-	{
-		0.0f,
-		pi / 2.0f,
-		pi / 4.0f,
-		3.0f * pi / 4.0f
-	};
 
 	D3D11_SUBRESOURCE_DATA d = {};
 	d.pSysMem = &initial_angles[0];
@@ -201,6 +203,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 		m_rotation_angles	= CreateRotationAnglesBuffer(m_device.Get());
 		m_rotation_angles_view = CreateRotationAnglesView(m_device.Get(), m_rotation_angles.Get());
+
+		for (auto i = 0; i < 4; ++i)
+		{
+			m_angles[i] = initial_angles[i];
+		}
 	}
 
 	void Uninitialize() 
@@ -214,6 +221,25 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		{
 			CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 
+			
+
+			//game update
+			{
+				double frame_time	= m_frame_timer.seconds();
+				m_frame_timer.reset();
+
+
+				const float total			= 3.14159265358979323846f * 2.0f;
+				const  uint32_t steps		= 144;
+				const float step_rotation	= total / steps;
+
+				for (auto i = 0; i < 4; ++i)
+				{
+					m_angles[i] = static_cast<float>(m_angles[i] + 100.0f * frame_time * step_rotation);
+				}
+			}
+
+			//game render
 			{
 				ComPtr<ID3D11RenderTargetView1> m_swap_chain_view = CreateSwapChainView(m_swap_chain.Get(), m_device.Get());
 
@@ -240,7 +266,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 					D3D11_RECT r = { 0, 0, m_back_buffer_width, m_back_buffer_height };
 					m_device_context->RSSetScissorRects(1, &r);
 					
-
 					D3D11_VIEWPORT v;
 					v.TopLeftX = 0;
 					v.TopLeftY = 0;
@@ -253,9 +278,16 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 				}
 
 				{
+					D3D11_MAPPED_SUBRESOURCE mapped = {};
+					ThrowIfFailed(m_device_context->Map(m_rotation_angles.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped));
+
+					std::memcpy(mapped.pData, &m_angles[0], sizeof(m_angles));
+
+					m_device_context->Unmap(m_rotation_angles.Get(), 0 );
+					
+
 					ID3D11ShaderResourceView* v[1] = { m_rotation_angles_view.Get() };
 					m_device_context->VSSetShaderResources(0, 1, v);
-
 					m_device_context->VSSetShader(m_triangle_vertex.Get(), nullptr, 0);
 				}
 
@@ -334,8 +366,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	ComPtr<ID3D11Buffer>						m_rotation_angles;
 	ComPtr<ID3D11ShaderResourceView1>			m_rotation_angles_view;
 
-	
-	
+	float										m_angles[4];
+	sys::profile_timer							m_frame_timer;
+
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )

@@ -18,6 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\hello_triangle\pch.h" />
+    <ClInclude Include="..\..\src\hello_triangle_rotate\sys_profile_timer.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png">

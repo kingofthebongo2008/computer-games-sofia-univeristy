@@ -179,6 +179,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\hello_triangle\pch.h" />
+    <ClInclude Include="..\..\src\hello_triangle_rotate\sys_profile_timer.h" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="package.appxmanifest">
