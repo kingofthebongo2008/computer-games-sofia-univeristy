@@ -1,11 +1,7 @@
 struct interpolated_value
 {
 	float4 m_position : SV_POSITION;
-};
-
-struct vector4
-{
-	float4 value;
+	uint   instanceid : SV_INSTANCEID;
 };
 
 float4x4 make_float4x4_translation(float3 v)
@@ -59,16 +55,24 @@ float4x4 make_float4x4_scale(float scale)
 	return m;
 }
 
-interpolated_value main(uint v : SV_VERTEXID)
+static const float3 translations[4] =
+{
+	{ -0.5f, -0.5f, 0.0f },
+	{ 0.5f,   0.5f, 0.0f },
+	{ -0.5f,  0.5f, 0.0f },
+	{ 0.5f,  -0.5f, 0.0f }
+};
+
+interpolated_value main(uint v : SV_VERTEXID, uint inst : SV_INSTANCEID)
 {
 	interpolated_value r;
 
 	const float		pi			 = 3.1415f;
 	float4			position	 = float4(0.0f, 0.0f, 0.0f, 1.0f);
-	float4x4		translation  = make_float4x4_translation(float3(0.0, -0.5f, 0.0f));
+	float4x4		translation	 = make_float4x4_translation(translations[inst]);
 	float4x4		rotation	 = make_float4x4_rotation_z( pi / 2.0f);
 	float4x4		scale		 = make_float4x4_scale(0.5f);
-	
+
 
 	if (v == 0)
 	{
@@ -88,5 +92,6 @@ interpolated_value main(uint v : SV_VERTEXID)
 	position		= mul(position, translation);
 
 	r.m_position	= position;
+	r.instanceid	= inst;
 	return r;
 }

@@ -218,7 +218,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 				}
 
 				{
-					m_device_context->Draw(3, 0);
+					m_device_context->DrawInstanced(3,4,0, 0);
 				}
 			}
 			m_swap_chain->Present(0, 0);
