@@ -13,6 +13,13 @@ namespace computational_geometry
         float m_z = 0.0f;
     };
 
+    struct float2
+    {
+        float m_x = 0.0f;
+        float m_y = 0.0f;
+    };
+
+    /////////////////////
     inline float3 operator+(const float3& a, const float3& b)
     {
         return { a.m_x + b.m_x, a.m_y + b.m_y, a.m_z + b.m_z };
@@ -53,6 +60,49 @@ namespace computational_geometry
         return a / sqrtf(dot(a, a));
     }
 
+
+    /////////////////////
+    inline float2 operator+(const float2& a, const float2& b)
+    {
+        return { a.m_x + b.m_x, a.m_y + b.m_y};
+    }
+
+    inline float2 operator-(const float2& a, const float2& b)
+    {
+        return { a.m_x + b.m_x, a.m_y + b.m_y };
+    }
+
+    inline float2 operator*(const float2& a, float s)
+    {
+        return { a.m_x * s, a.m_y * s};
+    }
+
+    inline float2 operator*(float s, const float2& a)
+    {
+        return { a.m_x * s, a.m_y * s};
+    }
+
+    inline float2 operator/(const float2& a, float s)
+    {
+        return { a.m_x / s, a.m_y / s };
+    }
+
+    inline float2 operator/(float s, const float2& a)
+    {
+        return { s / a.m_x, s / a.m_y };
+    }
+
+    inline float dot(const float2& a, const float2& b)
+    {
+        return a.m_x * b.m_x + a.m_y * b.m_y;
+    }
+
+    inline float2 normalize(const float2& a)
+    {
+        return a / sqrtf(dot(a, a));
+    }
+
+    ///////////
     inline float3 cross(const float3& a, const float3& b)
     {
         float u1 = a.m_x;
@@ -107,9 +157,9 @@ namespace computational_geometry
     /*
     enum frustum_projection : uint32_t
     {
-        Top     = 0, // z = 0
-        Left    = 1, // x = 0
-        Front   = 2, // y = 0
+        Left    = 0, // x = 0
+        Front   = 1, // y = 0
+        Top     = 2, // z = 0
     };
     */
 

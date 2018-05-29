@@ -11,10 +11,22 @@ namespace computational_geometry
         float  m_d = 0.0f;
     };
 
-    struct edge
+    struct edge3d
     {
         float3 m_a;
         float3 m_b;
+    };
+
+    struct edge2d
+    {
+        float2 m_a;
+        float2 m_b;
+    };
+
+    struct line2d
+    {
+        float2 m_n;
+        float  m_d;
     };
 
     aabb make_aabb(const frustum& f)
@@ -106,6 +118,21 @@ namespace computational_geometry
         return  { n, d };
     }
 
+    line2d make_line_2d(const float2& a, const float2& b)
+    {
+        float  x1   = a.m_x;
+        float  x2   = b.m_x;
+
+        float  y1   = a.m_y;
+        float  y2   = b.m_y;
+
+        float  a_    = y2 - y1;
+        float  b_    = x1 - x2;
+        float  c_    = x2 * y1 - y2 * x1;
+
+        return { {a_,b_}, c_ };
+    }
+
 
     std::array< plane, 6 > make_face_planes(const frustum& f )
     {
@@ -154,34 +181,46 @@ namespace computational_geometry
         }
     }
 
-    template <uint32_t edge>
-    edge make_edge(const frustum& f)
+    template <uint32_t edge_index>
+    edge3d make_edge_3d(const frustum& f)
     {
         uint32_t a = 0;
         uint32_t b = 0;
 
-        get_edge<edge>(index, a, b);
+        get_edge<edge_index>( a, b);
         return { f.m_points[a], f.m_points[b] };
     }
 
-    std::array<edge, 12> make_edges(const frustum& f)
+    std::array<edge3d, 12> make_edges(const frustum& f)
     {
-        std::array<edge, 12> r;
+        std::array<edge3d, 12> r;
 
-        r[0]    = make_edge<0>(f);
-        r[1]    = make_edge<1>(f);
-        r[2]    = make_edge<2>(f);
-        r[3]    = make_edge<3>(f);
+        r[0]    = make_edge_3d<0>(f);
+        r[1]    = make_edge_3d<1>(f);
+        r[2]    = make_edge_3d<2>(f);
+        r[3]    = make_edge_3d<3>(f);
 
-        r[4]    = make_edge<4>(f);
-        r[5]    = make_edge<5>(f);
-        r[6]    = make_edge<6>(f);
-        r[7]    = make_edge<7>(f);
+        r[4]    = make_edge_3d<4>(f);
+        r[5]    = make_edge_3d<5>(f);
+        r[6]    = make_edge_3d<6>(f);
+        r[7]    = make_edge_3d<7>(f);
 
-        r[8]    = make_edge<8>(f);
-        r[9]    = make_edge<9>(f);
-        r[10]   = make_edge<10>(f);
-        r[11]   = make_edge<11>(f);
+        r[8]    = make_edge_3d<8>(f);
+        r[9]    = make_edge_3d<9>(f);
+        r[10]   = make_edge_3d<10>(f);
+        r[11]   = make_edge_3d<11>(f);
+
+        return r;
+    }
+
+    std::array<line2d, 12> make_lines(const std::array<edge2d, 12> & e)
+    {
+        std::array<line2d, 12> r;
+
+        for (auto i = 0U; i < 12; ++i)
+        {
+            r[i] = make_line_2d(e[i].m_a, e[i].m_b);
+        }
 
         return r;
     }
@@ -241,9 +280,9 @@ namespace computational_geometry
 
     enum class plane_aabb_intersection : uint32_t 
     {
-        inside      = 0,
-        outside     = 1,
-        intersects  = 2
+        inside          = 0,
+        outside         = 1,
+        intersection   = 2
     };
 
     plane_aabb_intersection intersects(const std::array<float3, 8>& a, const plane& p)
@@ -279,9 +318,76 @@ namespace computational_geometry
             return plane_aabb_intersection::inside;
         }
 
-        return plane_aabb_intersection::intersects;
+        return plane_aabb_intersection::intersection;
     }
 
+    bool outside(const std::array<float2, 8>& a, const line2d& p)
+    {
+        float dots[8];
+
+        dots[0] = dot(p.m_n, a[0]) + p.m_d;
+        dots[1] = dot(p.m_n, a[1]) + p.m_d;
+        dots[2] = dot(p.m_n, a[2]) + p.m_d;
+        dots[3] = dot(p.m_n, a[3]) + p.m_d;
+
+        dots[4] = dot(p.m_n, a[4]) + p.m_d;
+        dots[5] = dot(p.m_n, a[5]) + p.m_d;
+        dots[6] = dot(p.m_n, a[6]) + p.m_d;
+        dots[7] = dot(p.m_n, a[7]) + p.m_d;
+
+        bool positive_half_plane = true;
+        bool negative_half_plane = true;
+
+        for (auto i = 0U; i < 8; ++i)
+        {
+            positive_half_plane = positive_half_plane && (dots[i] > 0.0f);
+        }
+
+        return positive_half_plane;
+    }
+
+    template <uint32_t axis> float2 project_point(const float3& p)
+    {
+        switch (axis)
+        {
+            case 0: return  {p.m_y, p.m_z };
+            case 1: return  {p.m_x, p.m_z };
+            case 2: return  {p.m_x, p.m_y };
+            default: __assume(false);
+        }
+    }
+
+    template <uint32_t axis> 
+    edge2d project_edge(const edge3d& e)
+    {
+        return  { project_point<axis>(e.m_a), project_point<axis>(e.m_b) };
+    }
+
+    template <uint32_t axis>
+    std::array<edge2d, 12> project_edges(const std::array<edge3d, 12>& e)
+    {
+        std::array<edge2d, 12> r;
+
+        for (auto i = 0U; i < 12; ++i)
+        {
+            r[i] = project_edge<axis>(e[i]);
+        }
+
+        return r;
+    }
+
+    template <uint32_t axis>
+    std::array<float2, 8> project_points(const std::array<float3, 8>& p)
+    {
+        std::array<float2, 8> r;
+
+        for (auto i = 0U; i < 8; ++i)
+        {
+            r[i] = project_point<axis>(p[i]);
+        }
+
+        return r;
+    }
 
     std::vector< float3 > intersection( const frustum& f, const aabb& b )
     {
@@ -304,12 +410,12 @@ namespace computational_geometry
 
         std::array<float3, 8>      points       = make_points(b);
         std::array<plane, 6>     face_planes    = make_face_planes(f);
-        uint32_t r_intersections = 0;
+        uint32_t r_intersections                = 0;    //contains in the bits intersected planes
 
+        //face plane tests
         {
             uint32_t r_inside                   = 0;
 
-            //face plane tests
             for (auto i = 0U; i < 6; ++i)
             {
                 plane_aabb_intersection section = intersects(points, face_planes[i]);
@@ -338,12 +444,48 @@ namespace computational_geometry
 
         //edge-lines
         {
-            std::array<edge, 12>    edge_lines = make_edges(f);
+            std::array<edge3d, 12>    edge_lines  = make_edges(f);
 
-            
+            std::array<edge2d, 12>    edges_x     = project_edges<0>(edge_lines);
+            std::array<edge2d, 12>    edges_y     = project_edges<1>(edge_lines);
+            std::array<edge2d, 12>    edges_z     = project_edges<2>(edge_lines);
 
+            std::array<float2, 8>   points_x      = project_points<0>(points);
+            std::array<float2, 8>   points_y      = project_points<1>(points);
+            std::array<float2, 8>   points_z      = project_points<2>(points);
+
+            std::array<line2d, 12>  lines_x       = make_lines(edges_x);
+            std::array<line2d, 12>  lines_y       = make_lines(edges_y);
+            std::array<line2d, 12>  lines_z       = make_lines(edges_z);
+
+            for (auto i = 0U; i < 12; ++i)
+            {
+                if (outside(points_x, lines_x[i]))
+                {
+                    return r;
+                }
+            }
+
+            for (auto i = 0U; i < 12; ++i)
+            {
+                if (outside(points_y, lines_y[i]))
+                {
+                    return r;
+                }
+            }
+
+            for (auto i = 0U; i < 12; ++i)
+            {
+                if (outside(points_y, lines_y[i]))
+                {
+                    return r;
+                }
+            }
 
         }
+
+        
+
         return r;
     }
 }
