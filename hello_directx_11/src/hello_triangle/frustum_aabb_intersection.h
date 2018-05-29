@@ -2,6 +2,7 @@
 
 #include <intrin.h>
 #include <cstdint>
+#include <vector>
 
 namespace computational_geometry
 {
@@ -32,4 +33,6 @@ namespace computational_geometry
         float3 m_min;
         float3 m_max;
     };
+
+    std::vector< float3 > intersection(const frustum& f, const aabb& b);
 }
