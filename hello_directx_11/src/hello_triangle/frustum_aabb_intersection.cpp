@@ -114,7 +114,7 @@ namespace computational_geometry
         float3 u    = b - a;
         float3 v    = c - a;
         float3 n    = normalize(cross(u, v));
-        auto     d  = dot(n, a);
+        auto     d  = -dot(n, a); //note: if the plane equation is ax+by+cz+d, then this is negative, else positive
         return  { n, d };
     }
 
@@ -140,7 +140,7 @@ namespace computational_geometry
 
         //Consistency check, these planes should be like the other ones
         plane  near0    = make_plane(f.m_points[frustum_points::NearBottomLeft], f.m_points[frustum_points::NearTopRight], f.m_points[frustum_points::NearBottomRight]);
-        plane  far0     = make_plane(f.m_points[frustum_points::FarBottomRight], f.m_points[frustum_points::NearTopRight], f.m_points[frustum_points::FarTopLeft]);
+        plane  far0     = make_plane(f.m_points[frustum_points::FarBottomRight], f.m_points[frustum_points::FarTopRight], f.m_points[frustum_points::FarBottomLeft]);
         plane  left0    = make_plane(f.m_points[frustum_points::NearBottomLeft],f.m_points[frustum_points:: FarTopLeft], f.m_points[frustum_points::NearTopLeft]);
         plane  right0   = make_plane(f.m_points[frustum_points::NearBottomRight], f.m_points[frustum_points::FarTopRight], f.m_points[frustum_points::FarBottomRight]);
         plane  top0     = make_plane(f.m_points[frustum_points::NearTopRight], f.m_points[frustum_points::FarTopLeft], f.m_points[frustum_points::FarTopRight]);
@@ -158,7 +158,7 @@ namespace computational_geometry
     }
 
     template <uint32_t edge>
-    constexpr void get_edge(uint32_t a, uint32_t b)
+    constexpr void get_edge(uint32_t& a, uint32_t& b)
     {
         switch (edge)
         {
@@ -260,7 +260,6 @@ namespace computational_geometry
         return r;
     }
 
-
     std::array<float3, 8> make_points(const aabb& f)
     {
         std::array<float3, 8> r;
@@ -305,7 +304,7 @@ namespace computational_geometry
         for (auto i = 0U; i < 8; ++i)
         {
             positive_half_plane = positive_half_plane && (dots[i] > 0.0f);
-            negative_half_plane = negative_half_plane && (dots[i] > 0.0f);
+            negative_half_plane = negative_half_plane && (dots[i] < 0.0f);
         }
 
         if (positive_half_plane)
@@ -485,6 +484,8 @@ namespace computational_geometry
         }
 
         
+
+
 
         return r;
     }

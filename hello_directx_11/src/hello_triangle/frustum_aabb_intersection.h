@@ -27,7 +27,7 @@ namespace computational_geometry
 
     inline float3 operator-(const float3& a, const float3& b)
     {
-        return { a.m_x + b.m_x, a.m_y + b.m_y, a.m_z + b.m_z };
+        return { a.m_x - b.m_x, a.m_y - b.m_y, a.m_z - b.m_z };
     }
 
     inline float3 operator*(const float3& a, float s)
@@ -52,7 +52,7 @@ namespace computational_geometry
 
     inline float dot(const float3& a, const float3& b)
     {
-        return a.m_x * b.m_x + a.m_y * b.m_y + a.m_z + b.m_z;
+        return a.m_x * b.m_x + a.m_y * b.m_y + a.m_z * b.m_z;
     }
 
     inline float3 normalize(const float3& a)
@@ -69,7 +69,7 @@ namespace computational_geometry
 
     inline float2 operator-(const float2& a, const float2& b)
     {
-        return { a.m_x + b.m_x, a.m_y + b.m_y };
+        return { a.m_x - b.m_x, a.m_y - b.m_y };
     }
 
     inline float2 operator*(const float2& a, float s)

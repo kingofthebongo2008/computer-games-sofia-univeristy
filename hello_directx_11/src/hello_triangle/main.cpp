@@ -14,6 +14,8 @@
 #include <triangle_vertex.h>
 #include <triangle_pixel.h>
 
+#include "frustum_aabb_intersection.h"
+
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::ApplicationModel::Activation;
@@ -234,6 +236,49 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_blend_state = CreateBlendState(m_device.Get());
 		m_rasterizer_state = CreateRasterizerState(m_device.Get());
 		m_depth_stencil_state = CreateDepthStencilState(m_device.Get());
+
+        using namespace computational_geometry;
+        {
+            aabb a;
+            frustum b;
+
+            a.m_min = { -1, -1, -1 };
+            a.m_max = { 1,  1, 1 };
+
+            /*
+            b.m_points[frustum_points::NearBottomLeft]  = { -0.25, -0.25, 0.25f };
+            b.m_points[frustum_points::NearBottomRight] = {  0.25, -0.25, 0.25f };
+            b.m_points[frustum_points::NearTopLeft]     = {  -0.25, 0.25, 0.25f };
+            b.m_points[frustum_points::NearTopRight]    = {   0.25, 0.25, 0.25f };
+
+            b.m_points[frustum_points::FarBottomLeft]   = { -0.75, -0.75, 2.0f };
+            b.m_points[frustum_points::FarBottomRight]  = { 0.75, -0.75,  2.0f };
+            b.m_points[frustum_points::FarTopLeft]      = { -0.75,  0.75, 2.0f };
+            b.m_points[frustum_points::FarTopRight]     = {  0.75,  0.75, 2.0f };
+            */
+
+
+            b.m_points[frustum_points::NearBottomLeft]  = { -0.25, -0.25, 0.25f };
+            b.m_points[frustum_points::NearBottomRight] = {  0.25, -0.25, 0.25f };
+            b.m_points[frustum_points::NearTopLeft]     = {  -0.25, 0.25, 0.25f };
+            b.m_points[frustum_points::NearTopRight]    = {   0.25, 0.25, 0.25f };
+
+            b.m_points[frustum_points::FarBottomLeft]   = { -0.25, -0.25, 2.0f };
+            b.m_points[frustum_points::FarBottomRight]  = { 0.25, -0.25,  2.0f };
+            b.m_points[frustum_points::FarTopLeft]      = { -0.25,  0.25, 2.0f };
+            b.m_points[frustum_points::FarTopRight]     = {  0.25,  0.25, 2.0f };
+
+
+            auto r = intersection(b, a);
+
+            __debugbreak();
+
+
+        }
+
+
+
+
 	}
 
 	void SetWindow(const CoreWindow& w)

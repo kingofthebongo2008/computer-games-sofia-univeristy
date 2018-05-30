@@ -15,9 +15,11 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\hello_triangle\main.cpp" />
     <ClCompile Include="..\..\src\hello_triangle\pch.cpp" />
+    <ClCompile Include="..\..\src\hello_triangle\frustum_aabb_intersection.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\hello_triangle\pch.h" />
+    <ClInclude Include="..\..\src\hello_triangle\frustum_aabb_intersection.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png">
