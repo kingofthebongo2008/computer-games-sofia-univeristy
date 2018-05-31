@@ -152,7 +152,7 @@ static const float initial_angles[4] =
 	3.0f * pi / 4.0f
 };
 
-struct ComPtr<ID3D11Buffer> CreateRotationAnglesBuffer(ID3D11Device3* device)
+ ComPtr<ID3D11Buffer> CreateRotationAnglesBuffer(ID3D11Device3* device)
 {
 	ComPtr<ID3D11Buffer> r;
 	D3D11_BUFFER_DESC desc = {};

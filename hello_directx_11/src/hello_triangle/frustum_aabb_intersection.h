@@ -25,18 +25,17 @@ namespace computational_geometry
             return { m_z, m_x, m_y };
         }
 
-        float operator[](const int32_t index) const
+        template <uint32 i> float index() const
         {
-            switch (index)
+            switch (i)
             {
                 case 0: return m_x;
                 case 1: return m_y;
                 case 2: return m_z;
-                default: __assume(false);
+                default:
+                return 0.0f;
             }
         }
-
-
     };
 
     struct float2

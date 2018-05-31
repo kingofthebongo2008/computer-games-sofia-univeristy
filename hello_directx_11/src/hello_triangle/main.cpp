@@ -239,11 +239,14 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
         using namespace computational_geometry;
         {
-            aabb a;
-            frustum b;
+            aabb a1;
+            frustum b1;
 
-            a.m_min = { -1, -1, -1 };
-            a.m_max = { 1,  1, 1 };
+            aabb a2;
+            frustum b2;
+
+            a1.m_min = { -1, -1, -1 };
+            a1.m_max = { 1,  1, 1 };
 
             /*
             b.m_points[frustum_points::NearBottomLeft]  = { -0.25, -0.25, 0.25f };
@@ -257,19 +260,25 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             b.m_points[frustum_points::FarTopRight]     = {  0.75,  0.75, 2.0f };
             */
 
+            
+            b1.m_points[frustum_points::NearBottomLeft]     = { -0.25, -0.25, -2.0f };
+            b1.m_points[frustum_points::NearBottomRight]    = {  0.25, -0.25, -2.0f };
+            b1.m_points[frustum_points::NearTopRight]       = {  0.25, 0.25, -2.0 };
+            b1.m_points[frustum_points::NearTopLeft]        = {  -0.25, 0.25, -2.0 };
+            
 
-            b.m_points[frustum_points::NearBottomLeft]  = { -0.25, -0.25, 0.25f };
-            b.m_points[frustum_points::NearBottomRight] = {  0.25, -0.25, 0.25f };
-            b.m_points[frustum_points::NearTopLeft]     = {  -0.25, 0.25, 0.25f };
-            b.m_points[frustum_points::NearTopRight]    = {   0.25, 0.25, 0.25f };
+            b1.m_points[frustum_points::FarBottomLeft]      = { -0.25, -0.25, 2.0f };
+            b1.m_points[frustum_points::FarBottomRight]     = { 0.25, -0.25,  2.0f };
+            b1.m_points[frustum_points::FarTopRight]        = { 0.25,  0.25, 2.0f };
+            b1.m_points[frustum_points::FarTopLeft]         = { -0.25,  0.25, 2.0f };
+            
+            
 
-            b.m_points[frustum_points::FarBottomLeft]   = { -0.25, -0.25, 2.0f };
-            b.m_points[frustum_points::FarBottomRight]  = { 0.25, -0.25,  2.0f };
-            b.m_points[frustum_points::FarTopLeft]      = { -0.25,  0.25, 2.0f };
-            b.m_points[frustum_points::FarTopRight]     = {  0.25,  0.25, 2.0f };
+            
 
 
-            auto r = intersection(b, a);
+            auto r1 = clip(b1, a1);
+            auto r2 = intersection(b1, a1);
 
             __debugbreak();
 

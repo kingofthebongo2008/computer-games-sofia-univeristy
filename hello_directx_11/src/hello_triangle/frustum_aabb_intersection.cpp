@@ -358,14 +358,14 @@ namespace computational_geometry
         std::array<float3, 8> r;
 
         r[0] = { f.m_min.m_x, f.m_min.m_y, f.m_min.m_z };
-        r[1] = { f.m_min.m_x, f.m_min.m_y, f.m_max.m_z };
-        r[2] = { f.m_min.m_x, f.m_max.m_y, f.m_min.m_z };
-        r[3] = { f.m_min.m_x, f.m_max.m_y, f.m_max.m_z };
+        r[1] = { f.m_max.m_x, f.m_min.m_y, f.m_min.m_z };
+        r[2] = { f.m_max.m_x, f.m_max.m_y, f.m_min.m_z };
+        r[3] = { f.m_min.m_x, f.m_max.m_y, f.m_min.m_z };
 
-        r[4] = { f.m_max.m_x, f.m_min.m_y, f.m_min.m_z };
+        r[4] = { f.m_min.m_x, f.m_min.m_y, f.m_max.m_z };
         r[5] = { f.m_max.m_x, f.m_min.m_y, f.m_max.m_z };
-        r[6] = { f.m_max.m_x, f.m_max.m_y, f.m_min.m_z };
-        r[7] = { f.m_max.m_x, f.m_max.m_y, f.m_max.m_z };
+        r[6] = { f.m_max.m_x, f.m_max.m_y, f.m_max.m_z };
+        r[7] = { f.m_min.m_x, f.m_max.m_y, f.m_max.m_z };
 
         return r;
     }
@@ -636,9 +636,9 @@ namespace computational_geometry
         {
             float3 r;
 
-            r.m_x = a.m_x >= b.m_x ? 1.0f : 0.0f;
-            r.m_y = a.m_y >= b.m_y ? 1.0f : 0.0f;
-            r.m_z = a.m_z >= b.m_z ? 1.0f : 0.0f;
+            r.m_x = (a.m_x >= b.m_x) ? 1.0f : 0.0f;
+            r.m_y = (a.m_y >= b.m_y) ? 1.0f : 0.0f;
+            r.m_z = (a.m_z >= b.m_z) ? 1.0f : 0.0f;
             return r;
         }
 
@@ -670,42 +670,45 @@ namespace computational_geometry
 
         // There are either 1 or 2 vertices above the clipping plane .
         float3 above = greater_than_equal(dist, zero);
-        bool nextIsAbove;        // Find the CCW - most vertex above the plane .
-        if (above[1] && !above[0])
+        bool nextIsAbove;
+
+        // Find the CCW - most vertex above the plane .
+        if (above.index<1>() !=0.0f && !( above.index<0>()!=0.0f ) )
         {
             // Cycle once CCW . Use v3 as a temp
-            nextIsAbove = above[2];
+            nextIsAbove = above.index<2>();
             v3 = v0; v0 = v1; v1 = v2; v2 = v3;
             dist = dist.yzx();
         }
 
-        else if (above[2] && !above[1])
+        else if (above.index<2>() != 0.0f && !(above.index<1>()!=0.0f))
         {
             // Cycle once CW . Use v3 as a temp .
-            nextIsAbove = above[0];
+            nextIsAbove = above.index<0>();
             v3 = v2; v2 = v1; v1 = v0; v0 = v3;
             dist = dist.zxy();
         }
         else
         {
-            nextIsAbove = above[1];
+            nextIsAbove = above.index<1>();
         }
 
         // We always need to clip v2 - v0 .
-        v3 = mix(v0, v2, dist[0] / (dist[0] - dist[2]));
+        v3 = mix(v0, v2, dist.index<0>() / (dist.index<0>() - dist.index<2>()));
         if (nextIsAbove)
         {
             // Case 3
-            v2 = mix(v1, v2, dist[1] / (dist[1] - dist[2]));
+            v2 = mix(v1, v2, dist.index<1>() / (dist.index<1>() - dist.index<2>()));
             return 4;
         }
         else
         {
             // Case 4
-            v1 = mix(v0, v1, dist[0] / (dist[0] - dist[1]));
+            v1 = mix(v0, v1, dist.index<0>() / (dist.index<0>() - dist.index<1>()));
             v2 = v3; v3 = v0;
             return 3;
-        }    }
+        }
+    }
 
     std::vector< float3 > clip(const frustum& f, const aabb& b)
     {
@@ -713,7 +716,76 @@ namespace computational_geometry
         std::array<plane, 6>             planes     = make_face_planes(f);
         std::array<float3, 8>            points     = make_points(b);
 
+        std::vector<float3>              r;
 
+        r.reserve(24);
 
+        std::unordered_set<float3> s;
+
+        for (auto i = 0U; i < 12; ++i)
+        {
+            float3 va = points[indices[i].m_a];
+            float3 vb = points[indices[i].m_b];
+            float3 vc = points[indices[i].m_c];
+
+            for (auto j = 0U; j < 6; ++j)
+            {
+                float3 d    = { planes[j].m_d, planes[j].m_d, planes[j].m_d };
+                float3 v0   = va + d;
+                float3 v1   = vb + d;
+                float3 v2   = vc + d;
+                float3 v3   = { 0,0,0 };
+
+                int32_t clipped   = clip3(-1.0f * planes[j].m_n, v0, v1, v2, v3);
+
+                if (clipped > 0)
+                {
+                    v0 = v0 - d;
+                    v1 = v1 - d;
+                    v2 = v2 - d;
+                    v3 = v3 - d;
+
+                    s.insert(v0);
+                    r.push_back(v0);
+
+                    if (clipped > 1)
+                    {
+                        s.insert(v1);
+                        r.push_back(v1);
+                    }
+
+                    if (clipped > 2)
+                    {
+                        s.insert(v2);
+                        r.push_back(v2);
+                    }
+
+                    if (clipped > 3)
+                    {
+                        s.insert(v3);
+                        r.push_back(v3);
+                    }
+                }
+            }
+        }
+        r.clear();
+        for (auto&& s0 : s)
+        {
+            bool inside = true;
+
+            for (auto j = 0U; j < 6; ++j)
+            {
+                float d = dot(planes[j].m_n, s0) + planes[j].m_d;
+
+                inside = inside && (d <= 0.0f);
+            }
+
+            if (inside)
+            {
+                r.push_back(s0);
+            }
+        }
+
+        return r;
     }
 }
