@@ -11,6 +11,32 @@ namespace computational_geometry
         float m_x = 0.0f;
         float m_y = 0.0f;
         float m_z = 0.0f;
+
+
+
+        //syntax sugar
+        float3 yzx() const
+        {
+            return { m_y, m_z, m_x };
+        }
+
+        float3 zxy() const
+        {
+            return { m_z, m_x, m_y };
+        }
+
+        float operator[](const int32_t index) const
+        {
+            switch (index)
+            {
+                case 0: return m_x;
+                case 1: return m_y;
+                case 2: return m_z;
+                default: __assume(false);
+            }
+        }
+
+
     };
 
     struct float2
@@ -20,6 +46,11 @@ namespace computational_geometry
     };
 
     /////////////////////
+    inline bool operator==(const float3& a, const float3& b)
+    {
+        return ((a.m_x == b.m_x) && (a.m_y == b.m_y) && (a.m_z == b.m_z) );
+    }
+
     inline float3 operator+(const float3& a, const float3& b)
     {
         return { a.m_x + b.m_x, a.m_y + b.m_y, a.m_z + b.m_z };
@@ -164,4 +195,7 @@ namespace computational_geometry
     */
 
     std::vector< float3 > intersection(const frustum& f, const aabb& b);
+
+
+    std::vector< float3 > clip(const frustum& f, const aabb& b);
 }

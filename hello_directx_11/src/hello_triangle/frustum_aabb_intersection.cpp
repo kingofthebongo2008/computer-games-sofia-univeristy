@@ -2,6 +2,27 @@
 #include "frustum_aabb_intersection.h"
 #include <algorithm>
 #include <array>
+#include <unordered_set>
+#include <functional>
+
+
+namespace std
+{
+    template <>
+    struct hash<computational_geometry::float3>
+    {
+        size_t operator()(const computational_geometry::float3& k) const
+        {
+            // Compute individual hash values for first, second and third
+            // http://stackoverflow.com/a/1646913/126995
+            size_t res = 17;
+            res = res * 31 + hash<float>()(k.m_x);
+            res = res * 31 + hash<float>()(k.m_y);
+            res = res * 31 + hash<float>()(k.m_z);
+            return res;
+        }
+    };
+}
 
 namespace computational_geometry
 {
@@ -27,6 +48,14 @@ namespace computational_geometry
     {
         float2 m_n;
         float  m_d;
+    };
+
+    struct triangle_indexed
+    {
+        uint8_t m_a;
+        uint8_t m_b;
+        uint8_t m_c;
+        uint8_t m_padding;
     };
 
     aabb make_aabb(const frustum& f)
@@ -120,6 +149,7 @@ namespace computational_geometry
 
     line2d make_line_2d(const float2& a, const float2& b)
     {
+        //note: not normalized
         float  x1   = a.m_x;
         float  x2   = b.m_x;
 
@@ -191,6 +221,16 @@ namespace computational_geometry
         return { f.m_points[a], f.m_points[b] };
     }
 
+    template <uint32_t edge_index>
+    edge3d make_edge_3d(const float3* aabb_points)
+    {
+        uint32_t a = 0;
+        uint32_t b = 0;
+
+        get_edge<edge_index>(a, b);
+        return { aabb_points[a], aabb_points[b] };
+    }
+
     std::array<edge3d, 12> make_edges(const frustum& f)
     {
         std::array<edge3d, 12> r;
@@ -209,6 +249,59 @@ namespace computational_geometry
         r[9]    = make_edge_3d<9>(f);
         r[10]   = make_edge_3d<10>(f);
         r[11]   = make_edge_3d<11>(f);
+
+        return r;
+    }
+
+    std::array<triangle_indexed, 12> make_aabb_triangle_indices()
+    {
+        std::array<triangle_indexed, 12> r;
+
+        //left
+        r[0] = { 4, 0, 3 };
+        r[1] = { 4, 3, 7 };
+
+        //right
+        r[2] = { 1, 5, 6 };
+        r[3] = { 1, 6, 2 };
+
+        //top
+        r[4] = { 3, 2, 6 };
+        r[5] = { 3, 6, 7 };
+
+        //bottom
+        r[6] = { 3, 2, 6 };
+        r[7] = { 3, 6, 7 };
+
+        //near
+        r[8] = { 0, 1, 2 };
+        r[9] = { 0, 2, 3 };
+
+        //far
+        r[10] = { 5, 4, 7 };
+        r[11] = { 5, 7, 6 };
+
+        return r;
+    }
+
+    std::array<edge3d, 12> make_edges(const float3* f)
+    {
+        std::array<edge3d, 12> r;
+
+        r[0] = make_edge_3d<0>(f);
+        r[1] = make_edge_3d<1>(f);
+        r[2] = make_edge_3d<2>(f);
+        r[3] = make_edge_3d<3>(f);
+
+        r[4] = make_edge_3d<4>(f);
+        r[5] = make_edge_3d<5>(f);
+        r[6] = make_edge_3d<6>(f);
+        r[7] = make_edge_3d<7>(f);
+
+        r[8] = make_edge_3d<8>(f);
+        r[9] = make_edge_3d<9>(f);
+        r[10] = make_edge_3d<10>(f);
+        r[11] = make_edge_3d<11>(f);
 
         return r;
     }
@@ -388,6 +481,22 @@ namespace computational_geometry
         return r;
     }
 
+    bool intersect_segment_plane(const float3& a, const float3& b, const plane& p, float3& r)
+    {
+        float3 ab   = b - a;
+        float  t    = (-p.m_d - dot(p.m_n, a)) / dot(p.m_n, ab);
+
+        if (t > 0.0f && t < 1.0f)
+        {
+            r = a + t * ab;
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
     std::vector< float3 > intersection( const frustum& f, const aabb& b )
     {
         aabb f_abb                              = make_aabb(f);
@@ -480,13 +589,131 @@ namespace computational_geometry
                     return r;
                 }
             }
-
         }
 
-        
+        //test all intersected planes against the aabb edges
+        std::array<edge3d, 12>    edge_lines = make_edges(&points[0]);
 
+        std::unordered_set<float3> s;
 
+        for (auto i = 0U; i < 6; ++i)
+        {
+            if ((r_intersections & (1 << i)) != 0)
+            {
+                for (auto e = 0; e < 12; ++e)
+                {
+                    float3 point;
+
+                    if (intersect_segment_plane(edge_lines[e].m_a, edge_lines[e].m_b, face_planes[i], point))
+                    {
+                        s.insert(point);
+                    }
+                }
+            }
+        }
+
+        for (auto&& s0 : s)
+        {
+            r.push_back(s0);
+        }
 
         return r;
+    }
+
+    namespace
+    {
+        bool any(const float3& a)
+        {
+            return (a.m_x != 0.0f) || (a.m_y != 0.0f) || (a.m_z != 0.0f);
+        }
+
+        bool all(const float3& a)
+        {
+            return (a.m_x != 0.0f) && (a.m_y != 0.0f) && (a.m_z != 0.0f);
+        }
+
+        float3 greater_than_equal(const float3& a, const float3& b)
+        {
+            float3 r;
+
+            r.m_x = a.m_x >= b.m_x ? 1.0f : 0.0f;
+            r.m_y = a.m_y >= b.m_y ? 1.0f : 0.0f;
+            r.m_z = a.m_z >= b.m_z ? 1.0f : 0.0f;
+            return r;
+        }
+
+        float3 mix(const float3& a, const float3& b, float w)
+        {
+            return a * (1 - w) + (w) * b;
+        }
+    }
+
+    int clip3(const float3& n, float3& v0, float3& v1, float3& v2, float3& v3)
+    {
+        float3 dist                 = { dot(v0, n), dot(v1, n), dot(v2, n) };
+        const float3 clipEpsilon    = { 0.00001f, 0.00001f, 0.00001f };
+        const float3 clipEpsilon2   = { 0.01f, 0.01f, 0.01f };
+        const float3 zero           = { 0.0f, 0.0f, 0.0f };
+
+        if (!any(greater_than_equal(dist, clipEpsilon2)))
+        {
+            // Case 1 ( all clipped )
+            return 0;
+        }
+
+        if (all(greater_than_equal(dist, -1.0f * clipEpsilon)))
+        {
+            // Case 2 ( none clipped )
+            v3 = v0;
+            return 3;
+        }
+
+        // There are either 1 or 2 vertices above the clipping plane .
+        float3 above = greater_than_equal(dist, zero);
+        bool nextIsAbove;        // Find the CCW - most vertex above the plane .
+        if (above[1] && !above[0])
+        {
+            // Cycle once CCW . Use v3 as a temp
+            nextIsAbove = above[2];
+            v3 = v0; v0 = v1; v1 = v2; v2 = v3;
+            dist = dist.yzx();
+        }
+
+        else if (above[2] && !above[1])
+        {
+            // Cycle once CW . Use v3 as a temp .
+            nextIsAbove = above[0];
+            v3 = v2; v2 = v1; v1 = v0; v0 = v3;
+            dist = dist.zxy();
+        }
+        else
+        {
+            nextIsAbove = above[1];
+        }
+
+        // We always need to clip v2 - v0 .
+        v3 = mix(v0, v2, dist[0] / (dist[0] - dist[2]));
+        if (nextIsAbove)
+        {
+            // Case 3
+            v2 = mix(v1, v2, dist[1] / (dist[1] - dist[2]));
+            return 4;
+        }
+        else
+        {
+            // Case 4
+            v1 = mix(v0, v1, dist[0] / (dist[0] - dist[1]));
+            v2 = v3; v3 = v0;
+            return 3;
+        }    }
+
+    std::vector< float3 > clip(const frustum& f, const aabb& b)
+    {
+        std::array<triangle_indexed, 12> indices    = make_aabb_triangle_indices();
+        std::array<plane, 6>             planes     = make_face_planes(f);
+        std::array<float3, 8>            points     = make_points(b);
+
+
+
     }
 }
