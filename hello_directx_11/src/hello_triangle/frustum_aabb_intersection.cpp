@@ -4,6 +4,7 @@
 #include <array>
 #include <unordered_set>
 #include <functional>
+#include <assert.h>
 
 
 namespace std
@@ -789,7 +790,7 @@ namespace computational_geometry
         return r;
     }
 
-    struct clipper
+    struct convex_clipper
     {
         struct vertex
         {
@@ -1181,6 +1182,8 @@ namespace computational_geometry
                 for (auto j = 0U; j < index_count; ++j)
                 {
                     faces[i] = vmap[faces[i]];
+
+                    assert(faces[i] != -1);
                     i++;
                 }
             }
@@ -1189,14 +1192,14 @@ namespace computational_geometry
         }
     };
 
-    clipper make_clipper(const frustum& f)
+    convex_clipper make_clipper(const frustum& f)
     {
-        return clipper();
+        return convex_clipper();
     }
 
-    clipper make_clipper(const aabb& b)
+    convex_clipper make_clipper(const aabb& b)
     {
-        return clipper();
+        return convex_clipper();
     }
 
     std::vector< float3 > clip(const frustum& f, const aabb& b)
