@@ -790,7 +790,7 @@ namespace computational_geometry
         return r;
     }
 
-    struct convex_clipper
+    struct closed_convex_clipper
     {
         struct vertex
         {
@@ -1192,14 +1192,14 @@ namespace computational_geometry
         }
     };
 
-    convex_clipper make_clipper(const frustum& f)
+    closed_convex_clipper make_clipper(const frustum& f)
     {
-        return convex_clipper();
+        return closed_convex_clipper();
     }
 
-    convex_clipper make_clipper(const aabb& b)
+    closed_convex_clipper make_clipper(const aabb& b)
     {
-        return convex_clipper();
+        return closed_convex_clipper();
     }
 
     std::vector< float3 > clip(const frustum& f, const aabb& b)
