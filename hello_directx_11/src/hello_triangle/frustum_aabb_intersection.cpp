@@ -1120,7 +1120,6 @@ namespace computational_geometry
             }
         }
 
-
         int32_t     clip(const plane& p)
         {
             //vertex processing
@@ -1140,7 +1139,53 @@ namespace computational_geometry
                 }
             }
 
+            //edges processing
+            process_edges();
+
+            //faces processing
+            process_faces();
+
             return 0;
+        }
+
+        std::tuple< std::vector<float3>, std::vector<int32_t> > convert()
+        {
+            std::vector<float3>     point;
+            std::vector<int32_t>    vmap(m_vertices.size(), -1);
+
+            //copy the visible attributes into the table
+            for (auto i = 0U; i < m_vertices.size(); ++i)
+            {
+                if (m_vertices[i].m_visible)
+                {
+                    vmap[i] = static_cast<int32_t>( point.size() );
+                    point.push_back(m_vertices[i].m_point);
+                }
+            }
+
+            //order the vertices for all the faces. the output array has a
+            //sequence of subarrays, each subarray having first element sorting
+            //the number of vertices in the face, the remaining elements storing
+            //the vertex indices for that face in the correct order. The indices
+            //are relative to the m_vertices vector
+
+            std::vector<int32_t> faces = get_ordered_faces();
+
+            //map the vertex indices to those of the new table
+
+            for (auto i = 0U; i < faces.size(); ++i)
+            {
+                int32_t index_count = faces[i];
+                i = i + 1;
+
+                for (auto j = 0U; j < index_count; ++j)
+                {
+                    faces[i] = vmap[faces[i]];
+                    i++;
+                }
+            }
+
+            return make_tuple(std::move(point), std::move(faces));
         }
     };
 
