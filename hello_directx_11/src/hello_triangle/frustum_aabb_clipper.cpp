@@ -323,7 +323,7 @@ namespace computational_geometry
                     if (dot(m_faces[i].m_plane.m_n, get_normal(vertices)) > 0.0f)
                     {
                         //counterclockwise
-                        for (size_t j = vertices.size() - 2; j >= 0; j--)
+                        for (int32_t j = static_cast<int32_t>(vertices.size()) - 2; j >= 0; j--)
                         {
                             r.push_back(vertices[j]);
                         }
