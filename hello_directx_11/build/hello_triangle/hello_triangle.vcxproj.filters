@@ -16,6 +16,7 @@
     <ClCompile Include="..\..\src\hello_triangle\main.cpp" />
     <ClCompile Include="..\..\src\hello_triangle\pch.cpp" />
     <ClCompile Include="..\..\src\hello_triangle\frustum_aabb_intersection.cpp" />
+    <ClCompile Include="..\..\src\hello_triangle\frustum_aabb_clipper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\hello_triangle\pch.h" />
