@@ -5,6 +5,9 @@
 #include <unordered_set>
 #include <functional>
 #include <assert.h>
+#include <iostream>     // std::cout, std::ios
+#include <sstream>      // std::ostringstream
+
 
 
 namespace std
@@ -143,7 +146,7 @@ namespace computational_geometry
     {
         float3 u    = b - a;
         float3 v    = c - a;
-        float3 n    = normalize(cross(u, v));
+        float3 n    = normalize(cross(u, v)); //normal points inside
         auto     d  = -dot(n, a); //note: if the plane equation is ax+by+cz+d, then this is negative, else positive
         return  { n, d };
     }
@@ -164,18 +167,45 @@ namespace computational_geometry
         return { {a_,b_}, c_ };
     }
 
+    std::vector<float3> make_points(const frustum& f)
+    {
+        std::vector<float3> r;
+        r.reserve(8);
+        for (auto i = 0U; i < 8; ++i)
+        {
+            r.push_back(f.m_points[i]);
+        }
+        return r;
+    }
+
+    std::array<float3, 8> make_points(const aabb& f)
+    {
+        std::array<float3, 8> r;
+
+        r[0] = { f.m_min.m_x, f.m_min.m_y, f.m_min.m_z };
+        r[1] = { f.m_max.m_x, f.m_min.m_y, f.m_min.m_z };
+        r[2] = { f.m_max.m_x, f.m_max.m_y, f.m_min.m_z };
+        r[3] = { f.m_min.m_x, f.m_max.m_y, f.m_min.m_z };
+
+        r[4] = { f.m_min.m_x, f.m_min.m_y, f.m_max.m_z };
+        r[5] = { f.m_max.m_x, f.m_min.m_y, f.m_max.m_z };
+        r[6] = { f.m_max.m_x, f.m_max.m_y, f.m_max.m_z };
+        r[7] = { f.m_min.m_x, f.m_max.m_y, f.m_max.m_z };
+
+        return r;
+    }
 
     std::array< plane, 6 > make_face_planes(const frustum& f )
     {
         std::array< plane, 6 > r;
 
         //Consistency check, these planes should be like the other ones
-        plane  near0    = make_plane(f.m_points[frustum_points::NearBottomLeft], f.m_points[frustum_points::NearTopRight], f.m_points[frustum_points::NearBottomRight]);
-        plane  far0     = make_plane(f.m_points[frustum_points::FarBottomRight], f.m_points[frustum_points::FarTopRight], f.m_points[frustum_points::FarBottomLeft]);
-        plane  left0    = make_plane(f.m_points[frustum_points::NearBottomLeft],f.m_points[frustum_points:: FarTopLeft], f.m_points[frustum_points::NearTopLeft]);
-        plane  right0   = make_plane(f.m_points[frustum_points::NearBottomRight], f.m_points[frustum_points::FarTopRight], f.m_points[frustum_points::FarBottomRight]);
-        plane  top0     = make_plane(f.m_points[frustum_points::NearTopRight], f.m_points[frustum_points::FarTopLeft], f.m_points[frustum_points::FarTopRight]);
-        plane  bottom0  = make_plane(f.m_points[frustum_points::NearBottomRight], f.m_points[frustum_points::FarBottomLeft], f.m_points[frustum_points::NearBottomLeft]);
+        plane  near0    = make_plane(f.m_points[frustum_points::NearTopRight], f.m_points[frustum_points::NearBottomLeft], f.m_points[frustum_points::NearBottomRight]);
+        plane  far0     = make_plane(f.m_points[frustum_points::FarTopRight], f.m_points[frustum_points::FarBottomRight],  f.m_points[frustum_points::FarBottomLeft]);
+        plane  left0    = make_plane(f.m_points[frustum_points::FarTopLeft], f.m_points[frustum_points::NearBottomLeft], f.m_points[frustum_points::NearTopLeft]);
+        plane  right0   = make_plane(f.m_points[frustum_points::FarTopRight], f.m_points[frustum_points::NearBottomRight], f.m_points[frustum_points::FarBottomRight]);
+        plane  top0     = make_plane(f.m_points[frustum_points::FarTopLeft], f.m_points[frustum_points::NearTopRight], f.m_points[frustum_points::FarTopRight]);
+        plane  bottom0  = make_plane(f.m_points[frustum_points::FarBottomLeft], f.m_points[frustum_points::NearBottomRight], f.m_points[frustum_points::NearBottomLeft]);
 
         r[frustum_planes::Left]     = left0;
         r[frustum_planes::Right]    = right0;
@@ -188,30 +218,280 @@ namespace computational_geometry
         return r;
     }
 
+    std::array< plane, 6 > make_face_planes(const aabb& f)
+    {
+        std::array< plane, 6 > r;
+        std::array< float3, 8> points = make_points(f);
+
+        //Consistency check, these planes should be like the other ones
+        plane  near0 = make_plane(points[frustum_points::NearTopRight], points[frustum_points::NearBottomLeft], points[frustum_points::NearBottomRight]);
+        plane  far0 = make_plane(points[frustum_points::FarTopRight], points[frustum_points::FarBottomRight], points[frustum_points::FarBottomLeft]);
+        plane  left0 = make_plane(points[frustum_points::FarTopLeft], points[frustum_points::NearBottomLeft], points[frustum_points::NearTopLeft]);
+        plane  right0 = make_plane(points[frustum_points::FarTopRight], points[frustum_points::NearBottomRight], points[frustum_points::FarBottomRight]);
+        plane  top0 = make_plane(points[frustum_points::FarTopLeft], points[frustum_points::NearTopRight], points[frustum_points::FarTopRight]);
+        plane  bottom0 = make_plane(points[frustum_points::FarBottomLeft], points[frustum_points::NearBottomRight], points[frustum_points::NearBottomLeft]);
+
+        r[frustum_planes::Left] = left0;
+        r[frustum_planes::Right] = right0;
+        r[frustum_planes::Top] = top0;
+
+        r[frustum_planes::Bottom] = bottom0;
+        r[frustum_planes::Near] = near0;
+        r[frustum_planes::Far] = far0;
+
+        return r;
+    }
+
     template <uint32_t edge>
     constexpr void get_edge(uint32_t& a, uint32_t& b)
     {
+        static_assert(edge < 12);
+
         switch (edge)
         {
-            case 0: a = 0; b = 1; break;
-            case 1: a = 0; b = 4; break;
-            case 2: a = 0; b = 3; break;
+            case 0: a = 0; b = 1; break;    //
+            case 1: a = 0; b = 4; break;    //
+            case 2: a = 3; b = 0; break;    //
+            case 3: a = 7; b = 6; break;    //  
+            case 4: a = 6; b = 2; break;    //  
+            case 5: a = 5; b = 6; break;    //
 
-            case 3: a = 6; b = 7; break;
-            case 4: a = 6; b = 2; break;
-            case 5: a = 6; b = 5; break;
+            case 6: a = 5; b = 4; break;    //
+            case 7: a = 1; b = 5; break;    //
 
-            case 6: a = 5; b = 4; break;
-            case 7: a = 5; b = 1; break;
+            case 8: a = 2; b = 3; break;    //
+            case 9: a = 1; b = 2; break;    // 
 
-            case 8: a = 2; b = 3; break;
-            case 9: a = 2; b = 1; break;
-
-            case 10: a = 7; b = 3; break;
-            case 11: a = 7; b = 4; break;
+            case 10: a = 3; b = 7; break;
+            case 11: a = 4; b = 7; break;
         }
     }
 
+    template<uint32_t a, uint32_t b>
+    constexpr uint32_t make_tuple_edge()
+    {
+        return a | (b << 3);
+    }
+
+    //template <uint32_t a, uint32_t b>
+    constexpr uint32_t get_edge_0(uint32_t a, uint32_t b)
+    {
+      //  static_assert(a < 8);
+        //static_assert(b < 8);
+        //static_assert(a != b;)
+
+        auto t = a | (b << 3);
+
+        switch(t)
+        {
+            case make_tuple_edge<0, 1>(): return 0;
+
+            case make_tuple_edge<0, 4>(): return 1;// : a = 0; b = 4; break;    //
+            case make_tuple_edge<3, 0>(): return 2;// : a = 3; b = 0; break;    //
+
+            case make_tuple_edge<7, 6>(): return 3;// : a = 7; b = 6; break;    //  
+            case make_tuple_edge<6, 2>(): return 4;// : a = 6; b = 2; break;    //  
+            case make_tuple_edge<5, 6>(): return 5;// : a = 5; b = 6; break;    //
+
+            case make_tuple_edge<5, 4>(): return 6;// : a = 5; b = 4; break;    //
+            case make_tuple_edge<1, 5>(): return 7;// : a = 1; b = 5; break;    //
+
+            case make_tuple_edge<2, 3>(): return 8;// : a = 2; b = 3; break;    //
+            case make_tuple_edge<1, 2>(): return 9;// : a = 1; b = 2; break;    // 
+
+            case make_tuple_edge<3, 7>(): return 10;// : a = 3; b = 7; break;
+            case make_tuple_edge<4, 7>(): return 11;// : a = 4; b = 7; break;
+
+            default: __assume(false); return 12;
+        }
+    }
+
+    template <uint32_t plane> uint32_t get_point_0()
+    {
+        static_assert(plane < 6);
+        
+        switch (plane)
+        {
+            case 0: return 0;
+            case 1: return 1;
+            case 2: return 2;
+            case 3: return 0;
+            case 4: return 0;
+            case 5: return 4;
+        }
+    }
+
+    template <uint32_t plane> uint32_t get_point_1()
+    {
+        static_assert(plane < 6);
+
+        switch (plane)
+        {
+        case 0: return 3;
+        case 1: return 5;
+        case 2: return 6;
+        case 3: return 4;
+        case 4: return 1;
+        case 5: return 7;
+        }
+    }
+
+    template <uint32_t plane> uint32_t get_point_2()
+    {
+        static_assert(plane < 6);
+
+        switch (plane)
+        {
+        case 0: return 7;
+        case 1: return 6;
+        case 2: return 7;
+        case 3: return 5;
+        case 4: return 2;
+        case 5: return 6;
+        }
+    }
+
+    template <uint32_t plane> uint32_t get_point_3()
+    {
+        static_assert(plane < 6);
+
+        switch (plane)
+        {
+        case 0: return 4;
+        case 1: return 2;
+        case 2: return 3;
+        case 3: return 1;
+        case 4: return 3;
+        case 5: return 5;
+        }
+    }
+
+
+
+    template <uint32_t edge>
+    constexpr uint32_t get_left_face()
+    {
+        static_assert(edge < 12);
+        switch (edge)
+        {
+        case 0: return 4;
+        case 1: return 3;
+        case 2: return 4;
+
+        case 3: return 2;
+        case 4: return 2;
+        case 5: return 5;
+
+        case 6: return 5;
+        case 7: return 1;
+
+        case 8: return 4;
+        case 9: return 4;
+
+        case 10: return 0;
+        case 11: return 5;
+
+        default: __assume(false); return 0;
+        }
+    }
+
+    
+    template <uint32_t edge>
+    constexpr uint32_t get_right_face()
+    {
+        static_assert(edge < 12);
+        switch (edge)
+        {
+            case 0: return 3;
+            case 1: return 0;
+            case 2: return 0;
+
+            case 3: return 5;
+            case 4: return 1;
+            case 5: return 1;
+
+            case 6: return 3;
+            case 7: return 3;
+
+            case 8: return 2;
+            case 9: return 1;
+
+            case 10: return 2;
+            case 11: return 0;
+            default: __assume(false); return 0;
+        }
+    }
+
+    template <uint32_t plane>
+    constexpr uint32_t get_edge_0()
+    {
+        static_assert(plane < 6);
+        switch (plane)
+        {
+            case 0: return 1;
+            case 1: return 4;
+            case 2: return 8;
+
+            case 3: return 7;
+            case 4: return 8;
+            case 5: return 5;
+            default: __assume(false); return 0;
+        }
+    }
+
+    template <uint32_t plane>
+    constexpr uint32_t get_edge_1()
+    {
+        static_assert(plane < 6);
+        switch (plane)
+        {
+            case 0: return 2;
+            case 1: return 9;
+            case 2: return 4;
+
+            case 3: return 0;
+            case 4: return 0;
+            case 5: return 6;
+            default: __assume(false); return 0;
+        }
+    }
+
+    template <uint32_t plane>
+    constexpr uint32_t get_edge_2()
+    {
+        static_assert(plane < 6);
+        switch (plane)
+        {
+        case 0: return 11;
+        case 1: return 5;
+        case 2: return 3;
+
+        case 3: return 1;
+        case 4: return 2;
+        case 5: return 3;
+        default: __assume(false); return 0;
+        }
+    }
+
+    template <uint32_t plane>
+    constexpr uint32_t get_edge_3()
+    {
+        static_assert(plane < 6);
+        switch (plane)
+        {
+            case 0: return 10;
+            case 1: return 7;
+            case 2: return 10;
+
+            case 3: return 6;
+            case 4: return 9;
+            case 5: return 11;
+
+            default: __assume(false); return 0;
+        }
+    }
+
+    
     template <uint32_t edge_index>
     edge3d make_edge_3d(const frustum& f)
     {
@@ -341,34 +621,6 @@ namespace computational_geometry
         bool d_outside_z = b.m_min.m_z > a.m_max.m_z || b.m_max.m_z < a.m_min.m_z;
 
         return d_outside_x || d_outside_y || d_outside_z;
-    }
-
-    std::vector<float3> make_points(const frustum& f)
-    {
-        std::vector<float3> r;
-        r.reserve(8);
-        for (auto i = 0U; i < 8; ++i)
-        {
-            r.push_back(f.m_points[i]);
-        }
-        return r;
-    }
-
-    std::array<float3, 8> make_points(const aabb& f)
-    {
-        std::array<float3, 8> r;
-
-        r[0] = { f.m_min.m_x, f.m_min.m_y, f.m_min.m_z };
-        r[1] = { f.m_max.m_x, f.m_min.m_y, f.m_min.m_z };
-        r[2] = { f.m_max.m_x, f.m_max.m_y, f.m_min.m_z };
-        r[3] = { f.m_min.m_x, f.m_max.m_y, f.m_min.m_z };
-
-        r[4] = { f.m_min.m_x, f.m_min.m_y, f.m_max.m_z };
-        r[5] = { f.m_max.m_x, f.m_min.m_y, f.m_max.m_z };
-        r[6] = { f.m_max.m_x, f.m_max.m_y, f.m_max.m_z };
-        r[7] = { f.m_min.m_x, f.m_max.m_y, f.m_max.m_z };
-
-        return r;
     }
 
     enum class plane_aabb_intersection : uint32_t 
@@ -803,7 +1055,7 @@ namespace computational_geometry
         struct edge
         {
             std::vector<int32_t  >  m_faces;
-            std::array<int32_t, 2>  m_vertices;
+            std::array<int32_t, 2>  m_vertices = { -1, -1 };
             bool                    m_visible   = true;
         };
 
@@ -862,7 +1114,7 @@ namespace computational_geometry
                 if (e.m_visible)
                 {
                     const auto& v0 = m_vertices[e.m_vertices[0]];
-                    const auto& v1 = m_vertices[e.m_vertices[0]];
+                    const auto& v1 = m_vertices[e.m_vertices[1]];
 
                     float d0 = v0.m_distance;
                     float d1 = v1.m_distance;
@@ -875,10 +1127,10 @@ namespace computational_geometry
                         {
                             auto&& f = m_faces[fi];
 
-                            std::remove_if(f.m_edges.begin(), f.m_edges.end(), [i](int32_t e0)
+                            f.m_edges.erase(std::remove_if(f.m_edges.begin(), f.m_edges.end(), [i](int32_t e0)
                             {
                                 return i == e0;
-                            });
+                            }));
 
                             if (f.m_edges.empty())
                             {
@@ -887,6 +1139,7 @@ namespace computational_geometry
                         }
 
                         e.m_visible = false;
+                        continue;
                     }
 
                     if (d0 >= 0.0f && d1 >= 0.0f)
@@ -895,7 +1148,7 @@ namespace computational_geometry
                         continue;
                     }
 
-                    //the edge is splite by the plane in two. compute the point of intersection
+                    //the edge is split by the plane in two. compute the point of intersection
                     //if the old edge is <v0,v1> and I is the intersection point, the new edge is
                     //is <v0, I>  when d0>0 or <I, v1> when d1 > 0
 
@@ -914,26 +1167,41 @@ namespace computational_geometry
                     {
                         e.m_vertices[0] = static_cast<int32_t>(m_vertices.size() - 1);
                     }
+
+                    assert(e.m_vertices[0] != e.m_vertices[1]);
                 }
             }
         }
 
         std::tuple<bool, int32_t, int32_t> get_open_polyline(const face& f)
         {
-            //count the number of occurences of each vertex in the polyline
+            //count the number of occurrences of each vertex in the polygon line
             //the resulting 'occurs' values must be between 1 and 2
-            for (auto e : f.m_edges)
+
+            for (auto&& e : f.m_edges)
+            {
+                assert(m_vertices[m_edges[e].m_vertices[0]].m_occurs == 0);
+                assert(m_vertices[m_edges[e].m_vertices[1]].m_occurs == 0);
+            }
+
+            for (auto&& e : f.m_edges)
             {
                 m_vertices[m_edges[e].m_vertices[0]].m_occurs++;
                 m_vertices[m_edges[e].m_vertices[1]].m_occurs++;
             }
 
-            //determine if the polyline is open
+            for (auto&& e : f.m_edges)
+            {
+                assert(m_vertices[m_edges[e].m_vertices[0]].m_occurs == 1 || m_vertices[m_edges[e].m_vertices[0]].m_occurs == 2 );
+                assert(m_vertices[m_edges[e].m_vertices[1]].m_occurs == 1 || m_vertices[m_edges[e].m_vertices[1]].m_occurs == 2 );
+            }
+
+            //determine if the polygon line is open
             int32_t start   = -1;
             int32_t end     = -1;
 
 
-            for (auto e : f.m_edges)
+            for (auto&& e : f.m_edges)
             {
                 int32_t i0 = m_edges[e].m_vertices[0];
                 int32_t i1 = m_edges[e].m_vertices[1];
@@ -961,9 +1229,14 @@ namespace computational_geometry
                         end = i1;
                     }
                 }
-
-                return std::make_tuple(start != -1, start, end);
             }
+
+            if (start != -1)
+            {
+                assert(end != -1);
+            }
+
+            return std::make_tuple(start != -1, start, end);
         }
 
         void process_faces()
@@ -979,7 +1252,7 @@ namespace computational_geometry
                     // it is possible that a visible triangle shares it.
                     //the edge will be added during the face loop
 
-                    for (auto e : f.m_edges)
+                    for (auto&& e : f.m_edges)
                     {
                         m_vertices[m_edges[e].m_vertices[0]].m_occurs = 0;
                         m_vertices[m_edges[e].m_vertices[1]].m_occurs = 0;
@@ -990,7 +1263,7 @@ namespace computational_geometry
                     int32_t start   = std::get<1>(t);
                     int32_t end     = std::get<2>(t);
 
-                    //polyline is open, close it
+                    //polygon line is open, close it
                     if (is_open)
                     {
                         edge e;
@@ -999,6 +1272,7 @@ namespace computational_geometry
                         e.m_vertices[0] = start;
                         e.m_vertices[1] = end;
 
+                        assert(start != end);
                         m_edges.push_back(e);
 
                         auto index = static_cast<int32_t>(m_edges.size() - 1);
@@ -1023,19 +1297,17 @@ namespace computational_geometry
 
         std::vector<int32_t> get_ordered_vertices(int32_t fi)
         {
-            //copy edge indices into fixed continious memory for sorting
+            //copy edge indices into fixed continuous memory for sorting
             std::vector<int32_t> edges = m_faces[fi].m_edges;
 
-
-            //bubble sort to arrange edge in continious order
-
+            //bubble sort to arrange edge in continuous order
             int32_t i0 = 0;
             int32_t i1 = 1;
             int32_t choice = 1;
 
-            for ( i0 = 0, i1 = 1, choice = 1; i1 < edges.size() - 1; i0 = i1, i1++ ) 
+            for ( i0 = 0, i1 = 1, choice = 1; i1 < edges.size() - 1; ) 
             {
-                int32_t current = m_edges[i0].m_vertices[choice];
+                int32_t current = m_edges[ edges[i0] ].m_vertices[choice];
 
                 for (auto j = i1; j < edges.size(); ++j)
                 {
@@ -1043,14 +1315,19 @@ namespace computational_geometry
                     {
                         std::swap( edges[i1], edges[j] );
                         choice = 1;
+                        break;
                     }
 
                     if (m_edges[edges[j]].m_vertices[1] == current)
                     {
                         std::swap(edges[i1], edges[j]);
                         choice = 0;
+                        break;
                     }
                 }
+
+                i0 = i1;
+                i1 = i1 + 1;
             }
 
             std::vector<int32_t> r;
@@ -1063,13 +1340,13 @@ namespace computational_geometry
             //add the rest
             for ( auto i = 1U; i < edges.size(); ++i )
             {
-                if (m_edges[i].m_vertices[0] == r[i])
+                if (m_edges[ edges[i] ].m_vertices[0] == r[i])
                 {
-                    r[i + 1] = m_edges[i].m_vertices[1];
+                    r[i + 1] = m_edges[ edges[i] ].m_vertices[1];
                 }
                 else
                 {
-                    r[i + 1] = m_edges[i].m_vertices[0];
+                    r[i + 1] = m_edges[ edges[i] ].m_vertices[0];
                 }
             }
 
@@ -1088,8 +1365,10 @@ namespace computational_geometry
                 {
 
                     //get the ordered vertices for a face. the first and the last
-                    //element of the array are the same since the polyline is closed
+                    //element of the array are the same since the poly line is closed
                     auto vertices = get_ordered_vertices(i);
+
+                    assert(vertices[0] == vertices[vertices.size() - 1]);
 
                     //push back the size of the elements
                     r.push_back(static_cast<int32_t>(vertices.size() - 1));
@@ -1102,7 +1381,7 @@ namespace computational_geometry
                     if (dot(m_faces[i].m_plane.m_n, get_normal(vertices)) > 0.0f)
                     {
                         //clockwise
-                        for (auto j = vertices.size() - 2; j >= 0; j--)
+                        for (int32_t j = vertices.size() - 2; j >= 0; j--)
                         {
                             r.push_back(vertices[j]);
                         }
@@ -1110,15 +1389,15 @@ namespace computational_geometry
                     else
                     {
                         //counterclockwise
-                        for (auto j = 0; i <= vertices.size() - 2; j++)
+                        for (auto j = 0; j <= vertices.size() - 2; j++)
                         {
                             r.push_back(vertices[j]);
                         }
                     }
                 }
-
-                return r;
             }
+
+            return r;
         }
 
         int32_t     clip(const plane& p)
@@ -1165,7 +1444,7 @@ namespace computational_geometry
             }
 
             //order the vertices for all the faces. the output array has a
-            //sequence of subarrays, each subarray having first element sorting
+            //sequence of sub arrays, each sub array having first element sorting
             //the number of vertices in the face, the remaining elements storing
             //the vertex indices for that face in the correct order. The indices
             //are relative to the m_vertices vector
@@ -1174,51 +1453,230 @@ namespace computational_geometry
 
             //map the vertex indices to those of the new table
 
-            for (auto i = 0U; i < faces.size(); ++i)
+            for (auto i = 0U; i < faces.size() ;)
             {
                 int32_t index_count = faces[i];
                 i = i + 1;
 
-                for (auto j = 0U; j < index_count; ++j)
+                for (auto j = 0; j < index_count; ++j)
                 {
                     faces[i] = vmap[faces[i]];
-
-                    assert(faces[i] != -1);
                     i++;
                 }
+            }
+
+            for (auto i = 0U; i < faces.size(); ++i)
+            {
+                assert(faces[i] != -1);
             }
 
             return make_tuple(std::move(point), std::move(faces));
         }
     };
-
-    closed_convex_clipper make_clipper(const frustum& f)
+   
+    template <uint32_t face> closed_convex_clipper::face make_face()
     {
-        return closed_convex_clipper();
+        closed_convex_clipper::face f;
+
+        f.m_edges.push_back(get_edge_0<face>());
+        f.m_edges.push_back(get_edge_1<face>());
+        f.m_edges.push_back(get_edge_2<face>());
+        f.m_edges.push_back(get_edge_3<face>());
+
+        return f;
     }
 
-    closed_convex_clipper make_clipper(const aabb& b)
+    template <uint32_t edge > closed_convex_clipper::edge make_edge()
     {
-        return closed_convex_clipper();
+        closed_convex_clipper::edge e;
+
+        e.m_faces.push_back(get_left_face<edge>());
+        e.m_faces.push_back(get_right_face<edge>());
+
+        uint32_t a = 0;
+        uint32_t b = 0;
+
+        get_edge<edge>(a, b);
+
+        auto edge_0 = get_edge_0(a, b);
+
+        assert(edge == edge_0);
+
+        e.m_vertices[0] = a;
+        e.m_vertices[1] = b;
+
+        return e;
+    }
+
+    template <typename t>
+    closed_convex_clipper make_clipper(const t& b)
+    {
+        closed_convex_clipper r;
+
+        {
+            const int32_t indices[6][4] =
+            {
+                {0,3,7,4},
+                {1,5,6,2},
+                {3,2,6,7},
+                {4,5,1,0},
+                {0,1,2,3},
+                {5,4,7,6}
+            };
+
+            r.m_edges.resize(12);
+            r.m_faces.resize(6);
+
+            uint32_t edge = 0;
+
+            for (auto i = 0; i < 6; ++i)
+            {
+                for (auto j = 0; j < 4; ++j)
+                {
+                    auto i1 = indices[i][(j + 1) % 4];
+                    auto i0 = indices[i][j];
+                    auto k = 0;
+
+                    for (k = 0; k < 12; ++k)
+                    {
+                        auto v0 = r.m_edges[k].m_vertices[0];
+                        auto v1 = r.m_edges[k].m_vertices[1];
+
+                        if ((v0 == i1 && v1 == i0) || (v0 == i0 && v1 == i1))
+                        {
+                            break;
+                        }
+                    }
+
+                    if (k == 12)
+                    {
+                        r.m_edges[edge].m_vertices[0] = i0;
+                        r.m_edges[edge].m_vertices[1] = i1;
+                        edge++;
+                    }
+                }
+            }
+
+            for (auto i = 0; i < 6; ++i)
+            {
+                for (auto j = 0; j < 4; ++j)
+                {
+                    auto i1 = indices[i][(j + 1) % 4];
+                    auto i0 = indices[i][j];
+                    auto k = 0;
+
+                    for (k = 0; k < 12; ++k)
+                    {
+                        auto v0 = r.m_edges[k].m_vertices[0];
+                        auto v1 = r.m_edges[k].m_vertices[1];
+
+                        if ((v0 == i1 && v1 == i0) || (v0 == i0 && v1 == i1))
+                        {
+                            r.m_edges[k].m_faces.push_back(i);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (auto i = 0; i < 12; ++i)
+        {
+            for (auto j = 0; j < r.m_edges[i].m_faces.size(); ++j)
+            {
+                r.m_faces[ r.m_edges[i].m_faces[j] ].m_edges.push_back(i);
+            }
+            
+
+        }
+
+        /*
+        {
+            r.m_faces[0] = make_face<0>();
+            r.m_faces[1] = make_face<1>();
+            r.m_faces[2] = make_face<2>();
+            r.m_faces[3] = make_face<3>();
+            r.m_faces[4] = make_face<4>();
+            r.m_faces[5] = make_face<5>();
+        }
+
+        r.m_edges.resize(12);
+
+        {
+            r.m_edges[0] = make_edge<0>();
+            r.m_edges[1] = make_edge<1>();
+            r.m_edges[2] = make_edge<2>();
+            r.m_edges[3] = make_edge<3>();
+
+            r.m_edges[4] = make_edge<4>();
+            r.m_edges[5] = make_edge<5>();
+            r.m_edges[6] = make_edge<6>();
+            r.m_edges[7] = make_edge<7>();
+
+            r.m_edges[8] = make_edge<8>();
+            r.m_edges[9] = make_edge<9>();
+            r.m_edges[10] = make_edge<10>();
+            r.m_edges[11] = make_edge<11>();
+        }
+        */
+        
+        {
+            auto planes = make_face_planes(b);
+
+            r.m_faces[0].m_plane = planes[0];
+            r.m_faces[1].m_plane = planes[1];
+            r.m_faces[2].m_plane = planes[2];
+
+            r.m_faces[3].m_plane = planes[3];
+            r.m_faces[4].m_plane = planes[4];
+            r.m_faces[5].m_plane = planes[5];
+        }
+
+        {
+            auto points = make_points(b);
+
+            for (auto i = 0U; i < points.size(); ++i)
+            {
+                closed_convex_clipper::vertex v;
+
+                v.m_point = points[i];
+                r.m_vertices.push_back(v);
+            }
+        }
+
+
+        {
+            auto r0 = r.get_ordered_vertices(0);
+            auto r1 = r.get_ordered_vertices(1);
+            auto r2 = r.get_ordered_vertices(2);
+            auto r3 = r.get_ordered_vertices(3);
+
+            auto r4 = r.get_ordered_vertices(4);
+            auto r5 = r.get_ordered_vertices(5);
+
+            __debugbreak();
+
+
+
+        }
+        return r;
     }
 
     std::vector< float3 > clip(const frustum& f, const aabb& b)
     {
-        std::array<triangle_indexed, 12> indices    = make_aabb_triangle_indices();
-        std::array<plane, 6>             planes     = make_face_planes(f);
-        std::array<float3, 8>            points     = make_points(b);
+        auto clipper    = make_clipper(f);
+        auto planes     = make_face_planes(b);
 
-        std::vector<float3>              r;
-
-        r.reserve(24);
-
-        plane p = planes[frustum_planes::Far];
-
-        for ( auto i = 0; i < 8; ++i )
+        for (auto i = 0; i < planes.size(); ++i)
         {
+            if (clipper.clip(planes[i]) == -1)
+            {
+                return std::vector<float3>();
+            }
 
         }
 
-        return r;
+        auto r0 = clipper.convert();
+
+        return std::vector<float3>();
     }
 }
