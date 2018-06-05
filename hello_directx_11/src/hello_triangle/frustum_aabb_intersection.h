@@ -184,17 +184,6 @@ namespace computational_geometry
         float3 m_max;
     };
 
-    /*
-    enum frustum_projection : uint32_t
-    {
-        Left    = 0, // x = 0
-        Front   = 1, // y = 0
-        Top     = 2, // z = 0
-    };
-    */
-
     std::vector< float3 > intersection(const frustum& f, const aabb& b);
-
-
     std::vector< float3 > clip(const frustum& f, const aabb& b);
 }

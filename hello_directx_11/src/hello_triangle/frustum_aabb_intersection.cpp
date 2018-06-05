@@ -252,6 +252,7 @@ namespace computational_geometry
             case 0: a = 0; b = 1; break;    //
             case 1: a = 0; b = 4; break;    //
             case 2: a = 3; b = 0; break;    //
+
             case 3: a = 7; b = 6; break;    //  
             case 4: a = 6; b = 2; break;    //  
             case 5: a = 5; b = 6; break;    //
@@ -1167,8 +1168,6 @@ namespace computational_geometry
                     {
                         e.m_vertices[0] = static_cast<int32_t>(m_vertices.size() - 1);
                     }
-
-                    assert(e.m_vertices[0] != e.m_vertices[1]);
                 }
             }
         }
@@ -1180,20 +1179,8 @@ namespace computational_geometry
 
             for (auto&& e : f.m_edges)
             {
-                assert(m_vertices[m_edges[e].m_vertices[0]].m_occurs == 0);
-                assert(m_vertices[m_edges[e].m_vertices[1]].m_occurs == 0);
-            }
-
-            for (auto&& e : f.m_edges)
-            {
                 m_vertices[m_edges[e].m_vertices[0]].m_occurs++;
                 m_vertices[m_edges[e].m_vertices[1]].m_occurs++;
-            }
-
-            for (auto&& e : f.m_edges)
-            {
-                assert(m_vertices[m_edges[e].m_vertices[0]].m_occurs == 1 || m_vertices[m_edges[e].m_vertices[0]].m_occurs == 2 );
-                assert(m_vertices[m_edges[e].m_vertices[1]].m_occurs == 1 || m_vertices[m_edges[e].m_vertices[1]].m_occurs == 2 );
             }
 
             //determine if the polygon line is open
@@ -1229,11 +1216,6 @@ namespace computational_geometry
                         end = i1;
                     }
                 }
-            }
-
-            if (start != -1)
-            {
-                assert(end != -1);
             }
 
             return std::make_tuple(start != -1, start, end);
@@ -1272,7 +1254,6 @@ namespace computational_geometry
                         e.m_vertices[0] = start;
                         e.m_vertices[1] = end;
 
-                        assert(start != end);
                         m_edges.push_back(e);
 
                         auto index = static_cast<int32_t>(m_edges.size() - 1);
@@ -1368,8 +1349,6 @@ namespace computational_geometry
                     //element of the array are the same since the poly line is closed
                     auto vertices = get_ordered_vertices(i);
 
-                    assert(vertices[0] == vertices[vertices.size() - 1]);
-
                     //push back the size of the elements
                     r.push_back(static_cast<int32_t>(vertices.size() - 1));
 
@@ -1380,15 +1359,15 @@ namespace computational_geometry
 
                     if (dot(m_faces[i].m_plane.m_n, get_normal(vertices)) > 0.0f)
                     {
-                        //clockwise
-                        for (int32_t j = vertices.size() - 2; j >= 0; j--)
+                        //counterclockwise
+                        for (size_t j = vertices.size() - 2; j >= 0; j--)
                         {
                             r.push_back(vertices[j]);
                         }
                     }
                     else
                     {
-                        //counterclockwise
+                        //clockwise
                         for (auto j = 0; j <= vertices.size() - 2; j++)
                         {
                             r.push_back(vertices[j]);
@@ -1465,48 +1444,10 @@ namespace computational_geometry
                 }
             }
 
-            for (auto i = 0U; i < faces.size(); ++i)
-            {
-                assert(faces[i] != -1);
-            }
-
             return make_tuple(std::move(point), std::move(faces));
         }
     };
    
-    template <uint32_t face> closed_convex_clipper::face make_face()
-    {
-        closed_convex_clipper::face f;
-
-        f.m_edges.push_back(get_edge_0<face>());
-        f.m_edges.push_back(get_edge_1<face>());
-        f.m_edges.push_back(get_edge_2<face>());
-        f.m_edges.push_back(get_edge_3<face>());
-
-        return f;
-    }
-
-    template <uint32_t edge > closed_convex_clipper::edge make_edge()
-    {
-        closed_convex_clipper::edge e;
-
-        e.m_faces.push_back(get_left_face<edge>());
-        e.m_faces.push_back(get_right_face<edge>());
-
-        uint32_t a = 0;
-        uint32_t b = 0;
-
-        get_edge<edge>(a, b);
-
-        auto edge_0 = get_edge_0(a, b);
-
-        assert(edge == edge_0);
-
-        e.m_vertices[0] = a;
-        e.m_vertices[1] = b;
-
-        return e;
-    }
 
     template <typename t>
     closed_convex_clipper make_clipper(const t& b)
@@ -1585,40 +1526,8 @@ namespace computational_geometry
             {
                 r.m_faces[ r.m_edges[i].m_faces[j] ].m_edges.push_back(i);
             }
-            
-
         }
-
-        /*
-        {
-            r.m_faces[0] = make_face<0>();
-            r.m_faces[1] = make_face<1>();
-            r.m_faces[2] = make_face<2>();
-            r.m_faces[3] = make_face<3>();
-            r.m_faces[4] = make_face<4>();
-            r.m_faces[5] = make_face<5>();
-        }
-
-        r.m_edges.resize(12);
-
-        {
-            r.m_edges[0] = make_edge<0>();
-            r.m_edges[1] = make_edge<1>();
-            r.m_edges[2] = make_edge<2>();
-            r.m_edges[3] = make_edge<3>();
-
-            r.m_edges[4] = make_edge<4>();
-            r.m_edges[5] = make_edge<5>();
-            r.m_edges[6] = make_edge<6>();
-            r.m_edges[7] = make_edge<7>();
-
-            r.m_edges[8] = make_edge<8>();
-            r.m_edges[9] = make_edge<9>();
-            r.m_edges[10] = make_edge<10>();
-            r.m_edges[11] = make_edge<11>();
-        }
-        */
-        
+       
         {
             auto planes = make_face_planes(b);
 
@@ -1643,21 +1552,6 @@ namespace computational_geometry
             }
         }
 
-
-        {
-            auto r0 = r.get_ordered_vertices(0);
-            auto r1 = r.get_ordered_vertices(1);
-            auto r2 = r.get_ordered_vertices(2);
-            auto r3 = r.get_ordered_vertices(3);
-
-            auto r4 = r.get_ordered_vertices(4);
-            auto r5 = r.get_ordered_vertices(5);
-
-            __debugbreak();
-
-
-
-        }
         return r;
     }
 
