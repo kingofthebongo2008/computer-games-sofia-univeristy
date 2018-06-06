@@ -272,19 +272,16 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             b1.m_points[frustum_points::FarTopRight]        = { 0.25,  0.25, 2.0f };
             b1.m_points[frustum_points::FarTopLeft]         = { -0.25,  0.25, 2.0f };
             
-            
-
-
             auto r1 = clip(b1, a1);
             auto r2 = clip(b2, a1);
 
-            __debugbreak();
-
-
+            if (r1)
+            {
+                float3 light;
+                auto r0 = convex_hull_with_direction(r1.value(), light, a1);
+                __debugbreak();
+            }
         }
-
-
-
 
 	}
 

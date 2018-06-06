@@ -14,8 +14,6 @@ namespace computational_geometry
         float m_y = 0.0f;
         float m_z = 0.0f;
 
-
-
         //syntax sugar
         float3 yzx() const
         {
@@ -291,4 +289,9 @@ namespace computational_geometry
     };
 
     std::optional< convex_polyhedron > clip(const frustum& f, const aabb& b);
+
+
+    //move vector facing polygons along the vector up to the clip_body
+    convex_polyhedron convex_hull_with_direction(const convex_polyhedron& body, const float3& vector, const aabb& clip_body);
+    convex_polyhedron convex_hull_with_point(const convex_polyhedron& body, const float3& point);
 }

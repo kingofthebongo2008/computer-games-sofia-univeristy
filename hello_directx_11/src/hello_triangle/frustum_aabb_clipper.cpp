@@ -576,4 +576,29 @@ namespace computational_geometry
 
         return r;
     }
+
+    convex_polyhedron convex_hull_with_direction(const convex_polyhedron& body, const float3& vector, const aabb& clip_body)
+    {
+        std::vector<plane> planes;
+        planes.resize(body.m_faces.size());
+
+        //compute planes
+        for (auto i = 0U; i < planes.size(); ++i)
+        {
+            const float3 a  = body.m_points[body.m_faces[i].m_indices[0]];
+            const float3 b  = body.m_points[body.m_faces[i].m_indices[1]];
+            const float3 c  = body.m_points[body.m_faces[i].m_indices[2]];
+            planes[i]       = make_plane(a, b, c);
+        }
+
+
+
+
+        return body;
+    }
+
+    convex_polyhedron convex_hull_with_point(const convex_polyhedron& body, const float3& point)
+    {
+        return body;
+    }
 }
