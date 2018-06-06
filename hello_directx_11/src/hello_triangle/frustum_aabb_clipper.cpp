@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <vector>
+#include <optional>
 
 namespace computational_geometry
 {
@@ -186,9 +187,14 @@ namespace computational_geometry
             return std::make_tuple(start != -1, start, end);
         }
 
-        void process_faces(const plane& clipPlane)
+        void process_faces(const plane& clip_plane)
         {
-            auto faces_to_process = m_faces.size();
+            face close_face;
+            close_face.m_plane = clip_plane;
+            m_faces.push_back(close_face);
+
+            auto faces_to_process     = m_faces.size();
+            uint32_t close_face_index = faces_to_process - 1;
 
             //the mesh straddles the plane. a new convex face will be generated
             //add it now and insert edges, when they are needed
@@ -221,11 +227,14 @@ namespace computational_geometry
                         e.m_faces.push_back(i);
                         e.m_vertices[0] = start;
                         e.m_vertices[1] = end;
-
                         m_edges.push_back(e);
 
                         auto index = static_cast<int32_t>(m_edges.size() - 1);
+
                         f.m_edges.push_back(index);
+
+                        m_edges[index].m_faces.push_back(close_face_index);
+                        m_faces[close_face_index].m_edges.push_back(index);
                     }
                 }
             }
@@ -497,7 +506,6 @@ namespace computational_geometry
             }
         }
 
-       
         {
             auto planes = make_face_planes(b);
 
@@ -536,7 +544,6 @@ namespace computational_geometry
             {
                 return std::vector<float3>();
             }
-
         }
 
         auto r0 = clipper.convert();
