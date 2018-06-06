@@ -6,8 +6,11 @@
 
 namespace computational_geometry
 {
+    //eberly convex clipper implementation
+
     struct closed_convex_clipper
     {
+        //todo: split these structures per usage
         struct vertex
         {
             float3 m_point;
@@ -27,7 +30,6 @@ namespace computational_geometry
         {
             std::vector<int32_t>    m_edges;
             bool    m_visible       = true;
-
             plane                   m_plane;
         };
 
@@ -184,9 +186,12 @@ namespace computational_geometry
             return std::make_tuple(start != -1, start, end);
         }
 
-        void process_faces()
+        void process_faces(const plane& clipPlane)
         {
             auto faces_to_process = m_faces.size();
+
+            //the mesh straddles the plane. a new convex face will be generated
+            //add it now and insert edges, when they are needed
 
             for (auto i =0U; i < faces_to_process;++i)
             {
@@ -226,7 +231,7 @@ namespace computational_geometry
             }
         }
 
-        float3 get_normal(const std::vector<int32_t> vi)
+        float3 get_normal(const std::vector<int32_t>& vi)
         {
             float3 normal;
             auto   vi_to_process = vi.size();
@@ -342,11 +347,11 @@ namespace computational_geometry
             return r;
         }
 
-        int32_t     clip(const plane& p)
+        int32_t     clip(const plane& clipPlane)
         {
             //vertex processing
             {
-                auto v        = process_vertices(p);
+                auto v        = process_vertices(clipPlane);
                 auto negative = std::get<0>(v);
                 auto positive = std::get<1>(v);
 
@@ -365,7 +370,7 @@ namespace computational_geometry
             process_edges();
 
             //faces processing
-            process_faces();
+            process_faces(clipPlane);
 
             return 0;
         }
