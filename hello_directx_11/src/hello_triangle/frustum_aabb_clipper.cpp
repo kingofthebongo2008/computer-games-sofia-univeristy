@@ -591,7 +591,20 @@ namespace computational_geometry
             planes[i]       = make_plane(a, b, c);
         }
 
+        //orient normals to point outside
+        for (auto i = 0U; i < planes.size(); ++i)
+        {
+            auto plane = planes[i];
 
+            for (auto&& v : body.m_points)
+            {
+                if ( dot(plane.m_n, v) + plane.m_d > 0.00001f)
+                {
+                    planes[i].m_n = -1.0f * plane.m_n;
+                    break;
+                }
+            }
+        }
 
 
         return body;

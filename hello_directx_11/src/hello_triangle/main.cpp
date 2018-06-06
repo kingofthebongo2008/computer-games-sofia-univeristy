@@ -242,7 +242,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             aabb a1;
             frustum b1;
 
-            aabb a2;
+            //aabb a2;
             frustum b2;
 
             a1.m_min = { -1, -1, -1 };
