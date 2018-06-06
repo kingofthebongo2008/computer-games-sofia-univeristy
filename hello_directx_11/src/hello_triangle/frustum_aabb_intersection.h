@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include <optional>
 
 namespace computational_geometry
 {
@@ -277,7 +278,17 @@ namespace computational_geometry
     }
 
     std::vector< float3 > intersection(const frustum& f, const aabb& b);
-    std::vector< float3 > clip(const frustum& f, const aabb& b);
 
+    struct convex_polyhedron
+    {
+        struct polygon
+        {
+            std::vector<uint32_t> m_indices;
+        };
 
+        std::vector<float3>     m_points;
+        std::vector<polygon>    m_faces;
+    };
+
+    std::optional< convex_polyhedron > clip(const frustum& f, const aabb& b);
 }

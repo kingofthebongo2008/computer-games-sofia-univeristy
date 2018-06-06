@@ -7,17 +7,16 @@
 
 namespace computational_geometry
 {
-    //eberly convex clipper implementation
+    //david eberly convex clipper implementation
 
     struct closed_convex_clipper
     {
         //todo: split these structures per usage
-        struct vertex
+        struct vertex_attributes
         {
-            float3 m_point;
-            float  m_distance       = 0.0f;
-            int    m_occurs         = 0;
-            bool   m_visible        = true;
+            float  m_distance = 0.0f;
+            int    m_occurs = 0;
+            bool   m_visible = true;
         };
 
         struct edge
@@ -34,22 +33,28 @@ namespace computational_geometry
             plane                   m_plane;
         };
 
-        std::vector<vertex>         m_vertices;
-        std::vector<edge>           m_edges;
-        std::vector<face>           m_faces;
+        std::vector<float3>                     m_vertices_points;
+        std::vector<vertex_attributes>          m_vertices;
+        std::vector<edge>                       m_edges;
+        std::vector<face>                       m_faces;
 
         std::tuple<int32_t, int32_t> process_vertices(const plane& p)
         {
             int32_t positive = 0;
             int32_t negative = 0;
 
-            for (auto&& v : m_vertices)
+            auto vertices_to_process = m_vertices.size();
+
+            for (auto i=0U; i < vertices_to_process;++i)
             {
+                auto& v         = m_vertices[i];
+                auto& v_point   = m_vertices_points[i];
+
                 const float epsilon = 0.00001f;
 
                 if (v.m_visible)
                 {
-                    v.m_distance = dot(p.m_n, v.m_point) + p.m_d;
+                    v.m_distance = dot(p.m_n, v_point) + p.m_d;
 
                     if (v.m_distance >= epsilon)
                     {
@@ -119,12 +124,14 @@ namespace computational_geometry
                     //if the old edge is <v0,v1> and I is the intersection point, the new edge is
                     //is <v0, I>  when d0>0 or <I, v1> when d1 > 0
 
-                    float t = d0 / (d0 - d1);
-                    float3 point = (1.0f - t) * v0.m_point + t * v1.m_point;
+                    const auto& v0_point = m_vertices_points[e.m_vertices[0]];
+                    const auto& v1_point = m_vertices_points[e.m_vertices[1]];
 
-                    vertex v;
-                    v.m_point = point;
-                    m_vertices.push_back(v);
+                    float t = d0 / (d0 - d1);
+                    float3 point = (1.0f - t) * v0_point + t * v1_point;
+
+                    m_vertices_points.push_back(point);
+                    m_vertices.push_back({});
 
                     if (d0 > 0.0f)
                     {
@@ -193,8 +200,8 @@ namespace computational_geometry
             close_face.m_plane = clip_plane;
             m_faces.push_back(close_face);
 
-            auto faces_to_process     = m_faces.size();
-            uint32_t close_face_index = faces_to_process - 1;
+            auto faces_to_process       = static_cast<uint32_t>(m_faces.size());
+            uint32_t close_face_index   = faces_to_process - 1;
 
             //the mesh straddles the plane. a new convex face will be generated
             //add it now and insert edges, when they are needed
@@ -247,7 +254,7 @@ namespace computational_geometry
 
             for (auto i = 0U; i < vi_to_process-1; ++i)
             {
-                normal = normal + cross(m_vertices[i].m_point, m_vertices[i + 1].m_point);
+                normal = normal + cross(m_vertices_points[i], m_vertices_points[i + 1]);
             }
 
             return normalize(normal);
@@ -395,7 +402,7 @@ namespace computational_geometry
                 if (m_vertices[i].m_visible)
                 {
                     vmap[i] = static_cast<int32_t>( point.size() );
-                    point.push_back(m_vertices[i].m_point);
+                    point.push_back(m_vertices_points[i]);
                 }
             }
 
@@ -523,17 +530,15 @@ namespace computational_geometry
 
             for (auto i = 0U; i < points.size(); ++i)
             {
-                closed_convex_clipper::vertex v;
-
-                v.m_point = points[i];
-                r.m_vertices.push_back(v);
+                r.m_vertices_points.push_back(points[i]);
+                r.m_vertices.push_back({});
             }
         }
 
         return r;
     }
 
-    std::vector< float3 > clip(const frustum& f, const aabb& b)
+    std::optional<convex_polyhedron> clip(const frustum& f, const aabb& b)
     {
         auto clipper    = make_clipper(f);
         auto planes     = make_face_planes(b);
@@ -542,11 +547,33 @@ namespace computational_geometry
         {
             if (clipper.clip(planes[i]) == -1)
             {
-                return std::vector<float3>();
+                return {};
             }
         }
 
-        auto r0 = clipper.convert();
-        return std::vector<float3>();
+        convex_polyhedron r;
+
+        {
+            auto r0 = clipper.convert();
+            r.m_points = std::move(std::get<0>(r0));
+            const auto& faces = std::get<1>(r0);
+
+            for (auto i = 0; i < faces.size(); )
+            {
+                auto face_count = faces[i]; 
+                i++;
+
+                convex_polyhedron::polygon polygon;
+                for (auto j = 0; j < face_count; ++j)
+                {
+                    polygon.m_indices.push_back( faces[i] );
+                    i++;
+                }
+
+                r.m_faces.push_back(std::move(polygon));
+            }
+        }
+
+        return r;
     }
 }
