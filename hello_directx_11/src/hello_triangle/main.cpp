@@ -277,8 +277,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
             if (r1)
             {
-                float3 light;
+                float3 light = { 0, 1, 0 };
+
                 auto r0 = convex_hull_with_direction(r1.value(), light, a1);
+
                 __debugbreak();
             }
         }

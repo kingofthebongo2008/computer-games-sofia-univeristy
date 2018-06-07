@@ -577,8 +577,10 @@ namespace computational_geometry
         return r;
     }
 
-    convex_polyhedron convex_hull_with_direction(const convex_polyhedron& body, const float3& vector, const aabb& clip_body)
+    convex_polyhedron convex_hull_with_direction(const convex_polyhedron& body, const float3& vector)
     {
+        convex_polyhedron r = body;
+
         std::vector<plane> planes;
         planes.resize(body.m_faces.size());
 
@@ -606,8 +608,82 @@ namespace computational_geometry
             }
         }
 
+        std::vector<bool> face_vector;
+        face_vector.resize(planes.size());
 
-        return body;
+        for ( auto i = 0U; i < face_vector.size(); ++i)
+        {
+            face_vector[i] = dot( planes[i].m_n, vector ) > 0.0f;
+        }
+
+        //1. duplicate points and indices
+        std::vector<int32_t> points_indices(body.m_points.size(), -1);
+
+        for (auto i = 0U; i < face_vector.size(); ++i)
+        {
+            if (face_vector[i])
+            {
+                const auto& face = body.m_faces[i];
+                for (auto p = 0; p < face.m_indices.size(); ++p)
+                {
+                    //split vertex
+                    if ( points_indices[face.m_indices[p]] == -1 )
+                    {
+                        float3 v = r.m_points[ face.m_indices[p] ];
+                        r.m_points.push_back(v);
+                        int32_t index = static_cast<int32_t>( r.m_points.size() ) - 1;
+                        points_indices[face.m_indices[p]] = index;
+                    }
+                }
+            }
+        }
+
+        //now patch with quads
+        for (auto i = 0U; i < face_vector.size(); ++i)
+        {
+            if (face_vector[i])
+            {
+                const auto&     face            = body.m_faces[i];
+                const int32_t   indices_size    = face.m_indices.size();
+                for (auto p = 0; p < indices_size; ++p)
+                {
+                    const   int32_t computed_index_0 = p;
+                    const   int32_t computed_index_1 = (p + 1) % indices_size;
+                    int32_t index_0  = face.m_indices[computed_index_0];
+                    int32_t index_1  = face.m_indices[computed_index_1];
+
+                    int32_t index_0_ = points_indices[computed_index_0];
+                    int32_t index_1_ = points_indices[computed_index_1];
+
+                    convex_polyhedron::polygon polygon;
+
+                    polygon.m_indices.push_back(index_0);
+                    polygon.m_indices.push_back(index_1);
+                    polygon.m_indices.push_back(index_1_);
+                    polygon.m_indices.push_back(index_0_);
+
+                    r.m_faces.push_back(std::move(polygon));
+                }
+            }
+        }
+
+        //now move the points to the light
+        for (auto i = 0U; i < points_indices.size(); ++i)
+        {
+            if (points_indices[i] != -1)
+            {
+                r.m_points[points_indices[i]] = r.m_points[points_indices[i]] + vector;
+            }
+        }
+
+        return r;
+    }
+
+    convex_polyhedron convex_hull_with_direction(const convex_polyhedron& body, const float3& vector, const aabb& clip_body)
+    {
+        float d = distance(clip_body.m_max, clip_body.m_min);
+        return convex_hull_with_direction(body, d * vector);
+
     }
 
     convex_polyhedron convex_hull_with_point(const convex_polyhedron& body, const float3& point)

@@ -90,6 +90,11 @@ namespace computational_geometry
         return a / sqrtf(dot(a, a));
     }
 
+    inline float distance(const float3& a, const float3& b)
+    {
+        float3 difference = b - a;
+        return sqrtf(dot(difference, difference));
+    }
 
     /////////////////////
     inline float2 operator+(const float2& a, const float2& b)
@@ -291,7 +296,8 @@ namespace computational_geometry
     std::optional< convex_polyhedron > clip(const frustum& f, const aabb& b);
 
 
-    //move vector facing polygons along the vector up to the clip_body
-    convex_polyhedron convex_hull_with_direction(const convex_polyhedron& body, const float3& vector, const aabb& clip_body);
+    //move vector facing polygons along the vector up to the clip_body. alpha is the diagonal of the clip_body
+    convex_polyhedron convex_hull_with_direction(const convex_polyhedron& body, const float3& vector);
     convex_polyhedron convex_hull_with_point(const convex_polyhedron& body, const float3& point);
+    convex_polyhedron convex_hull_with_direction(const convex_polyhedron& body, const float3& vector, const aabb& clip_body);
 }
