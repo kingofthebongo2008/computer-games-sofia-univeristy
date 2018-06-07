@@ -249,17 +249,15 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             a1.m_max = { 1,  1, 1 };
 
             
-            b2.m_points[frustum_points::NearBottomLeft]  = { -0.25, -0.25, 0.25f };
-            b2.m_points[frustum_points::NearBottomRight] = {  0.25, -0.25, 0.25f };
-            b2.m_points[frustum_points::NearTopLeft]     = {  -0.25, 0.25, 0.25f };
-            b2.m_points[frustum_points::NearTopRight]    = {   0.25, 0.25, 0.25f };
+            b2.m_points[frustum_points::NearBottomLeft]     = { -0.25, -0.25, 0.25f };
+            b2.m_points[frustum_points::NearBottomRight]    = {  0.25, -0.25, 0.25f };
+            b2.m_points[frustum_points::NearTopLeft]        = {  -0.25, 0.25, 0.25f };
+            b2.m_points[frustum_points::NearTopRight]       = {   0.25, 0.25, 0.25f };
 
-            b2.m_points[frustum_points::FarBottomLeft]   = { -0.75, -0.75, 2.0f };
-            b2.m_points[frustum_points::FarBottomRight]  = { 0.75, -0.75,  2.0f };
-            b2.m_points[frustum_points::FarTopLeft]      = { -0.75,  0.75, 2.0f };
-            b2.m_points[frustum_points::FarTopRight]     = {  0.75,  0.75, 2.0f };
-            
-            
+            b2.m_points[frustum_points::FarBottomLeft]      = { -0.75, -0.75, 2.0f };
+            b2.m_points[frustum_points::FarBottomRight]     = { 0.75, -0.75,  2.0f };
+            b2.m_points[frustum_points::FarTopLeft]         = { -0.75,  0.75, 2.0f };
+            b2.m_points[frustum_points::FarTopRight]        = {  0.75,  0.75, 2.0f };
             
             b1.m_points[frustum_points::NearBottomLeft]     = { -0.25, -0.25, -2.0f };
             b1.m_points[frustum_points::NearBottomRight]    = {  0.25, -0.25, -2.0f };
@@ -280,11 +278,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 float3 light = { 0, 1, 0 };
 
                 auto r0 = convex_hull_with_direction(r1.value(), light, a1);
-
-                __debugbreak();
+                auto r3 = clip(r0, a1);
             }
         }
-
 	}
 
 	void SetWindow(const CoreWindow& w)

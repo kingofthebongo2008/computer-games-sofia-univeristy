@@ -4,6 +4,24 @@
 #include <array>
 #include <vector>
 #include <optional>
+#include <unordered_map>
+
+namespace std
+{
+    template <>
+    struct hash< std::tuple<int32_t, int32_t> >
+    {
+        size_t operator()(const std::tuple<int32_t, int32_t> & l) const
+        {
+            // Compute individual hash values for first, second and third
+            // http://stackoverflow.com/a/1646913/126995
+            size_t res = 17;
+            res = res * 31 + hash<int32_t>()(std::get<0>(l));
+            res = res * 31 + hash<int32_t>()(std::get<1>(l));
+            return res;
+        }
+    };
+}
 
 namespace computational_geometry
 {
@@ -159,7 +177,6 @@ namespace computational_geometry
             //determine if the polygon line is open
             int32_t start   = -1;
             int32_t end     = -1;
-
 
             for (auto&& e : f.m_edges)
             {
@@ -543,8 +560,104 @@ namespace computational_geometry
     template <>
     closed_convex_clipper make_clipper(const convex_polyhedron& b)
     {
-        //todo:
-        return closed_convex_clipper();
+        closed_convex_clipper r;
+
+        //build edges
+        {
+            const auto edge_count = b.m_points.size() + b.m_faces.size() - 2;
+
+            std::unordered_map< std::tuple<int32_t, int32_t>, int32_t > edges;
+
+            for (auto i = 0; i < b.m_faces.size(); ++i)
+            {
+                const auto& f = b.m_faces[i];
+                const auto indices_size = f.m_indices.size();
+
+                for (auto p = 0U; p < indices_size; ++p)
+                {
+                    const   int32_t computed_index_0 = f.m_indices[p];
+                    const   int32_t computed_index_1 = f.m_indices[(p + 1) % indices_size];
+                    const   int32_t index_0 = std::min(computed_index_0, computed_index_1);
+                    const   int32_t index_1 = std::max(computed_index_0, computed_index_1);
+
+                    auto&&  it = edges.find(std::make_tuple(index_0, index_1));
+                    if (it == edges.end())
+                    {
+                        closed_convex_clipper::edge e;
+
+                        e.m_vertices[0] = index_0;
+                        e.m_vertices[1] = index_1;
+                        e.m_faces.push_back(i);
+
+                        //new edge
+                        r.m_edges.push_back(std::move(e));
+
+                        edges.insert(std::make_pair(std::make_tuple(index_0, index_1), static_cast<int32_t>(r.m_edges.size()) - 1));
+                    }
+                    else
+                    {
+                        r.m_edges[it->second].m_faces.push_back(i);
+                    }
+                }
+            }
+        }
+
+        //build faces
+        {
+            r.m_faces.resize(b.m_faces.size());
+            for (auto i = 0; i < r.m_edges.size(); ++i)
+            {
+                for (auto j = 0; j < r.m_edges[i].m_faces.size(); ++j)
+                {
+                    r.m_faces[r.m_edges[i].m_faces[j]].m_edges.push_back(i);
+                }
+            }
+        }
+
+        //build points
+        {
+            r.m_vertices_points.resize(b.m_points.size());
+            r.m_vertices.resize(b.m_points.size());
+
+            for (auto i = 0; i < b.m_points.size();++i)
+            {
+                r.m_vertices_points[i] = b.m_points[i];
+            }
+        }
+
+        //build planes
+        {
+            //compute planes
+            for (auto i = 0U; i < r.m_faces.size(); ++i)
+            {
+                const auto&  e0         = r.m_edges[r.m_faces[i].m_edges[0]];
+                const auto&  e1         = r.m_edges[r.m_faces[i].m_edges[1]];
+
+                const float3 a          = r.m_vertices_points[ e0.m_vertices[0] ];
+                const float3 b          = r.m_vertices_points[ e0.m_vertices[1] ];
+                const auto   index      = e0.m_vertices[0] == e1.m_vertices[0] ? 1 : 0;
+                const float3 c          = r.m_vertices_points[e1.m_vertices[index]];
+                
+                r.m_faces[i].m_plane    = make_plane(a, b, c);
+            }
+
+            //orient normals to point inside
+            for (auto i = 0U; i < r.m_faces.size(); ++i)
+            {
+                const auto& plane = r.m_faces[i].m_plane;
+
+                for (auto&& v : r.m_vertices_points)
+                {
+                    if (dot(plane.m_n, v) + plane.m_d > 0.00001f)
+                    {
+                        r.m_faces[i].m_plane.m_n = -1.0f * plane.m_n;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return r;
     }
 
     std::optional<convex_polyhedron> clip(const frustum& f, const aabb& b)
@@ -692,16 +805,18 @@ namespace computational_geometry
             if (face_vector[i])
             {
                 const auto&     face            = body.m_faces[i];
-                const int32_t   indices_size    = face.m_indices.size();
+                const int32_t   indices_size    = static_cast<int32_t>(face.m_indices.size());
+
                 for (auto p = 0; p < indices_size; ++p)
                 {
                     const   int32_t computed_index_0 = p;
                     const   int32_t computed_index_1 = (p + 1) % indices_size;
+
                     int32_t index_0  = face.m_indices[computed_index_0];
                     int32_t index_1  = face.m_indices[computed_index_1];
 
-                    int32_t index_0_ = points_indices[computed_index_0];
-                    int32_t index_1_ = points_indices[computed_index_1];
+                    int32_t index_0_ = points_indices[index_0];
+                    int32_t index_1_ = points_indices[index_1];
 
                     convex_polyhedron::polygon polygon;
 
@@ -711,6 +826,13 @@ namespace computational_geometry
                     polygon.m_indices.push_back(index_0_);
 
                     r.m_faces.push_back(std::move(polygon));
+                }
+
+                //replace the old face indices
+                for (auto p = 0; p < indices_size; ++p)
+                {
+                    int32_t index_0             = face.m_indices[p];
+                    r.m_faces[i].m_indices[p]   = points_indices[ index_0 ];
                 }
             }
         }
@@ -731,11 +853,28 @@ namespace computational_geometry
     {
         float d = distance(clip_body.m_max, clip_body.m_min);
         return convex_hull_with_direction(body, d * vector);
-
     }
 
     convex_polyhedron convex_hull_with_point(const convex_polyhedron& body, const float3& point)
     {
+        assert(false); //not implemented
         return body;
+    }
+
+    convex_triangulated_polyhedron triangulate( const convex_polyhedron& p )
+    {
+        assert(false); //not implemented
+        convex_triangulated_polyhedron r;
+        r.m_points = p.m_points;
+        r.m_faces.reserve(p.m_faces.size() * 2);
+
+        for ( auto i = 0U; i < p.m_faces.size(); ++i)
+        {
+            const auto& f = p.m_faces[i];
+            if (f.m_indices.size() == 3)
+            {
+
+            }
+        }
     }
 }

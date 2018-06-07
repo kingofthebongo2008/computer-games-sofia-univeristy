@@ -26,6 +26,7 @@ namespace std
             return res;
         }
     };
+
 }
 
 namespace computational_geometry
