@@ -754,7 +754,7 @@ namespace computational_geometry
             planes[i]       = make_plane(a, b, c);
         }
 
-        //orient normals to point outside
+        //orient normals to point inside
         for (auto i = 0U; i < planes.size(); ++i)
         {
             auto plane = planes[i];
@@ -857,14 +857,15 @@ namespace computational_geometry
 
     convex_polyhedron convex_hull_with_point(const convex_polyhedron& body, const float3& point)
     {
-        assert(false); //not implemented
+        //assert(false); //not implemented
         return body;
     }
 
     convex_triangulated_polyhedron triangulate( const convex_polyhedron& p )
     {
-        assert(false); //not implemented
+        //assert(false); //not implemented
         convex_triangulated_polyhedron r;
+
         r.m_points = p.m_points;
         r.m_faces.reserve(p.m_faces.size() * 2);
 
@@ -876,5 +877,7 @@ namespace computational_geometry
 
             }
         }
+
+        return r;
     }
 }

@@ -239,46 +239,36 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
         using namespace computational_geometry;
         {
-            aabb a1;
-            frustum b1;
+            aabb shadow_receivers;
+            aabb scene;
 
-            //aabb a2;
-            frustum b2;
+            frustum view;
 
-            a1.m_min = { -1, -1, -1 };
-            a1.m_max = { 1,  1, 1 };
+            scene.m_min = { -1.5, -1.5, -1.5 };
+            scene.m_max = { 1.5,  1.5, 1.5 };
 
-            
-            b2.m_points[frustum_points::NearBottomLeft]     = { -0.25, -0.25, 0.25f };
-            b2.m_points[frustum_points::NearBottomRight]    = {  0.25, -0.25, 0.25f };
-            b2.m_points[frustum_points::NearTopLeft]        = {  -0.25, 0.25, 0.25f };
-            b2.m_points[frustum_points::NearTopRight]       = {   0.25, 0.25, 0.25f };
+            shadow_receivers.m_min = { -1, -1, -1 };
+            shadow_receivers.m_max = { 1,  1,   1 };
 
-            b2.m_points[frustum_points::FarBottomLeft]      = { -0.75, -0.75, 2.0f };
-            b2.m_points[frustum_points::FarBottomRight]     = { 0.75, -0.75,  2.0f };
-            b2.m_points[frustum_points::FarTopLeft]         = { -0.75,  0.75, 2.0f };
-            b2.m_points[frustum_points::FarTopRight]        = {  0.75,  0.75, 2.0f };
-            
-            b1.m_points[frustum_points::NearBottomLeft]     = { -0.25, -0.25, -2.0f };
-            b1.m_points[frustum_points::NearBottomRight]    = {  0.25, -0.25, -2.0f };
-            b1.m_points[frustum_points::NearTopRight]       = {  0.25, 0.25, -2.0 };
-            b1.m_points[frustum_points::NearTopLeft]        = {  -0.25, 0.25, -2.0 };
-            
+            view.m_points[frustum_points::NearBottomLeft]     = { -0.25, -0.25, 0.25f };
+            view.m_points[frustum_points::NearBottomRight]    = {  0.25, -0.25, 0.25f };
+            view.m_points[frustum_points::NearTopLeft]        = {  -0.25, 0.25, 0.25f };
+            view.m_points[frustum_points::NearTopRight]       = {   0.25, 0.25, 0.25f };
 
-            b1.m_points[frustum_points::FarBottomLeft]      = { -0.25, -0.25, 2.0f };
-            b1.m_points[frustum_points::FarBottomRight]     = { 0.25, -0.25,  2.0f };
-            b1.m_points[frustum_points::FarTopRight]        = { 0.25,  0.25, 2.0f };
-            b1.m_points[frustum_points::FarTopLeft]         = { -0.25,  0.25, 2.0f };
-            
-            auto r1 = clip(b1, a1);
-            auto r2 = clip(b2, a1);
+            view.m_points[frustum_points::FarBottomLeft]      = { -0.25, -0.25, 2.0f };
+            view.m_points[frustum_points::FarBottomRight]     = { 0.25, -0.25,  2.0f };
+            view.m_points[frustum_points::FarTopLeft]         = { -0.25,  0.25, 2.0f };
+            view.m_points[frustum_points::FarTopRight]        = {  0.25,  0.25, 2.0f };
 
-            if (r1)
+            auto psr = clip(view, shadow_receivers);          //focus and scale shadows here
+
+            if (psr)
             {
                 float3 light = { 0, 1, 0 };
 
-                auto r0 = convex_hull_with_direction(r1.value(), light, a1);
-                auto r3 = clip(r0, a1);
+                auto r0     = convex_hull_with_direction(psr.value(), light, scene);
+                auto psc    = clip(r0, scene);          //frustum cull these
+
             }
         }
 	}
