@@ -432,9 +432,11 @@ namespace computational_geometry
         }
     };
    
-
     template <typename t>
-    closed_convex_clipper make_clipper(const t& b)
+    closed_convex_clipper make_clipper(const t& b);
+
+    template <>
+    closed_convex_clipper make_clipper<frustum>(const frustum& b)
     {
         closed_convex_clipper r;
 
@@ -538,6 +540,13 @@ namespace computational_geometry
         return r;
     }
 
+    template <>
+    closed_convex_clipper make_clipper(const convex_polyhedron& b)
+    {
+        //todo:
+        return closed_convex_clipper();
+    }
+
     std::optional<convex_polyhedron> clip(const frustum& f, const aabb& b)
     {
         auto clipper    = make_clipper(f);
@@ -567,6 +576,45 @@ namespace computational_geometry
                 for (auto j = 0; j < face_count; ++j)
                 {
                     polygon.m_indices.push_back( faces[i] );
+                    i++;
+                }
+
+                r.m_faces.push_back(std::move(polygon));
+            }
+        }
+
+        return r;
+    }
+
+    std::optional< convex_polyhedron > clip(const convex_polyhedron& f, const aabb& b)
+    {
+        auto clipper = make_clipper(f);
+        auto planes = make_face_planes(b);
+
+        for (auto i = 0; i < planes.size(); ++i)
+        {
+            if (clipper.clip(planes[i]) == -1)
+            {
+                return {};
+            }
+        }
+
+        convex_polyhedron r;
+
+        {
+            auto r0 = clipper.convert();
+            r.m_points = std::move(std::get<0>(r0));
+            const auto& faces = std::get<1>(r0);
+
+            for (auto i = 0; i < faces.size(); )
+            {
+                auto face_count = faces[i];
+                i++;
+
+                convex_polyhedron::polygon polygon;
+                for (auto j = 0; j < face_count; ++j)
+                {
+                    polygon.m_indices.push_back(faces[i]);
                     i++;
                 }
 

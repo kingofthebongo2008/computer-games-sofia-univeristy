@@ -294,6 +294,7 @@ namespace computational_geometry
     };
 
     std::optional< convex_polyhedron > clip(const frustum& f, const aabb& b);
+    std::optional< convex_polyhedron > clip(const convex_polyhedron& f, const aabb& b);
 
 
     //move vector facing polygons along the vector up to the clip_body. alpha is the diagonal of the clip_body
