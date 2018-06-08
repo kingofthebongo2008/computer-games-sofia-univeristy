@@ -857,8 +857,69 @@ namespace computational_geometry
 
     convex_polyhedron convex_hull_with_point(const convex_polyhedron& body, const float3& point)
     {
-        //assert(false); //not implemented
-        return body;
+        convex_polyhedron r = body;
+
+        std::vector<plane> planes;
+        planes.resize(body.m_faces.size());
+
+        //compute planes
+        for (auto i = 0U; i < planes.size(); ++i)
+        {
+            const float3 a = body.m_points[body.m_faces[i].m_indices[0]];
+            const float3 b = body.m_points[body.m_faces[i].m_indices[1]];
+            const float3 c = body.m_points[body.m_faces[i].m_indices[2]];
+            planes[i] = make_plane(a, b, c);
+        }
+
+        //orient normals to point inside
+        for (auto i = 0U; i < planes.size(); ++i)
+        {
+            auto plane = planes[i];
+
+            for (auto&& v : body.m_points)
+            {
+                if (dot(plane.m_n, v) + plane.m_d > 0.00001f)
+                {
+                    planes[i].m_n = -1.0f * plane.m_n;
+                    break;
+                }
+            }
+        }
+
+        {
+            uint32_t inside_all = 0;
+
+            //orient normals to point inside
+            for (auto i = 0U; i < planes.size(); ++i)
+            {
+                auto plane = planes[i];
+
+                for (auto&& v : body.m_points)
+                {
+                    if (dot(plane.m_n, point) + plane.m_d < -0.00001f)
+                    {
+                        inside_all = inside_all + 1;
+
+                    }
+                }
+            }
+
+            //the point is inside
+            if (inside_all == planes.size())
+            {
+                return r;
+            }
+        }
+
+        std::vector<bool> face_vector;
+        face_vector.resize(planes.size());
+
+        for (auto i = 0U; i < face_vector.size(); ++i)
+        {
+            face_vector[i] = dot(planes[i].m_n, point) > 0.00001f;
+        }
+
+        return r;
     }
 
     convex_triangulated_polyhedron triangulate( const convex_polyhedron& p )
