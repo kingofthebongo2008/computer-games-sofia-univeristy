@@ -896,7 +896,7 @@ namespace computational_geometry
 
                 for (auto&& v : body.m_points)
                 {
-                    if (dot(plane.m_n, point) + plane.m_d < -0.00001f)
+                    if (dot(plane.m_n, v) + plane.m_d < -0.00001f)
                     {
                         inside_all = inside_all + 1;
 
