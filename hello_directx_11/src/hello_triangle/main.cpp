@@ -57,6 +57,24 @@ static ComPtr<ID3D11DeviceContext> CreateImmediateContext(ID3D11Device* d )
 	return r;
 }
 
+namespace sample
+{
+    template <typename to, typename from> to* copy_to_abi_private(const from& w)
+    {
+        void* v = nullptr;
+        winrt::copy_to_abi(w, v);
+
+        return reinterpret_cast<to*>(v);
+    }
+
+    template <typename to, typename from> winrt::com_ptr<to> copy_to_abi(const from& w)
+    {
+        winrt::com_ptr<to> v;
+        v.attach(sample::copy_to_abi_private<IUnknown>(w));
+        return v;
+    }
+}
+
 static ComPtr<IDXGISwapChain1> CreateSwapChain(const CoreWindow& w, ID3D11Device* d)
 {
 	ComPtr<IDXGIFactory2> f;
@@ -76,7 +94,7 @@ static ComPtr<IDXGISwapChain1> CreateSwapChain(const CoreWindow& w, ID3D11Device
 	desc.AlphaMode		= DXGI_ALPHA_MODE_IGNORE;
 	desc.Scaling		= DXGI_SCALING_NONE;
 
-	ThrowIfFailed(f->CreateSwapChainForCoreWindow(d, winrt::get_abi(w), &desc, nullptr, r.GetAddressOf()));
+    ThrowIfFailed(f->CreateSwapChainForCoreWindow(d, sample::copy_to_abi<IUnknown>(w).get(), &desc, nullptr, r.GetAddressOf()));
 
 	return r;
 }
@@ -228,7 +246,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		}
 	}
 
-	void Load(winrt::hstring_view h)
+	void Load(winrt::hstring h)
 	{
 		m_triangle_vertex = CreateTriangleVertexShader(m_device.Get());
 		m_triangle_pixel = CreateTrianglePixelShader(m_device.Get());
