@@ -48,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="hello_triangle_rotate_temporary_key.pfx" />
+    <None Include="hello_triangle_rotate_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\..\src\hello_triangle_rotate\shaders\triangle_vertex.hlsl">
