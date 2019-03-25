@@ -75,7 +75,6 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\hello_triangle\frustum_aabb_intersection.h" />
     <ClInclude Include="..\..\src\hello_triangle\pch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -95,8 +94,6 @@
     <Image Include="assets\wide_310x150_logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\hello_triangle\frustum_aabb_clipper.cpp" />
-    <ClCompile Include="..\..\src\hello_triangle\frustum_aabb_intersection.cpp" />
     <ClCompile Include="..\..\src\hello_triangle\main.cpp" />
     <ClCompile Include="..\..\src\hello_triangle\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

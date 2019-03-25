@@ -14,7 +14,6 @@
 #include <triangle_vertex.h>
 #include <triangle_pixel.h>
 
-#include "frustum_aabb_intersection.h"
 
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
@@ -254,41 +253,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_blend_state = CreateBlendState(m_device.Get());
 		m_rasterizer_state = CreateRasterizerState(m_device.Get());
 		m_depth_stencil_state = CreateDepthStencilState(m_device.Get());
-
-        using namespace computational_geometry;
-        {
-            aabb shadow_receivers;
-            aabb scene;
-
-            frustum view;
-
-            scene.m_min = { -1.5, -1.5, -1.5 };
-            scene.m_max = { 1.5,  1.5, 1.5 };
-
-            shadow_receivers.m_min = { -1, -1, -1 };
-            shadow_receivers.m_max = { 1,  1,   1 };
-
-            view.m_points[frustum_points::NearBottomLeft]     = { -0.25, -0.25, 0.25f };
-            view.m_points[frustum_points::NearBottomRight]    = {  0.25, -0.25, 0.25f };
-            view.m_points[frustum_points::NearTopLeft]        = {  -0.25, 0.25, 0.25f };
-            view.m_points[frustum_points::NearTopRight]       = {   0.25, 0.25, 0.25f };
-
-            view.m_points[frustum_points::FarBottomLeft]      = { -0.25, -0.25, 2.0f };
-            view.m_points[frustum_points::FarBottomRight]     = { 0.25, -0.25,  2.0f };
-            view.m_points[frustum_points::FarTopLeft]         = { -0.25,  0.25, 2.0f };
-            view.m_points[frustum_points::FarTopRight]        = {  0.25,  0.25, 2.0f };
-
-            auto psr = clip(view, shadow_receivers);          //focus and scale shadows here
-
-            if (psr)
-            {
-                float3 light = { 0, 1, 0 };
-
-                auto r0     = convex_hull_with_direction(psr.value(), light, scene);
-                auto psc    = clip(r0, scene);          //frustum cull these
-
-            }
-        }
 	}
 
 	void SetWindow(const CoreWindow& w)
