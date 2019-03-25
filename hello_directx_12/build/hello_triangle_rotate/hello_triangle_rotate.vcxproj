@@ -46,7 +46,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <PackageCertificateKeyFile>hello_triangle_rotate_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <PackageCertificateThumbprint>22B2EFA1B69266F6D100CA18540572E5D162ABB1</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>6F14B604474707B62C789C2412DDF3B3A7D88F7D</PackageCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>
