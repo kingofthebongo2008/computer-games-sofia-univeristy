@@ -37,19 +37,31 @@ namespace sample
     }
 }
 
-struct DescriptorHeapView
+struct DescriptorHeapCpuView
 {
-
-
-    D3D12_CPU_DESCRIPTOR_HANDLE operator(uint64_t index) const
+    DescriptorHeapCpuView( D3D12_CPU_DESCRIPTOR_HANDLE  base, uint64_t offset) : m_base(base), m_offset(offset)
     {
 
     }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE operator () ( size_t index) const
+    {
+        return { m_base.ptr + index * m_offset };
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE operator + (size_t index) const
+    {
+        return { m_base.ptr + index * m_offset };
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE m_base      = {};
+    uint64_t                    m_offset;
 };
 
-static D3D12_CPU_DESCRIPTOR_HANDLE operator+( D3D12_CPU_DESCRIPTOR_HANDLE h, uint64_t o)
+DescriptorHeapCpuView CpuView( ID3D12Device* d, ID3D12DescriptorHeap* heap )
 {
-    return { h.ptr + o } ;
+    D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
+    return DescriptorHeapCpuView(heap->GetCPUDescriptorHandleForHeapStart(), d->GetDescriptorHandleIncrementSize(desc.Type));
 }
 
 struct exception : public std::exception
@@ -349,11 +361,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
         m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
 
-        
-
         //create render target views, that will be used for rendering
-        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), m_descriptorHeap->GetCPUDescriptorHandleForHeapStart() + 0);
-        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), m_descriptorHeap->GetCPUDescriptorHandleForHeapStart() + 1);
+        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 0);
+        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 1);
 	}
 
 	void OnWindowClosed(const CoreWindow&w, const CoreWindowEventArgs& a)
@@ -378,8 +388,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
 
         //create render target views, that will be used for rendering
-        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), m_descriptorHeap->GetCPUDescriptorHandleForHeapStart() + 0 );
-        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), m_descriptorHeap->GetCPUDescriptorHandleForHeapStart() + 1 );
+        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 0);
+        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 1);
 
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
