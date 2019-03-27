@@ -220,6 +220,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	{
 		m_activated			= v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
 		m_device			= CreateDevice();
+
+        m_fence             = CreateFence(m_device.get());
+        m_queue             = CreateCommandQueue(m_device.get());
+
+        m_descriptorHeap    = CreateDescriptorHeap(m_device.get());
 	}
 
 	void Uninitialize() 
@@ -349,6 +354,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         //create render target views, that will be used for rendering
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), m_descriptorHeap->GetCPUDescriptorHandleForHeapStart() + 0 );
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), m_descriptorHeap->GetCPUDescriptorHandleForHeapStart() + 1 );
+
+        m_swap_chain_descriptors[0] = 0;
+        m_swap_chain_descriptors[1] = 1;
 	}
 
 	bool m_window_running = true;
@@ -369,12 +377,12 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     std::mutex                                  m_blockRendering;   //block render thread for the swap chain resizes
 
     winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];
+    uint64_t                                    m_swap_chain_descriptors[2];
 
     uint32_t									m_back_buffer_width = 0;
 	uint32_t									m_back_buffer_height = 0;
 
     uint64_t                                    m_frame_index = 0;
-
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
