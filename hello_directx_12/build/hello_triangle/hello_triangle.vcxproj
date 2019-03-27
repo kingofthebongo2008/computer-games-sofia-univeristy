@@ -46,7 +46,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <PackageCertificateKeyFile>hello_triangle_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <PackageCertificateThumbprint>3C2AB6E553C5738774034467006E27EB63C77D55</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>8EF544AC792E51B2E5F426F141E3180B7D0F8109</PackageCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>
@@ -81,8 +81,6 @@
     <AppxManifest Include="package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
-    <None Include="hello_triangle_TemporaryKey.pfx" />
-    <None Include="hello_triangle_temporary_key.pfx" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png" />
@@ -113,6 +111,9 @@
       <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput />
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="hello_triangle_TemporaryKey.pfx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
