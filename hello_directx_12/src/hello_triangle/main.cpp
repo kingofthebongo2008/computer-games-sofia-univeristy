@@ -37,6 +37,16 @@ namespace sample
     }
 }
 
+struct DescriptorHeapView
+{
+
+
+    D3D12_CPU_DESCRIPTOR_HANDLE operator(uint64_t index) const
+    {
+
+    }
+};
+
 static D3D12_CPU_DESCRIPTOR_HANDLE operator+( D3D12_CPU_DESCRIPTOR_HANDLE h, uint64_t o)
 {
     return { h.ptr + o } ;
@@ -60,6 +70,18 @@ inline void ThrowIfFailed(HRESULT hr)
 	}
 }
 
+
+static winrt::com_ptr<ID3D12Debug> CreateDebug()
+{
+    winrt::com_ptr<ID3D12Debug> r;
+    //check if you have installed debug layer, from the option windows components
+    if ( D3D12GetDebugInterface(__uuidof(ID3D12Debug), r.put_void() ) == S_OK)
+    {
+        r->EnableDebugLayer();
+    }
+    return r;
+}
+
 static winrt::com_ptr<ID3D12Device4> CreateDevice()
 {
     winrt::com_ptr<ID3D12Device4> r;
@@ -81,7 +103,7 @@ static winrt::com_ptr<ID3D12CommandQueue> CreateCommandQueue(ID3D12Device* d )
 	return r;
 }
 
-static winrt::com_ptr<IDXGISwapChain1> CreateSwapChain(const CoreWindow& w, ID3D12Device* d)
+static winrt::com_ptr<IDXGISwapChain1> CreateSwapChain(const CoreWindow& w, ID3D12CommandQueue* d)
 {
     winrt::com_ptr<IDXGIFactory2> f;
     winrt::com_ptr<IDXGISwapChain1> r;
@@ -118,7 +140,7 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeap(ID3D12Device1*
 
     d.NumDescriptors = 2;
     d.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-    device->CreateDescriptorHeap(nullptr, __uuidof(ID3D12DescriptorHeap), r.put_void());
+    device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
     return r;
 }
 
@@ -130,7 +152,7 @@ static D3D12_RESOURCE_DESC DescribeSwapChain ( uint32_t width, uint32_t height)
     d.DepthOrArraySize      = 1;
     d.Dimension             = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     d.Flags                 = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-    d.Format                = DXGI_FORMAT_B8G8R8A8_TYPELESS;
+    d.Format                = DXGI_FORMAT_B8G8R8A8_TYPELESS;     //important for computing the resource footprint
     d.Height                = height;
     d.Layout                = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     d.MipLevels             = 1;
@@ -149,7 +171,7 @@ static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* de
     p.Type                              = D3D12_HEAP_TYPE_DEFAULT;
     D3D12_RESOURCE_STATES       state   = D3D12_RESOURCE_STATE_RENDER_TARGET;
     
-    ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES, &d, state, 0, __uuidof(ID3D12Resource1), r.put_void()));
+    ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, 0, __uuidof(ID3D12Resource1), r.put_void()));
     return r;
 }
 
@@ -157,6 +179,7 @@ static void CreateSwapChainDescriptor(ID3D12Device1* device, ID3D12Resource1* re
 {
     D3D12_RENDER_TARGET_VIEW_DESC d = {};
     d.ViewDimension                 = D3D12_RTV_DIMENSION_TEXTURE2D;
+    d.Format                        = DXGI_FORMAT_B8G8R8A8_UNORM;       //how we will view the resource during rendering
     device->CreateRenderTargetView(resource, &d, handle);
 }
 
@@ -219,6 +242,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	void Initialize(const CoreApplicationView& v)
 	{
 		m_activated			= v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
+        m_debug             = CreateDebug();
 		m_device			= CreateDevice();
 
         m_fence             = CreateFence(m_device.get());
@@ -316,7 +340,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_closed			    = w.Closed(winrt::auto_revoke, { this, &ViewProvider::OnWindowClosed });
 		m_size_changed		    = w.SizeChanged(winrt::auto_revoke, { this, &ViewProvider::OnWindowSizeChanged });
 
-		m_swap_chain		    = CreateSwapChain(w, m_device.get());
+		m_swap_chain		    = CreateSwapChain(w, m_queue.get());
 
 		m_back_buffer_width     = static_cast<UINT>(w.Bounds().Width);
 		m_back_buffer_height    = static_cast<UINT>(w.Bounds().Height);
@@ -324,6 +348,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         //allocate memory for the view
         m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
         m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+
+        
 
         //create render target views, that will be used for rendering
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), m_descriptorHeap->GetCPUDescriptorHandleForHeapStart() + 0);
@@ -365,6 +391,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	CoreWindow::SizeChanged_revoker				m_size_changed;
 	CoreApplicationView::Activated_revoker		m_activated;
 	
+    winrt::com_ptr<ID3D12Debug>                 m_debug;
     winrt::com_ptr <ID3D12Device1>				m_device;           //device for gpu resources
     winrt::com_ptr <IDXGISwapChain1>			m_swap_chain;       //swap chain for 
     winrt::com_ptr <ID3D12PipelineState>		m_pipeline_state;   //pipeline state
