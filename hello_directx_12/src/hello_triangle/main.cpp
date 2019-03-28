@@ -195,53 +195,20 @@ static void CreateSwapChainDescriptor(ID3D12Device1* device, ID3D12Resource1* re
     device->CreateRenderTargetView(resource, &d, handle);
 }
 
-
-
-/*
-static winrt::com_ptr <ID3D11PixelShader> CreateTrianglePixelShader(ID3D11Device3* device)
+static winrt::com_ptr <ID3D12CommandAllocator> CreateCommandAllocator(ID3D12Device1* device)
 {
-    winrt::com_ptr <ID3D11PixelShader> r;
-	ThrowIfFailed(device->CreatePixelShader(g_triangle_pixel, sizeof(g_triangle_pixel), nullptr, r.put()));
+	winrt::com_ptr<ID3D12CommandAllocator> r;
+	ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), r.put_void()));
 	return r;
 }
 
-static winrt::com_ptr<ID3D11RasterizerState2> CreateRasterizerState(ID3D11Device3* device)
+static winrt::com_ptr <ID3D12GraphicsCommandList1> CreateCommandList(ID3D12Device1* device, ID3D12CommandAllocator* a)
 {
-    winrt::com_ptr<ID3D11RasterizerState2> r;
-
-	D3D11_RASTERIZER_DESC2 state = {};
-
-	state.FillMode				= D3D11_FILL_SOLID;
-	state.CullMode				= D3D11_CULL_NONE;
-	state.FrontCounterClockwise = TRUE;
-	state.DepthClipEnable		= TRUE;
-	state.ScissorEnable			= TRUE;
-
-	ThrowIfFailed(device->CreateRasterizerState2(&state, r.put()));
+	winrt::com_ptr<ID3D12GraphicsCommandList1> r;
+	ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, a, nullptr, __uuidof(ID3D12GraphicsCommandList1), r.put_void()));
 	return r;
 }
 
-static winrt::com_ptr<ID3D11BlendState1> CreateBlendState(ID3D11Device3* device)
-{
-    winrt::com_ptr<ID3D11BlendState1> r;
-
-	D3D11_BLEND_DESC1 state = {};
-	state.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	ThrowIfFailed(device->CreateBlendState1(&state, r.put()));
-	return r;
-}
-
-static winrt::com_ptr<ID3D11DepthStencilState> CreateDepthStencilState(ID3D11Device3* device)
-{
-    winrt::com_ptr <ID3D11DepthStencilState> r;
-
-	D3D11_DEPTH_STENCIL_DESC state = {};
-	state.DepthEnable = FALSE;
-	state.DepthFunc = D3D11_COMPARISON_LESS;
-	ThrowIfFailed(device->CreateDepthStencilState(&state, r.put()));
-	return r;
-}
-*/
 class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFrameworkViewSource>
 {
 	public:
@@ -253,14 +220,20 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 	void Initialize(const CoreApplicationView& v)
 	{
-		m_activated			= v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
-        m_debug             = CreateDebug();
-		m_device			= CreateDevice();
+		m_activated				= v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
+        m_debug					= CreateDebug();
+		m_device				= CreateDevice();
 
-        m_fence             = CreateFence(m_device.get());
-        m_queue             = CreateCommandQueue(m_device.get());
+        m_fence					= CreateFence(m_device.get());
+        m_queue					= CreateCommandQueue(m_device.get());
 
-        m_descriptorHeap    = CreateDescriptorHeap(m_device.get());
+        m_descriptorHeap		= CreateDescriptorHeap(m_device.get());
+
+		m_command_allocator[0]	= CreateCommandAllocator(m_device.get());
+		m_command_allocator[1]	= CreateCommandAllocator(m_device.get());
+
+		m_command_list[0]		= CreateCommandList(m_device.get(), m_command_allocator[0].get());
+		m_command_list[1]		= CreateCommandList(m_device.get(), m_command_allocator[1].get());
 	}
 
 	void Uninitialize() 
@@ -273,8 +246,12 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		while (m_window_running)
 		{
 			CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
-
             std::lock_guard lock(m_blockRendering);
+
+			uint64_t v = m_fence->GetCompletedValue();
+		
+
+
 
             /*
 			{
@@ -419,7 +396,15 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     uint32_t									m_back_buffer_width = 0;
 	uint32_t									m_back_buffer_height = 0;
 
-    uint64_t                                    m_frame_index = 0;
+	winrt::com_ptr <ID3D12CommandAllocator>   	m_command_allocator[2];		//one per frame
+	winrt::com_ptr <ID3D12GraphicsCommandList1> m_command_list[2];			//one per frame
+
+    uint64_t                                    m_frame_index	= 0;
+	uint64_t									m_fence_value	= 0;
+
+	uint64_t									m_fence_values[2];
+
+	HANDLE										m_fence_event = {};
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
