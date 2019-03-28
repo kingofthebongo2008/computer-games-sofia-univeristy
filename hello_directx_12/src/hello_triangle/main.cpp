@@ -115,7 +115,7 @@ static winrt::com_ptr<ID3D12CommandQueue> CreateCommandQueue(ID3D12Device* d )
 	return r;
 }
 
-static winrt::com_ptr<IDXGISwapChain1> CreateSwapChain(const CoreWindow& w, ID3D12CommandQueue* d)
+static winrt::com_ptr<IDXGISwapChain3> CreateSwapChain(const CoreWindow& w, ID3D12CommandQueue* d)
 {
     winrt::com_ptr<IDXGIFactory2> f;
     winrt::com_ptr<IDXGISwapChain1> r;
@@ -135,7 +135,7 @@ static winrt::com_ptr<IDXGISwapChain1> CreateSwapChain(const CoreWindow& w, ID3D
 	desc.Scaling		= DXGI_SCALING_NONE;
 
     ThrowIfFailed(f->CreateSwapChainForCoreWindow(d, sample::copy_to_abi<IUnknown>(w).get(), &desc, nullptr, r.put()));
-	return r;
+    return r.as< IDXGISwapChain3>();
 }
 
 static winrt::com_ptr <ID3D12Fence> CreateFence(ID3D12Device1* device, uint64_t initialValue = 1)
@@ -206,6 +206,8 @@ static winrt::com_ptr <ID3D12GraphicsCommandList1> CreateCommandList(ID3D12Devic
 {
 	winrt::com_ptr<ID3D12GraphicsCommandList1> r;
 	ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, a, nullptr, __uuidof(ID3D12GraphicsCommandList1), r.put_void()));
+
+    r->Close();
 	return r;
 }
 
@@ -224,7 +226,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_debug					= CreateDebug();
 		m_device				= CreateDevice();
 
-        m_fence					= CreateFence(m_device.get());
+        
         m_queue					= CreateCommandQueue(m_device.get());
 
         m_descriptorHeap		= CreateDescriptorHeap(m_device.get());
@@ -234,6 +236,15 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 		m_command_list[0]		= CreateCommandList(m_device.get(), m_command_allocator[0].get());
 		m_command_list[1]		= CreateCommandList(m_device.get(), m_command_allocator[1].get());
+
+
+        m_fence                 = CreateFence(m_device.get());
+        m_fence_event           = CreateEvent(nullptr, false, false, nullptr);
+
+        if (m_fence_event == nullptr)
+        {
+            ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+        }
 	}
 
 	void Uninitialize() 
@@ -246,11 +257,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		while (m_window_running)
 		{
 			CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
+
             std::lock_guard lock(m_blockRendering);
-
-			uint64_t v = m_fence->GetCompletedValue();
-		
-
+  
 
 
             /*
@@ -308,7 +317,50 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 				}
 			}
             */
-			m_swap_chain->Present(0, 0);
+
+            //reset the command generators for this frame if they have data, which was already used by the gpu
+            ID3D12CommandAllocator*     allocator       = m_command_allocator[m_frame_index].get();
+            ID3D12GraphicsCommandList1* commandList     = m_command_list[m_frame_index].get();
+            allocator->Reset();
+            commandList->Reset(allocator, nullptr);
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+            commandList->Close();   //close the list
+
+            {
+                //form group of several command lists
+                ID3D12CommandList* lists[] = { commandList };
+                m_queue->ExecuteCommandLists(1, lists); //Execute what we have, submission of commands to the gpu
+            }
+			
+
+            m_swap_chain->Present(0, 0);    //present the swap chain
+
+            //Tell the gpu to signal m_fence when it passes m_fence_value
+            ThrowIfFailed(m_queue->Signal(m_fence.get(), m_fence_value));
+
+            //Now block until the gpu completes the previous frame
+            if (m_fence->GetCompletedValue() < m_fence_value)
+            {
+                ThrowIfFailed(m_fence->SetEventOnCompletion(m_fence_value, m_fence_event));
+                WaitForSingleObject(m_fence_event, INFINITE);
+            }
+
+            //next frame
+            m_fence_value = m_fence_value + 1;
+            m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
 		}
 	}
 
@@ -330,6 +382,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_size_changed		    = w.SizeChanged(winrt::auto_revoke, { this, &ViewProvider::OnWindowSizeChanged });
 
 		m_swap_chain		    = CreateSwapChain(w, m_queue.get());
+        m_frame_index           = m_swap_chain->GetCurrentBackBufferIndex();
 
 		m_back_buffer_width     = static_cast<UINT>(w.Bounds().Width);
 		m_back_buffer_height    = static_cast<UINT>(w.Bounds().Height);
@@ -355,7 +408,23 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 	void OnWindowSizeChanged(const CoreWindow& w, const WindowSizeChangedEventArgs& a)
 	{
+        //wait for the render thread to finish and block it so we can submit a command
         std::lock_guard lock(m_blockRendering);
+
+        //Now wait for the gpu to finish what it has from the main thread
+
+        //Tell the gpu to signal m_fence when it passes m_fence_value
+        ThrowIfFailed(m_queue->Signal(m_fence.get(), m_fence_value));
+
+        ThrowIfFailed(m_fence->SetEventOnCompletion(m_fence_value, m_fence_event));
+        WaitForSingleObject(m_fence_event, INFINITE);
+
+        //Restore state after the render thread is unblocked
+        //next frame
+        m_fence_value = m_fence_value + 1;
+        m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+
+        //Now recreate the swap chain with the new dimensions, we must have back buffer as the window size
 
 		m_back_buffer_width = static_cast<UINT>(a.Size().Width);
 		m_back_buffer_height = static_cast<UINT>(a.Size().Height);
@@ -380,7 +449,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	
     winrt::com_ptr<ID3D12Debug>                 m_debug;
     winrt::com_ptr <ID3D12Device1>				m_device;           //device for gpu resources
-    winrt::com_ptr <IDXGISwapChain1>			m_swap_chain;       //swap chain for 
+    winrt::com_ptr <IDXGISwapChain3>			m_swap_chain;       //swap chain for 
     winrt::com_ptr <ID3D12PipelineState>		m_pipeline_state;   //pipeline state
 
     winrt::com_ptr <ID3D12Fence>        		m_fence;            //fence for cpu/gpu synchronization
@@ -400,10 +469,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	winrt::com_ptr <ID3D12GraphicsCommandList1> m_command_list[2];			//one per frame
 
     uint64_t                                    m_frame_index	= 0;
-	uint64_t									m_fence_value	= 0;
-
-	uint64_t									m_fence_values[2];
-
+	uint64_t									m_fence_value	= 1;
 	HANDLE										m_fence_event = {};
 };
 
