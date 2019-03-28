@@ -52,6 +52,9 @@
     <FxCompile Include="..\..\src\hello_triangle\shaders\triangle_pixel.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\src\hello_triangle\shaders\default_graphics_signature.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="hello_triangle_TemporaryKey.pfx" />

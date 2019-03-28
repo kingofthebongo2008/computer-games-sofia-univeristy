@@ -211,6 +211,47 @@ static winrt::com_ptr <ID3D12GraphicsCommandList1> CreateCommandList(ID3D12Devic
 	return r;
 }
 
+static winrt::com_ptr< ID3D12RootSignature>	 CreateRootSignature(ID3D12Device1* device)
+{
+	static 
+	#include <default_graphics_signature.h>
+
+	winrt::com_ptr<ID3D12RootSignature> r;
+	ThrowIfFailed(device->CreateRootSignature( 0, &g_default_graphics_signature[0], sizeof(g_default_graphics_signature), __uuidof(ID3D12RootSignature), r.put_void()));
+	return r;
+}
+
+static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
+{
+	static
+	#include <triangle_pixel.h>
+
+	static
+	#include <triangle_vertex.h>
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+	state.pRootSignature			= root;
+	state.SampleMask				= UINT_MAX;
+	state.RasterizerState		= CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	state.PrimitiveTopologyType	= D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	state.NumRenderTargets		= 1;
+	state.RTVFormats[0]			= DXGI_FORMAT_R8G8B8A8_UNORM;
+	state.SampleDesc.Count		= 1;
+	state.BlendState				= CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	state.DepthStencilState.DepthEnable = FALSE;
+	state.DepthStencilState.StencilEnable = FALSE;
+
+	state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex);}
+	state.PS = { &g_triangle_pixel[0], sizeof(g_triangle_pixel);}
+
+	winrt::com_ptr<ID3D12RootSignature> r;
+
+	ThrowIfFailed(device->CreateRootSignature(0, &g_default_graphics_signature[0], sizeof(g_default_graphics_signature), __uuidof(ID3D12RootSignature), r.put_void()));
+	return r;
+}
+
+m_triangle_state
+
 class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFrameworkViewSource>
 {
 	public:
@@ -326,6 +367,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 
 
+			
 
 
 
@@ -366,6 +408,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 	void Load(winrt::hstring h)
 	{
+		m_root_signature = CreateRootSignature(m_device.get());
+
         /*
 		m_triangle_vertex = CreateTriangleVertexShader(m_device.get());
 		m_triangle_pixel = CreateTrianglePixelShader(m_device.get());
@@ -447,7 +491,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	CoreWindow::SizeChanged_revoker				m_size_changed;
 	CoreApplicationView::Activated_revoker		m_activated;
 	
-    winrt::com_ptr<ID3D12Debug>                 m_debug;
+    winrt::com_ptr <ID3D12Debug>                m_debug;
     winrt::com_ptr <ID3D12Device1>				m_device;           //device for gpu resources
     winrt::com_ptr <IDXGISwapChain3>			m_swap_chain;       //swap chain for 
     winrt::com_ptr <ID3D12PipelineState>		m_pipeline_state;   //pipeline state
@@ -471,6 +515,14 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     uint64_t                                    m_frame_index	= 0;
 	uint64_t									m_fence_value	= 1;
 	HANDLE										m_fence_event = {};
+
+	//Rendering
+
+	winrt::com_ptr< ID3D12RootSignature>		m_root_signature;
+	winrt::com_ptr< ID3D12PipelineState>		m_triangle_state;
+
+	//CreateRootSignature
+
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )

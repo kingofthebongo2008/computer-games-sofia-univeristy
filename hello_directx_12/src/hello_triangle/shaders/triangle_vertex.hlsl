@@ -1,8 +1,11 @@
+#include "default_signature.hlsli"
+
 struct interpolated_value
 {
 	float4 m_position : SV_POSITION;
 };
 
+[RootSignature( MyRS1 ) ]
 interpolated_value main(uint v : SV_VERTEXID)
 {
 	interpolated_value r;
