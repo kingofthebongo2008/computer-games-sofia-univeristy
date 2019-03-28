@@ -19,6 +19,7 @@
 
 #include <d3d12.h>
 #include <dxgi1_5.h>
+#include <d3dx12.h>
 
 #include <winrt/base.h>
 #include <winrt/Windows.UI.Core.h>
