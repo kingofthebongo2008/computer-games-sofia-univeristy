@@ -9,7 +9,7 @@ struct interpolated_value
 [RootSignature( MyRS1 ) ]
 interpolated_value main(uint v : SV_VERTEXID)
 {
-	interpolated_value r;
+	interpolated_value r = (interpolated_value)0;
 	r.m_position = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
 	if (v == 0)
