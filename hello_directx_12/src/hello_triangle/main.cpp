@@ -1,8 +1,7 @@
 #include "pch.h"
 #include <cstdint>
 
-#include <triangle_vertex.h>
-#include <triangle_pixel.h>
+#include "d3dx12.h"
 
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
@@ -156,6 +155,17 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeap(ID3D12Device1*
     return r;
 }
 
+static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapRendering(ID3D12Device1* device)
+{
+    winrt::com_ptr<ID3D12DescriptorHeap> r;
+    D3D12_DESCRIPTOR_HEAP_DESC d = {};
+
+    d.NumDescriptors = 2;
+    d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
+    return r;
+}
+
 //compute sizes
 static D3D12_RESOURCE_DESC DescribeSwapChain ( uint32_t width, uint32_t height)
 {
@@ -174,16 +184,28 @@ static D3D12_RESOURCE_DESC DescribeSwapChain ( uint32_t width, uint32_t height)
     return                  d;
 }
 
-static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* device, uint32_t width, uint32_t height)
+static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource1(ID3D12Device1* device, uint32_t width, uint32_t height)
 {
     D3D12_RESOURCE_DESC d               = DescribeSwapChain( width, height );
 
     winrt::com_ptr<ID3D12Resource1>     r;
     D3D12_HEAP_PROPERTIES p             = {};
     p.Type                              = D3D12_HEAP_TYPE_DEFAULT;
-    D3D12_RESOURCE_STATES       state   = D3D12_RESOURCE_STATE_RENDER_TARGET;
-    
-    ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, 0, __uuidof(ID3D12Resource1), r.put_void()));
+    D3D12_RESOURCE_STATES       state   = D3D12_RESOURCE_STATE_PRESENT;
+
+    D3D12_CLEAR_VALUE v = {};
+    v.Color[0] = 1.0f;
+    v.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+
+    ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
+    return r;
+}
+
+static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* device, IDXGISwapChain* chain, uint32_t buffer)
+{
+    winrt::com_ptr<ID3D12Resource1> r;
+
+    chain->GetBuffer(buffer, __uuidof(ID3D12Resource1), r.put_void());
     return r;
 }
 
@@ -235,22 +257,21 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
 	state.RasterizerState		= CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	state.PrimitiveTopologyType	= D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	state.NumRenderTargets		= 1;
-	state.RTVFormats[0]			= DXGI_FORMAT_R8G8B8A8_UNORM;
+	state.RTVFormats[0]			= DXGI_FORMAT_B8G8R8A8_UNORM;
 	state.SampleDesc.Count		= 1;
 	state.BlendState				= CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	state.DepthStencilState.DepthEnable = FALSE;
 	state.DepthStencilState.StencilEnable = FALSE;
 
-	state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex);}
-	state.PS = { &g_triangle_pixel[0], sizeof(g_triangle_pixel);}
+    state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
+    state.PS = { &g_triangle_pixel[0], sizeof(g_triangle_pixel) };
 
-	winrt::com_ptr<ID3D12RootSignature> r;
+	winrt::com_ptr<ID3D12PipelineState> r;
 
-	ThrowIfFailed(device->CreateRootSignature(0, &g_default_graphics_signature[0], sizeof(g_default_graphics_signature), __uuidof(ID3D12RootSignature), r.put_void()));
+	ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
 	return r;
 }
 
-m_triangle_state
 
 class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFrameworkViewSource>
 {
@@ -268,9 +289,12 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_device				= CreateDevice();
 
         
-        m_queue					= CreateCommandQueue(m_device.get());
+        m_queue					    = CreateCommandQueue(m_device.get());
 
-        m_descriptorHeap		= CreateDescriptorHeap(m_device.get());
+        m_descriptorHeap		    = CreateDescriptorHeap(m_device.get());
+
+        m_descriptorHeapRendering   = CreateDescriptorHeapRendering(m_device.get());
+
 
 		m_command_allocator[0]	= CreateCommandAllocator(m_device.get());
 		m_command_allocator[1]	= CreateCommandAllocator(m_device.get());
@@ -365,19 +389,79 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             allocator->Reset();
             commandList->Reset(allocator, nullptr);
 
+            // Set Descriptor heaps
+            {
+                //ID3D12DescriptorHeap* heaps[] = { m_descriptorHeap.get()};
+                //commandList->SetDescriptorHeaps(1, heaps);
+            }
+
+            D3D12_CPU_DESCRIPTOR_HANDLE back_buffer = CpuView(m_device.get(), m_descriptorHeap.get()) + m_swap_chain_descriptors[m_frame_index];
+
+            //Transition resources for writing
+            {
+                D3D12_RESOURCE_BARRIER barrier = {};
+
+                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier.Transition.pResource = m_swap_chain_buffers[m_frame_index].get();
+                barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+                barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                commandList->ResourceBarrier(1, &barrier);
+            }
+
+            {
+                commandList->OMSetRenderTargets(1, &back_buffer, TRUE, nullptr);
+            }
+
+            {
+                FLOAT c[4] = { 1.0f, 0.f,0.f,0.f };
+                commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
+            }
 
 
-			
+            {
+                commandList->SetPipelineState(m_triangle_state.get());
+                
+                {
+                    D3D12_RECT r = { 0, 0, m_back_buffer_width, m_back_buffer_height };
+                    commandList->RSSetScissorRects(1, &r);
+                }
+
+                {
+                    D3D12_VIEWPORT v;
+                    v.TopLeftX = 0;
+                    v.TopLeftY = 0;
+                    v.MinDepth = 0.0f;
+                    v.MaxDepth = 1.0f;
+                    v.Width = static_cast<float>(m_back_buffer_width);
+                    v.Height = static_cast<float>(m_back_buffer_height);
+                    commandList->RSSetViewports(1, &v);
+                }
+
+                {
+                    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                }
+
+                {
+                    commandList->SetGraphicsRootSignature(m_root_signature.get());
+                }
 
 
+                commandList->DrawInstanced(3, 1, 0, 0);
+            }
+            
 
+            //Transition resources for presenting
+            {
+                D3D12_RESOURCE_BARRIER barrier = {};
 
-
-
-
-
-
-
+                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier.Transition.pResource = m_swap_chain_buffers[m_frame_index].get();
+                barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+                barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                commandList->ResourceBarrier(1, &barrier);
+            }
             
             commandList->Close();   //close the list
 
@@ -385,10 +469,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 //form group of several command lists
                 ID3D12CommandList* lists[] = { commandList };
                 m_queue->ExecuteCommandLists(1, lists); //Execute what we have, submission of commands to the gpu
-            }
-			
+            }   
 
-            m_swap_chain->Present(0, 0);    //present the swap chain
+
+            m_swap_chain->Present(1, 0);    //present the swap chain
 
             //Tell the gpu to signal m_fence when it passes m_fence_value
             ThrowIfFailed(m_queue->Signal(m_fence.get(), m_fence_value));
@@ -409,6 +493,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	void Load(winrt::hstring h)
 	{
 		m_root_signature = CreateRootSignature(m_device.get());
+        m_triangle_state = CreateTrianglePipelineState(m_device.get(), m_root_signature.get());
 
         /*
 		m_triangle_vertex = CreateTriangleVertexShader(m_device.get());
@@ -432,13 +517,20 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_back_buffer_height    = static_cast<UINT>(w.Bounds().Height);
 
         //allocate memory for the view
-        m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
-        m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+        m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
+        m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
+
+        m_swap_chain_buffers[0]->SetName(L"Buffer 0");
+        m_swap_chain_buffers[1]->SetName(L"Buffer 1");
 
         //create render target views, that will be used for rendering
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 0);
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 1);
-	}
+
+        m_swap_chain_descriptors[0] = 0;
+        m_swap_chain_descriptors[1] = 1;
+
+    }
 
 	void OnWindowClosed(const CoreWindow&w, const CoreWindowEventArgs& a)
 	{
@@ -474,12 +566,17 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_back_buffer_height = static_cast<UINT>(a.Size().Height);
 
         //allocate memory for the swap chain again
-        m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
-        m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+        m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
+        m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
+
+
+        m_swap_chain_buffers[0]->SetName(L"Buffer 0");
+        m_swap_chain_buffers[1]->SetName(L"Buffer 1");
 
         //create render target views, that will be used for rendering
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 0);
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 1);
+
 
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
@@ -494,12 +591,13 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     winrt::com_ptr <ID3D12Debug>                m_debug;
     winrt::com_ptr <ID3D12Device1>				m_device;           //device for gpu resources
     winrt::com_ptr <IDXGISwapChain3>			m_swap_chain;       //swap chain for 
-    winrt::com_ptr <ID3D12PipelineState>		m_pipeline_state;   //pipeline state
 
-    winrt::com_ptr <ID3D12Fence>        		m_fence;            //fence for cpu/gpu synchronization
-    winrt::com_ptr <ID3D12CommandQueue>   		m_queue;            //queue to the device
+    winrt::com_ptr <ID3D12Fence>        		m_fence;                     //fence for cpu/gpu synchronization
+    winrt::com_ptr <ID3D12CommandQueue>   		m_queue;                     //queue to the device
 
-    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeap;   //descriptor heap for the resources
+    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeap;            //descriptor heap for the resources
+
+    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapRendering;   //descriptor heap for the resources
 
     std::mutex                                  m_blockRendering;   //block render thread for the swap chain resizes
 
