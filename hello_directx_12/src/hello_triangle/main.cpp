@@ -255,6 +255,10 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
 	state.pRootSignature			= root;
 	state.SampleMask				= UINT_MAX;
 	state.RasterizerState		= CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+
+    state.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    state.RasterizerState.FrontCounterClockwise = TRUE;
+
 	state.PrimitiveTopologyType	= D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 	state.NumRenderTargets		= 1;
 	state.RTVFormats[0]			= DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -414,12 +418,13 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             }
 
             {
-                FLOAT c[4] = { 1.0f, 0.f,0.f,0.f };
+                FLOAT c[4] = { 0.0f, 0.f,0.f,0.f };
                 commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
             }
 
 
             {
+                commandList->SetGraphicsRootSignature(m_root_signature.get());
                 commandList->SetPipelineState(m_triangle_state.get());
                 
                 {
@@ -441,11 +446,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 {
                     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                 }
-
-                {
-                    commandList->SetGraphicsRootSignature(m_root_signature.get());
-                }
-
 
                 commandList->DrawInstanced(3, 1, 0, 0);
             }
