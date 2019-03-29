@@ -3,7 +3,7 @@
   <Identity Name="76bab530-c538-43c0-a6f0-2bae45b05056" Publisher="CN=SDyulgerov" Version="1.0.0.0" />
   <mp:PhoneIdentity PhoneProductId="76bab530-c538-43c0-a6f0-2bae45b05056" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
-    <DisplayName>hello_triangle</DisplayName>
+    <DisplayName>hello_triangle_bundle</DisplayName>
     <PublisherDisplayName>sdyulgerov</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>

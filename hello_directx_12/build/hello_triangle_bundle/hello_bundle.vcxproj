@@ -2,7 +2,7 @@
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="Globals">
     <ProjectGuid>{ea657e57-cf9d-4e03-b87b-9a693133390c}</ProjectGuid>
-    <RootNamespace>hello_triangle</RootNamespace>
+    <RootNamespace>hello_triangle_bundle</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
     <AppContainerApplication>true</AppContainerApplication>
@@ -45,7 +45,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <PackageCertificateKeyFile>hello_triangle_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateKeyFile>hello_triangle_bundle_TemporaryKey.pfx</PackageCertificateKeyFile>
     <PackageCertificateThumbprint>8EF544AC792E51B2E5F426F141E3180B7D0F8109</PackageCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -81,7 +81,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\hello_triangle\pch.h" />
+    <ClInclude Include="..\..\src\hello_triangle_bundle\pch.h" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="package.appxmanifest">
@@ -98,20 +98,20 @@
     <Image Include="assets\wide_310x150_logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\hello_triangle\main.cpp" />
-    <ClCompile Include="..\..\src\hello_triangle\pch.cpp">
+    <ClCompile Include="..\..\src\hello_triangle_bundle\main.cpp" />
+    <ClCompile Include="..\..\src\hello_triangle_bundle\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\..\src\hello_triangle\shaders\triangle_pixel.hlsl">
+    <FxCompile Include="..\..\src\hello_triangle_bundle\shaders\triangle_pixel.hlsl">
       <VariableName>g_%(Filename)</VariableName>
       <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput />
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.1</ShaderModel>
     </FxCompile>
-    <FxCompile Include="..\..\src\hello_triangle\shaders\triangle_vertex.hlsl">
+    <FxCompile Include="..\..\src\hello_triangle_bundle\shaders\triangle_vertex.hlsl">
       <ShaderType>Vertex</ShaderType>
       <ShaderModel>5.0</ShaderModel>
       <VariableName>g_%(Filename)</VariableName>
@@ -119,7 +119,7 @@
       <ObjectFileOutput />
       <ShaderModel>5.1</ShaderModel>
     </FxCompile>
-    <FxCompile Include="..\..\src\hello_triangle\shaders\default_graphics_signature.hlsl">
+    <FxCompile Include="..\..\src\hello_triangle_bundle\shaders\default_graphics_signature.hlsl">
       <ShaderType>Vertex</ShaderType>
       <ShaderModel>5.0</ShaderModel>
       <VariableName>g_%(Filename)</VariableName>
@@ -135,7 +135,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="hello_triangle_TemporaryKey.pfx" />
+    <None Include="hello_triangle_bundle_TemporaryKey.pfx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
