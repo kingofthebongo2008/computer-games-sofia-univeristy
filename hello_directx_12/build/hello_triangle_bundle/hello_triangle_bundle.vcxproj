@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{ea657e57-cf9d-4e03-b87b-9a693133390c}</ProjectGuid>
+    <ProjectGuid>{72EEB080-713C-4BC7-A360-172A460797D6}</ProjectGuid>
     <RootNamespace>hello_triangle_bundle</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
@@ -46,7 +46,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <PackageCertificateKeyFile>hello_triangle_bundle_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <PackageCertificateThumbprint>8EF544AC792E51B2E5F426F141E3180B7D0F8109</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>9D80B839EBB9EE84A22FCAC4F7A1283AC2AF696F</PackageCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>

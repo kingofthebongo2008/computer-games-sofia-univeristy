@@ -13,11 +13,11 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\hello_triangle\main.cpp" />
-    <ClCompile Include="..\..\src\hello_triangle\pch.cpp" />
+    <ClCompile Include="..\..\src\hello_triangle_bundle\main.cpp" />
+    <ClCompile Include="..\..\src\hello_triangle_bundle\pch.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\hello_triangle\pch.h" />
+    <ClInclude Include="..\..\src\hello_triangle_bundle\pch.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png">
@@ -46,17 +46,17 @@
     <AppxManifest Include="package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\..\src\hello_triangle\shaders\triangle_vertex.hlsl">
+    <FxCompile Include="..\..\src\hello_triangle_bundle\shaders\triangle_vertex.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\src\hello_triangle\shaders\triangle_pixel.hlsl">
+    <FxCompile Include="..\..\src\hello_triangle_bundle\shaders\triangle_pixel.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\src\hello_triangle\shaders\default_graphics_signature.hlsl">
+    <FxCompile Include="..\..\src\hello_triangle_bundle\shaders\default_graphics_signature.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="hello_triangle_TemporaryKey.pfx" />
+    <None Include="hello_triangle_bundle_TemporaryKey.pfx" />
   </ItemGroup>
 </Project>

@@ -14,8 +14,8 @@
     <Resource Language="x-generate" />
   </Resources>
   <Applications>
-    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="hello_triangle.App">
-      <uap:VisualElements DisplayName="hello_triangle" Square150x150Logo="assets\square_150x150_logo.png" Square44x44Logo="assets\square_44x44_logo.png" Description="hello_triangle" BackgroundColor="transparent">
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="hello_triangle_bundle.App">
+      <uap:VisualElements DisplayName="hello_triangle_bundle" Square150x150Logo="assets\square_150x150_logo.png" Square44x44Logo="assets\square_44x44_logo.png" Description="hello_triangle" BackgroundColor="transparent">
         <uap:DefaultTile Wide310x150Logo="assets\wide_310x150_logo.png">
         </uap:DefaultTile>
         <uap:SplashScreen Image="assets\splash_screen.png" />
