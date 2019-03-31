@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26403.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28721.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_triangle", "hello_triangle\hello_triangle.vcxproj", "{EA657E57-CF9D-4E03-B87B-9A693133390C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_triangle_rotate", "hello_triangle_rotate\hello_triangle_rotate.vcxproj", "{72EEB080-713C-4BC7-A360-172A460797D6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_triangle_bundle", "hello_triangle_bundle\hello_triangle_bundle.vcxproj", "{72EEB080-713C-4BC7-A360-172A460797D6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,8 +20,10 @@ Global
 		{EA657E57-CF9D-4E03-B87B-9A693133390C}.Release|x64.Build.0 = Release|x64
 		{EA657E57-CF9D-4E03-B87B-9A693133390C}.Release|x64.Deploy.0 = Release|x64
 		{72EEB080-713C-4BC7-A360-172A460797D6}.Debug|x64.ActiveCfg = Debug|x64
+		{72EEB080-713C-4BC7-A360-172A460797D6}.Debug|x64.Build.0 = Debug|x64
 		{72EEB080-713C-4BC7-A360-172A460797D6}.Debug|x64.Deploy.0 = Debug|x64
 		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.ActiveCfg = Release|x64
+		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.Build.0 = Release|x64
 		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution

@@ -229,11 +229,29 @@ static winrt::com_ptr <ID3D12CommandAllocator> CreateCommandAllocator(ID3D12Devi
     return r;
 }
 
+//Create the memory manager for the gpu commands
+static winrt::com_ptr <ID3D12CommandAllocator> CreateBundleCommandAllocator(ID3D12Device1* device)
+{
+    winrt::com_ptr<ID3D12CommandAllocator> r;
+    ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_BUNDLE, __uuidof(ID3D12CommandAllocator), r.put_void()));
+    return r;
+}
+
 //create an object that will record commands
 static winrt::com_ptr <ID3D12GraphicsCommandList1> CreateCommandList(ID3D12Device1* device, ID3D12CommandAllocator* a)
 {
     winrt::com_ptr<ID3D12GraphicsCommandList1> r;
     ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, a, nullptr, __uuidof(ID3D12GraphicsCommandList1), r.put_void()));
+
+    r->Close();
+    return r;
+}
+
+//create an object that will record commands
+static winrt::com_ptr <ID3D12GraphicsCommandList1> CreateBundleCommandList(ID3D12Device1* device, ID3D12CommandAllocator* a)
+{
+    winrt::com_ptr<ID3D12GraphicsCommandList1> r;
+    ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_BUNDLE, a, nullptr, __uuidof(ID3D12GraphicsCommandList1), r.put_void()));
 
     r->Close();
     return r;
@@ -379,12 +397,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 
             {
-                //set the type of the parameters that we will use in the shader
-                commandList->SetGraphicsRootSignature(m_root_signature.get());
-
-                //set the raster pipeline state as a whole, it was prebuilt before
-                commandList->SetPipelineState(m_triangle_state.get());
-                
                 //set the scissor test separately (which parts of the view port will survive)
                 {
                     D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
@@ -402,16 +414,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                     v.Height = static_cast<float>(m_back_buffer_height);
                     commandList->RSSetViewports(1, &v);
                 }
-
-                //set the types of the triangles we will use
-                {
-                    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-                }
-
-                //draw the triangle
-                commandList->DrawInstanced(3, 1, 0, 0);
             }
-            
+
+            //insert pregenerated commands
+            commandList->ExecuteBundle(m_bundle_command_list.get());
 
             //Transition resources for presenting, flush the gpu caches
             {
@@ -450,11 +456,35 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
         }
     }
-
+    
     void Load(winrt::hstring h)
     {
+        //Loading time
         m_root_signature = CreateRootSignature(m_device.get());
         m_triangle_state = CreateTrianglePipelineState(m_device.get(), m_root_signature.get());
+
+        m_bundle_allocator = CreateBundleCommandAllocator(m_device.get());
+        m_bundle_command_list = CreateBundleCommandList(m_device.get(), m_bundle_allocator.get());
+
+        //Record the drawing
+        //Usually up to ten draw calls does not make sense, but if you can do more than that will add up
+        //This may involve drawing a character.
+        {
+            m_bundle_command_list->Reset(m_bundle_allocator.get(), nullptr);
+
+            //set the type of the parameters that we will use in the shader
+            m_bundle_command_list->SetGraphicsRootSignature(m_root_signature.get());
+
+            //set the raster pipeline state as a whole, it was prebuilt before
+            m_bundle_command_list->SetPipelineState(m_triangle_state.get());
+
+            //set the types of the triangles we will use
+            m_bundle_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+            //draw the triangle
+            m_bundle_command_list->DrawInstanced(3, 1, 0, 0);
+
+            m_bundle_command_list->Close();
+        }
     }
 
     void SetWindow(const CoreWindow& w)
@@ -567,6 +597,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     //Rendering
     winrt::com_ptr< ID3D12RootSignature>		m_root_signature;
     winrt::com_ptr< ID3D12PipelineState>		m_triangle_state;
+
+    winrt::com_ptr <ID3D12CommandAllocator>   	m_bundle_allocator;		    //one per frame
+    winrt::com_ptr <ID3D12GraphicsCommandList1> m_bundle_command_list;		//one per frame
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
