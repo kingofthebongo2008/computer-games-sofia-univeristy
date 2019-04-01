@@ -25,6 +25,11 @@
 #include <winrt/Windows.ApplicationModel.Activation.h>
 #include <winrt/Windows.UI.ViewManagement.h>
 
+#include <winrt/Windows.Foundation.h>
+#include <winrt/windows.ui.core.h>
+#include <winrt/windows.ui.xaml.h>
+#include <winrt/Windows.Graphics.Display.h>
+
 
 
 
