@@ -316,7 +316,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_command_list[1]			= CreateCommandList(m_device.get(), m_command_allocator[1].get());
 
         //fence, sync from the gpu and cpu
-        m_fence						= CreateFence(m_device.get());
+        m_fence						= CreateFence(m_device.get(), 2);
         m_fence_event				= CreateEvent(nullptr, false, false, nullptr);
 
         if (m_fence_event == nullptr)
@@ -436,18 +436,23 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             m_swap_chain->Present(1, 0);    //present the swap chain
 
             //Tell the gpu to signal the cpu after it finishes executing the commands that we have just submitted
-            ThrowIfFailed(m_queue->Signal(m_fence.get(), m_fence_value));
-
-            //Now block the cpu until the gpu completes the previous frame
-            if (m_fence->GetCompletedValue() < m_fence_value)
-            {
-                ThrowIfFailed(m_fence->SetEventOnCompletion(m_fence_value, m_fence_event));
-                WaitForSingleObject(m_fence_event, INFINITE);
-            }
+            const uint64_t fence_value = m_fence_value[m_frame_index];
+            ThrowIfFailed(m_queue->Signal(m_fence.get(), fence_value ));
 
             //prepare for the next frame
-            m_fence_value = m_fence_value + 1;
+            
             m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+
+            //Now block the cpu until the gpu completes the previous frame
+            if (m_fence->GetCompletedValue() < fence_value)
+            {
+                ThrowIfFailed(m_fence->SetEventOnCompletion(fence_value, m_fence_event));
+                WaitForSingleObjectEx(m_fence_event, INFINITE, FALSE);
+            }
+
+            m_fence_value[m_frame_index] = fence_value + 1;
+
+           
         }
     }
 
@@ -502,19 +507,30 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         //Now wait for the gpu to finish what it has from the main thread
 
         //Insert in the gpu a command after all submitted commands so far.
-        ThrowIfFailed(m_queue->Signal(m_fence.get(), m_fence_value));
+        const uint64_t fence_value = m_fence_value[m_frame_index];
 
-        //Wait for the gpu to notify us back that it had passed. Now it is idle
-        ThrowIfFailed(m_fence->SetEventOnCompletion(m_fence_value, m_fence_event));
-        WaitForSingleObject(m_fence_event, INFINITE);
+        ThrowIfFailed(m_queue->Signal(m_fence.get(), fence_value + 1));
 
-        //Prepare to unblock the rendering
-        m_fence_value = m_fence_value + 1;
-        m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
-
+        {
+            //Wait for the gpu to notify us back that it had passed. Now it is idle
+            ThrowIfFailed(m_fence->SetEventOnCompletion(fence_value + 1, m_fence_event));
+            WaitForSingleObject(m_fence_event, INFINITE);
+        }
+        
         //Now recreate the swap chain with the new dimensions, we must have back buffer as the window size
         m_back_buffer_width		= static_cast<UINT>(a.Size().Width);
         m_back_buffer_height	= static_cast<UINT>(a.Size().Height);
+
+        m_swap_chain_buffers[0] = nullptr;
+        m_swap_chain_buffers[1] = nullptr;
+
+        ThrowIfFailed(m_swap_chain->ResizeBuffers(2, m_back_buffer_width, m_back_buffer_height, DXGI_FORMAT_B8G8R8A8_UNORM, 0));
+
+        m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+
+        //Prepare to unblock the rendering
+        m_fence_value[m_frame_index] = fence_value + 1;
+
 
         //allocate memory for the swap chain again
         m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
@@ -539,17 +555,15 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     CoreApplicationView::Activated_revoker		m_activated;
     
     winrt::com_ptr <ID3D12Debug>                m_debug;
-    winrt::com_ptr <ID3D12Device1>				m_device;           //device for gpu resources
-    winrt::com_ptr <IDXGISwapChain3>			m_swap_chain;       //swap chain for 
+    winrt::com_ptr <ID3D12Device1>				m_device;                   //device for gpu resources
+    winrt::com_ptr <IDXGISwapChain3>			m_swap_chain;               //swap chain for 
 
     winrt::com_ptr <ID3D12Fence>        		m_fence;                     //fence for cpu/gpu synchronization
     winrt::com_ptr <ID3D12CommandQueue>   		m_queue;                     //queue to the device
 
     winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeap;            //descriptor heap for the resources
 
-    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapRendering;   //descriptor heap for the resources
-
-    std::mutex                                  m_blockRendering;   //block render thread for the swap chain resizes
+    std::mutex                                  m_blockRendering;           //block render thread for the swap chain resizes
 
     winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];
     uint64_t                                    m_swap_chain_descriptors[2];
@@ -560,9 +574,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     winrt::com_ptr <ID3D12CommandAllocator>   	m_command_allocator[2];		//one per frame
     winrt::com_ptr <ID3D12GraphicsCommandList1> m_command_list[2];			//one per frame
 
-    uint64_t                                    m_frame_index	= 0;
-    uint64_t									m_fence_value	= 1;
-    HANDLE										m_fence_event = {};
+    uint64_t                                    m_frame_index	    = 0;
+    uint64_t									m_fence_value[2]    = { 2, 3 };
+    HANDLE										m_fence_event       = {};
 
     //Rendering
     winrt::com_ptr< ID3D12RootSignature>		m_root_signature;
