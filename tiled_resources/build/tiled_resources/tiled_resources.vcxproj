@@ -1,0 +1,140 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{ea657e57-cf9d-4e03-b87b-9a693133390c}</ProjectGuid>
+    <RootNamespace>tiled_resources</RootNamespace>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <AppContainerApplication>true</AppContainerApplication>
+    <ApplicationType>Windows Store</ApplicationType>
+    <ApplicationTypeRevision>10.0</ApplicationTypeRevision>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformMinVersion>10.0.10586.0</WindowsTargetPlatformMinVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v141</PlatformToolset>
+    <UseDotNetNativeToolchain>true</UseDotNetNativeToolchain>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <PackageCertificateKeyFile>tiled_resources_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateThumbprint>C54992D16D7CCC465A3537490563E8E2F3CEF234</PackageCertificateThumbprint>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>
+    <IntDir>$(ProjectDir)Tmp\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>
+    <IntDir>$(ProjectDir)Tmp\$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
+      <CompileAsWinRT>true</CompileAsWinRT>
+      <AdditionalIncludeDirectories>..\..\..\3rdparty\cppwinrt\10.0.14393.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>D3d12.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+      <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
+      <CompileAsWinRT>true</CompileAsWinRT>
+      <AdditionalIncludeDirectories>..\..\..\3rdparty\cppwinrt\10.0.14393.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>D3d12.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\tiled_resources\pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <AppxManifest Include="package.appxmanifest">
+      <SubType>Designer</SubType>
+    </AppxManifest>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\lock_screen_logo.scale-200.png" />
+    <Image Include="assets\splash_screen.scale-200.png" />
+    <Image Include="assets\square_150x150_logo.scale-200.png" />
+    <Image Include="assets\square_44x44_logo.scale-200.png" />
+    <Image Include="assets\square_44x44_logo.targetsize-24_altform-unplated.png" />
+    <Image Include="assets\store_logo.png" />
+    <Image Include="assets\wide_310x150_logo.scale-200.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\tiled_resources\main.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\pch.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_pixel.hlsl">
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\default_graphics_signature.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderModel>5.1</ShaderModel>
+      <ShaderType>RootSignature</ShaderType>
+      <ShaderModel>rootsig_1.1</ShaderModel>
+      <EntryPointName>MyRS1</EntryPointName>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="tiled_resources_TemporaryKey.pfx" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

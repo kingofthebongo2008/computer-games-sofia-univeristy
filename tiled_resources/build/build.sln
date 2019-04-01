@@ -1,0 +1,35 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28721.148
+MinimumVisualStudioVersion = 10.0.40219.1
+
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tiled_resources", "tiled_resources\tiled_resources.vcxproj", "{EA657E57-CF9D-4E03-B87B-9A693133390C}"
+EndProject
+
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EA657E57-CF9D-4E03-B87B-9A693133390C}.Debug|x64.ActiveCfg = Debug|x64
+		{EA657E57-CF9D-4E03-B87B-9A693133390C}.Debug|x64.Build.0 = Debug|x64
+		{EA657E57-CF9D-4E03-B87B-9A693133390C}.Debug|x64.Deploy.0 = Debug|x64
+		{EA657E57-CF9D-4E03-B87B-9A693133390C}.Release|x64.ActiveCfg = Release|x64
+		{EA657E57-CF9D-4E03-B87B-9A693133390C}.Release|x64.Build.0 = Release|x64
+		{EA657E57-CF9D-4E03-B87B-9A693133390C}.Release|x64.Deploy.0 = Release|x64
+		{72EEB080-713C-4BC7-A360-172A460797D6}.Debug|x64.ActiveCfg = Debug|x64
+		{72EEB080-713C-4BC7-A360-172A460797D6}.Debug|x64.Build.0 = Debug|x64
+		{72EEB080-713C-4BC7-A360-172A460797D6}.Debug|x64.Deploy.0 = Debug|x64
+		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.ActiveCfg = Release|x64
+		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.Build.0 = Release|x64
+		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.Deploy.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {76718BB5-5DD8-42A6-A2A3-0E9121334355}
+	EndGlobalSection
+EndGlobal
