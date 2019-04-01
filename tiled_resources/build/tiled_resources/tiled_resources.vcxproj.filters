@@ -15,9 +15,13 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\tiled_resources\main.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\pch.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\device_resources.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\tiled_resources\pch.h" />
+    <ClInclude Include="..\..\src\tiled_resources\d3dx12.h" />
+    <ClInclude Include="..\..\src\tiled_resources\device_resources.h" />
+    <ClInclude Include="..\..\src\tiled_resources\window_environment.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png">
@@ -46,15 +50,9 @@
     <AppxManifest Include="package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\..\src\hello_triangle\shaders\triangle_vertex.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="..\..\src\hello_triangle\shaders\triangle_pixel.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
-    <FxCompile Include="..\..\src\hello_triangle\shaders\default_graphics_signature.hlsl">
-      <Filter>shaders</Filter>
-    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_pixel.hlsl" />
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
+    <FxCompile Include="..\..\src\tiled_resources\shaders\default_graphics_signature.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="tiled_resources_TemporaryKey.pfx" />
