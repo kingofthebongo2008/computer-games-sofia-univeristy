@@ -14,12 +14,10 @@
 // Windows Header Files:
 // cppwinrt takes too much time to compile, so it is good to precompile it
 #include <windows.h>
-
-#include <wrl/client.h>
+#include <cstdint>
 
 #include <d3d12.h>
 #include <dxgi1_5.h>
-
 
 #include <winrt/base.h>
 #include <winrt/Windows.UI.Core.h>

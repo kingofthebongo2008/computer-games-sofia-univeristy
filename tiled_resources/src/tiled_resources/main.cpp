@@ -6,7 +6,6 @@
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::ApplicationModel::Activation;
-using namespace Microsoft::WRL;
 
 //There are many steps required for dx12 triangle to get on the screen
 //1. Swap Chain is needed to bind dx12 backbuffer output to the window management system
@@ -306,8 +305,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
         m_descriptorHeap		    = CreateDescriptorHeap(m_device.get());
 
-        m_descriptorHeapRendering   = CreateDescriptorHeapRendering(m_device.get());
-
         //if you have many threads that generate commands. 1 per thread per frame
         m_command_allocator[0]		= CreateCommandAllocator(m_device.get());
         m_command_allocator[1]		= CreateCommandAllocator(m_device.get());
@@ -373,7 +370,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
             //do the clear, fill the memory with a value
             {
-                FLOAT c[4] = { 0.0f, 0.f,0.f,0.f };
+                FLOAT c[4] = { 1.0f, 0.f,0.f,0.f };
                 commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
             }
 
@@ -433,15 +430,15 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 m_queue->ExecuteCommandLists(1, lists); //Execute what we have, submission of commands to the gpu
             }   
 
-            m_swap_chain->Present(1, 0);    //present the swap chain
-
             //Tell the gpu to signal the cpu after it finishes executing the commands that we have just submitted
             const uint64_t fence_value = m_fence_value[m_frame_index];
-            ThrowIfFailed(m_queue->Signal(m_fence.get(), fence_value ));
+            ThrowIfFailed(m_queue->Signal(m_fence.get(), fence_value));
+
+            m_swap_chain->Present(1, 0);    //present the swap chain
 
             //prepare for the next frame
-            
             m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+            m_fence_value[m_frame_index] = fence_value + 1;
 
             //Now block the cpu until the gpu completes the previous frame
             if (m_fence->GetCompletedValue() < fence_value)
@@ -450,7 +447,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 WaitForSingleObjectEx(m_fence_event, INFINITE, FALSE);
             }
 
-            m_fence_value[m_frame_index] = fence_value + 1;
+            
 
            
         }
