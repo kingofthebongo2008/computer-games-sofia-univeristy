@@ -163,6 +163,9 @@ namespace sample
     {
         m_swap_chain = CreateSwapChainPrivate(w, m_queue.get(), width, height);
 
+        m_back_buffer_width = width;
+        m_back_buffer_height = height;
+
         //allocate memory for the view
         m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
         m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);

@@ -222,8 +222,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             {
                 //Tell the gpu to signal the cpu after it finishes executing the commands that we have just submitted
                 m_deviceResources->SignalFenceValue(fence_value);
-                m_deviceResources->SwapChain()->Present(1, 0);    //present the swap chain
                 m_deviceResources->WaitForFenceValue(fence_value);
+                m_deviceResources->SwapChain()->Present(1, 0);    //present the swap chain
             }
 
             //prepare for the next frame
@@ -271,8 +271,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         //Insert in the gpu a command after all submitted commands so far.
         const uint64_t fence_value = m_fence_value[m_frame_index];
 
-        m_deviceResources->SignalFenceValue(fence_value + 1);
-        m_deviceResources->WaitForFenceValue(fence_value + 1);
+        m_deviceResources->SignalFenceValue(fence_value);
+        m_deviceResources->WaitForFenceValue(fence_value);
 
         auto envrionment = sample::build_environment(w, winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView());
 
