@@ -159,7 +159,7 @@ namespace sample
         return m_swap_chain.get();
     }
 
-    void DeviceResources::CreateSwapChain(const CoreWindow& w, uint32_t width, uint32_t height)
+    uint32_t DeviceResources::CreateSwapChain(const CoreWindow& w, uint32_t width, uint32_t height)
     {
         m_swap_chain = CreateSwapChainPrivate(w, m_queue.get(), width, height);
 
@@ -177,9 +177,11 @@ namespace sample
         //Where are located the descriptors
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
+
+        return m_swap_chain->GetCurrentBackBufferIndex();
     }
 
-    void DeviceResources::ResizeBuffers(uint32_t width, uint32_t height)
+    uint32_t DeviceResources::ResizeBuffers(uint32_t width, uint32_t height)
     {
         m_back_buffer_width     = width;
         m_back_buffer_height    = height;
@@ -203,6 +205,8 @@ namespace sample
 
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
+
+        return m_swap_chain->GetCurrentBackBufferIndex();
     }
 
     uint32_t DeviceResources::SwapChainWidth() const

@@ -248,8 +248,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         auto width              = static_cast<UINT>(envrionment.m_back_buffer_size.Width);
         auto height             = static_cast<UINT>(envrionment.m_back_buffer_size.Height);
 
-        m_deviceResources->CreateSwapChain(w, width, height);
-        m_frame_index           = m_deviceResources->SwapChain()->GetCurrentBackBufferIndex();
+        m_frame_index           = m_deviceResources->CreateSwapChain(w, width, height);
     }
 
     void OnWindowClosed(const CoreWindow&w, const CoreWindowEventArgs& a)
@@ -280,11 +279,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         {
             auto w = static_cast<UINT>(envrionment.m_back_buffer_size.Width);
             auto h = static_cast<UINT>(envrionment.m_back_buffer_size.Height);
-            m_deviceResources->ResizeBuffers(w, h);
+            m_frame_index = m_deviceResources->ResizeBuffers(w, h);
         }
-
-        m_frame_index = m_deviceResources->SwapChain()->GetCurrentBackBufferIndex();
-
         //Prepare to unblock the rendering
         m_fence_value[m_frame_index] = fence_value + 1;
     }
