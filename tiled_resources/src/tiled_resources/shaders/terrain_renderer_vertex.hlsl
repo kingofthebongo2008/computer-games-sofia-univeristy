@@ -1,3 +1,5 @@
+#include "default_signature.hlsli"
+
 Texture2D<float> HeightTexture : register(t0);
 SamplerState Anisotropic : register(s0);
 
@@ -22,6 +24,7 @@ struct VS_OUT
     float4 pos : SV_POSITION;
 };
 
+[RootSignature(MyRS1)]
 VS_OUT main(VS_IN input)
 {
     float dataScaleFactor = 10.0f;

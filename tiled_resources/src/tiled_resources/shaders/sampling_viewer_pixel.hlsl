@@ -1,6 +1,9 @@
-Texture2D<float4> tex;
+#include "default_signature.hlsli"
+
+Texture2D<float4> tex : register(t1);
 SamplerState sam;
 
+[RootSignature(MyRS1)]
 float4 main(float2 coord : TEXCOORD0) : SV_TARGET
 {
 	float4 val =  tex.Sample(sam, coord);

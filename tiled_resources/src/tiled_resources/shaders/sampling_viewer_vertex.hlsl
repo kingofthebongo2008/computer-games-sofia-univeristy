@@ -1,3 +1,5 @@
+#include "default_signature.hlsli"
+
 cbuffer CB0
 {
     float2 scale;
@@ -16,6 +18,7 @@ struct VS_OUT
     float4 pos : SV_POSITION;
 };
 
+[RootSignature(MyRS1)]
 VS_OUT main(VS_IN input)
 {
     VS_OUT output;

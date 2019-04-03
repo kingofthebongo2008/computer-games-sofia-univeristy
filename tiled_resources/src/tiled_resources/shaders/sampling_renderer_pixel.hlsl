@@ -1,3 +1,5 @@
+#include "default_signature.hlsli"
+
 cbuffer SamplingConstants : register(b0)
 {
     float2 EncodeConstants;
@@ -14,6 +16,7 @@ struct PS_IN
 //   B : W texture coordinate at this pixel.
 //   A : Encodes calculated texture level of detail at this pixel.
 
+[RootSignature(MyRS1)]
 float4 main(PS_IN input) : SV_TARGET
 {
     float4 ret;

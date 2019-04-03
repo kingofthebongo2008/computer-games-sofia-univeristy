@@ -1,7 +1,10 @@
-TextureCube<float3> ColorTexture : register(t0);
-TextureCube<float> ColorResidency : register(t1);
-TextureCube<float2> NormalTexture : register(t2);
-TextureCube<float> NormalResidency : register(t3);
+#include "default_signature.hlsli"
+
+TextureCube<float3> ColorTexture : register(t1);
+TextureCube<float> ColorResidency : register(t2);
+TextureCube<float2> NormalTexture : register(t3);
+TextureCube<float> NormalResidency : register(t4);
+
 SamplerState Trilinear : register(s0);
 SamplerState MaxFilter : register(s1);
 
@@ -17,6 +20,7 @@ struct PS_IN
     float3 vtan : TANGENT1;
 };
 
+[RootSignature(MyRS1)]
 float4 main(PS_IN input) : SV_TARGET
 {
     float3 tex = normalize(input.tex);

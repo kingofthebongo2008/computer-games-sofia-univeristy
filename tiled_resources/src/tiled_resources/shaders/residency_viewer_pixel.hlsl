@@ -1,6 +1,9 @@
-TextureCube<float> tex;
+#include "default_signature.hlsli"
+
+TextureCube<float> tex : register(t1);
 SamplerState sam;
 
+[RootSignature(MyRS1)]
 float4 main(float4 coord : TEXCOORD0) : SV_TARGET
 {
     float val = 1.0f - tex.Sample(sam, normalize(coord.xyz));

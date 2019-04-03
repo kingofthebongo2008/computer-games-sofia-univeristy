@@ -1,11 +1,16 @@
 #include "pch.h"
 #include <cstdint>
 
+#include <concrt.h>
+#include <ppl.h>
+
 #include "d3dx12.h"
 
 #include "window_environment.h"
 #include "device_resources.h"
 #include "error.h"
+
+
 
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
@@ -72,6 +77,96 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
 
     winrt::com_ptr<ID3D12PipelineState> r;
 
+    sample::ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
+    return r;
+}
+
+//create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
+//It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
+static winrt::com_ptr< ID3D12PipelineState>	 CreateSamplingRendererState(ID3D12Device1* device, ID3D12RootSignature* root)
+{
+    static
+    #include <sampling_renderer_pixel.h>
+
+    static
+    #include <terrain_renderer_vertex.h>
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+    state.pRootSignature = root;
+    state.SampleMask = UINT_MAX;
+    state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+
+    state.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    state.RasterizerState.FrontCounterClockwise = TRUE;
+
+    state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    state.NumRenderTargets = 1;
+    state.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
+    state.SampleDesc.Count = 1;
+    state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+
+    state.DepthStencilState.DepthEnable = FALSE;
+    state.DepthStencilState.StencilEnable = FALSE;
+
+    //Describe the format of the vertices. In the gpu they are going to be unpacked into the registers
+    //If you apply compression to then, you can always make them bytes
+    D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+    };
+
+    state.InputLayout.NumElements = 1;
+    state.InputLayout.pInputElementDescs = &inputLayoutDesc[0];
+
+    state.VS = { &g_terrain_renderer_vertex[0], sizeof(g_terrain_renderer_vertex) };
+    state.PS = { &g_sampling_renderer_pixel[0], sizeof(g_sampling_renderer_pixel) };
+
+    winrt::com_ptr<ID3D12PipelineState> r;
+    sample::ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
+    return r;
+}
+
+//create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
+//It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
+static winrt::com_ptr< ID3D12PipelineState>	 CreateTerrainRendererState(ID3D12Device1* device, ID3D12RootSignature* root)
+{
+    static
+    #include <terrain_renderer_tier2_pixel.h>
+
+    static
+    #include <terrain_renderer_vertex.h>
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+    state.pRootSignature = root;
+    state.SampleMask = UINT_MAX;
+    state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+
+    state.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    state.RasterizerState.FrontCounterClockwise = TRUE;
+
+    state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    state.NumRenderTargets = 1;
+    state.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
+    state.SampleDesc.Count = 1;
+    state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+
+    state.DepthStencilState.DepthEnable = FALSE;
+    state.DepthStencilState.StencilEnable = FALSE;
+
+    //Describe the format of the vertices. In the gpu they are going to be unpacked into the registers
+    //If you apply compression to then, you can always make them bytes
+    D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+    };
+
+    state.InputLayout.NumElements = 1;
+    state.InputLayout.pInputElementDescs = &inputLayoutDesc[0];
+
+    state.VS = { &g_terrain_renderer_vertex[0],      sizeof(g_terrain_renderer_vertex) };
+    state.PS = { &g_terrain_renderer_tier2_pixel[0], sizeof(g_terrain_renderer_tier2_pixel) };
+
+    winrt::com_ptr<ID3D12PipelineState> r;
     sample::ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
     return r;
 }
@@ -236,7 +331,27 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     {
         ID3D12Device1* d = m_deviceResources->Device();
         m_root_signature = CreateRootSignature(d);
-        m_triangle_state = CreateTrianglePipelineState(d, m_root_signature.get());
+
+        //Compile many shader during the loading time of the app
+
+        //use concurrency runtime 
+        concurrency::task_group g;
+
+        g.run( [this, d]
+        {
+            m_triangle_state = CreateTrianglePipelineState(d, m_root_signature.get());
+        });
+
+        g.run([this, d]
+        {
+            m_sampling_renderer_state = CreateSamplingRendererState(d, m_root_signature.get()); 
+        });
+
+        //let the waiting thread do some work also
+        g.run_and_wait([this, d]
+        {
+            m_terrain_renderer_state = CreateTerrainRendererState(d, m_root_signature.get());  
+        });
     }
 
     void SetWindow(const CoreWindow& w)
@@ -304,6 +419,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     //Rendering
     winrt::com_ptr< ID3D12RootSignature>		m_root_signature;
     winrt::com_ptr< ID3D12PipelineState>		m_triangle_state;
+
+
+    winrt::com_ptr< ID3D12PipelineState>		m_sampling_renderer_state;  //responsible for output of the parts that we want
+    winrt::com_ptr< ID3D12PipelineState>		m_terrain_renderer_state;   //responsible to renderer the terrain
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )

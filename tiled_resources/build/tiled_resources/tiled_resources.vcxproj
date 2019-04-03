@@ -117,7 +117,81 @@
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.1</ShaderModel>
     </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\residency_viewer_pixel.hlsl">
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_renderer_pixel.hlsl">
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_tier2_pixel.hlsl">
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_tier1_pixel.hlsl">
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_pixel.hlsl">
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_viewer_pixel.hlsl">
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
     <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\residency_viewer_vertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_vertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_viewer_vertex.hlsl">
       <ShaderType>Vertex</ShaderType>
       <ShaderModel>5.0</ShaderModel>
       <VariableName>g_%(Filename)</VariableName>
@@ -138,6 +212,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\tiled_resources\shaders\default_signature.hlsli" />
     <None Include="tiled_resources_TemporaryKey.pfx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
