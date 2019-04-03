@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "sampling_renderer.h"
+#include "sample_settings.h"
 #include "error.h"
 #include "cpu_view.h"
 
@@ -102,8 +103,8 @@ namespace sample
   
     ResizeSamplingRendererResult SamplingRenderer::CreateSamplingRenderer(const ResizeSamplingRendererContext& ctx)
     {
-        m_sampling_width  = ctx.m_width;
-        m_sampling_height = ctx.m_height;
+        m_sampling_width  = ctx.m_width / TiledResources::SampleSettings::Sampling::Ratio;
+        m_sampling_height = ctx.m_height / TiledResources::SampleSettings::Sampling::Ratio;
 
         ID3D12Device1* d = ctx.m_device;
 

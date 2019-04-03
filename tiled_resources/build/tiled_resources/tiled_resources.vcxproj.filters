@@ -22,6 +22,7 @@
     <ClCompile Include="..\..\src\tiled_resources\main.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\pch.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\device_resources.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\sampling_renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\tiled_resources\pch.h" />
@@ -30,6 +31,8 @@
     <ClInclude Include="..\..\src\tiled_resources\window_environment.h" />
     <ClInclude Include="..\..\src\tiled_resources\error.h" />
     <ClInclude Include="..\..\src\tiled_resources\cpu_view.h" />
+    <ClInclude Include="..\..\src\tiled_resources\sampling_renderer.h" />
+    <ClInclude Include="..\..\src\tiled_resources\sample_settings.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png">
@@ -95,6 +98,7 @@
     <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl">
       <Filter>shaders\vertex</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="tiled_resources_TemporaryKey.pfx" />
