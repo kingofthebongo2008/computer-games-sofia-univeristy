@@ -23,7 +23,7 @@ namespace sample
 
         void                                        WaitForFenceValue(uint64_t value);
         void                                        SignalFenceValue(uint64_t value);
-        
+
         D3D12_CPU_DESCRIPTOR_HANDLE                 SwapChainHandle(uint32_t) const;
 
         private:
@@ -35,7 +35,8 @@ namespace sample
         winrt::com_ptr <ID3D12Fence>        		m_fence;                     //fence for cpu/gpu synchronization
         winrt::com_ptr <ID3D12CommandQueue>   		m_queue;                     //queue to the device
 
-        winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptor_heap;            //descriptor heap for the resources
+        winrt::com_ptr <ID3D12DescriptorHeap>   	m_render_target_descriptor_heap;  //descriptor heap for the render_targets
+        winrt::com_ptr <ID3D12DescriptorHeap>   	m_depth_stencil_descriptor_heap;  //descriptor heap for the render_targets
 
         winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];
         uint64_t                                    m_swap_chain_descriptors[2];

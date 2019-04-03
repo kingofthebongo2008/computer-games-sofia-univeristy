@@ -122,7 +122,7 @@ namespace sample
         m_device = CreateDevice();
 
         m_queue = CreateCommandQueue(m_device.get());
-        m_descriptor_heap = CreateDescriptorHeap(m_device.get());
+        m_render_target_descriptor_heap = CreateDescriptorHeap(m_device.get());
 
         //fence, sync from the gpu and cpu
         m_fence = CreateFence(m_device.get(), 2);
@@ -174,8 +174,8 @@ namespace sample
         m_swap_chain_buffers[1]->SetName(L"Buffer 1");
 
         //create render target views, that will be used for rendering
-        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptor_heap.get()) + 0);
-        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptor_heap.get()) + 1);
+        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_render_target_descriptor_heap.get()) + 0);
+        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_render_target_descriptor_heap.get()) + 1);
 
         //Where are located the descriptors
         m_swap_chain_descriptors[0] = 0;
@@ -203,8 +203,8 @@ namespace sample
         m_swap_chain_buffers[1]->SetName(L"Buffer 1");
 
         //create render target views, that will be used for rendering
-        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptor_heap.get()) + 0);
-        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptor_heap.get()) + 1);
+        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_render_target_descriptor_heap.get()) + 0);
+        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_render_target_descriptor_heap.get()) + 1);
 
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
@@ -239,6 +239,6 @@ namespace sample
 
     D3D12_CPU_DESCRIPTOR_HANDLE  DeviceResources::SwapChainHandle(uint32_t index) const
     {
-        return CpuView(m_device.get(), m_descriptor_heap.get()) + m_swap_chain_descriptors[index];
+        return CpuView(m_device.get(), m_render_target_descriptor_heap.get()) + m_swap_chain_descriptors[index];
     }
 }

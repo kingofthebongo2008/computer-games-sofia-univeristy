@@ -299,7 +299,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     winrt::com_ptr <ID3D12GraphicsCommandList1> m_command_list[2];			//one per frame
 
     uint32_t                                    m_frame_index	    = 0;
-    uint64_t									m_fence_value[2]    = { 2, 3 };
+    uint64_t									m_fence_value[2]    = { 1, 1 };
 
     //Rendering
     winrt::com_ptr< ID3D12RootSignature>		m_root_signature;

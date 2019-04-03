@@ -52,9 +52,13 @@
     <AppxManifest Include="package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_pixel.hlsl" />
-    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
     <FxCompile Include="..\..\src\tiled_resources\shaders\default_graphics_signature.hlsl" />
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_pixel.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="tiled_resources_TemporaryKey.pfx" />
