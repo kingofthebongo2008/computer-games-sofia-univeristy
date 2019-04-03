@@ -27,6 +27,9 @@ namespace sample
         D3D12_CPU_DESCRIPTOR_HANDLE                 SwapChainHandle(uint32_t) const;
         D3D12_CPU_DESCRIPTOR_HANDLE                 SwapChainDepthHandle(uint32_t) const;
 
+        ID3D12DescriptorHeap*                       RenderTargetHeap() const;
+        ID3D12DescriptorHeap*                       DepthHeap() const;
+
         private:
         winrt::com_ptr <ID3D12Debug>                m_debug;                    //debug interface
         winrt::com_ptr <ID3D12Device1>				m_device;                   //device for gpu resources

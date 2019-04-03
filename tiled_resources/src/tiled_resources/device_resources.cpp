@@ -68,7 +68,7 @@ namespace sample
             winrt::com_ptr<ID3D12DescriptorHeap> r;
             D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-            d.NumDescriptors = 2;
+            d.NumDescriptors = 4;
             d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
             device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
             return r;
@@ -79,7 +79,7 @@ namespace sample
             winrt::com_ptr<ID3D12DescriptorHeap> r;
             D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-            d.NumDescriptors = 2;
+            d.NumDescriptors = 4;
             d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
             device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
             return r;
@@ -148,7 +148,7 @@ namespace sample
 
             D3D12_CLEAR_VALUE v = {};
             v.DepthStencil.Depth = 1.0f;
-            v.DepthStencil.Stencil = 0.0f;
+            v.DepthStencil.Stencil = 0;
             v.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
             ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
@@ -250,6 +250,8 @@ namespace sample
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
 
+
+
         return m_swap_chain->GetCurrentBackBufferIndex();
     }
 
@@ -330,5 +332,15 @@ namespace sample
     D3D12_CPU_DESCRIPTOR_HANDLE  DeviceResources::SwapChainDepthHandle(uint32_t index) const
     {
         return CpuView(m_device.get(), m_depth_stencil_descriptor_heap.get()) + m_swap_chain_descriptors[index];
+    }
+
+    ID3D12DescriptorHeap* DeviceResources::RenderTargetHeap() const
+    {
+        return m_render_target_descriptor_heap.get();
+    }
+
+    ID3D12DescriptorHeap* DeviceResources::DepthHeap() const
+    {
+        return m_depth_stencil_descriptor_heap.get();
     }
 }

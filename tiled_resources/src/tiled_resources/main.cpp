@@ -8,6 +8,7 @@
 
 #include "window_environment.h"
 #include "device_resources.h"
+#include "sampling_renderer.h"
 #include "error.h"
 
 
@@ -186,6 +187,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_activated					= v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
 
         m_deviceResources           = std::make_unique<sample::DeviceResources>();
+        m_samplingRenderer          = std::make_unique<sample::SamplingRenderer>();
 
 
         //if you have many threads that generate commands. 1 per thread per frame
@@ -359,14 +361,26 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
     void SetWindow(const CoreWindow& w)
     {
-        m_closed			    = w.Closed(winrt::auto_revoke, { this, &ViewProvider::OnWindowClosed });
-        m_size_changed		    = w.SizeChanged(winrt::auto_revoke, { this, &ViewProvider::OnWindowSizeChanged });
+        m_closed			        = w.Closed(winrt::auto_revoke, { this, &ViewProvider::OnWindowClosed });
+        m_size_changed		        = w.SizeChanged(winrt::auto_revoke, { this, &ViewProvider::OnWindowSizeChanged });
 
-        auto envrionment        = sample::build_environment(w, winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView());
-        auto width              = static_cast<UINT>(envrionment.m_back_buffer_size.Width);
-        auto height             = static_cast<UINT>(envrionment.m_back_buffer_size.Height);
+        auto envrionment            = sample::build_environment(w, winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView());
+        auto width                  = static_cast<UINT>(envrionment.m_back_buffer_size.Width);
+        auto height                 = static_cast<UINT>(envrionment.m_back_buffer_size.Height);
 
-        m_frame_index           = m_deviceResources->CreateSwapChain(w, width, height);
+        m_frame_index               = m_deviceResources->CreateSwapChain(w, width, height);
+
+        //Create the sampling renderer
+        sample::ResizeSamplingRendererContext ctx = {};
+
+        ctx.m_device                = m_deviceResources->Device();
+        ctx.m_width                 = width; 
+        ctx.m_height                = height;
+        ctx.m_depth_index           = 2;
+        ctx.m_render_target_index   = 2;
+        ctx.m_depth_heap            = m_deviceResources->DepthHeap();
+        ctx.m_render_target_heap    = m_deviceResources->RenderTargetHeap();
+        m_samplingRenderer->CreateSamplingRenderer(ctx);
     }
 
     void OnWindowClosed(const CoreWindow&w, const CoreWindowEventArgs& a)
@@ -410,6 +424,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     CoreApplicationView::Activated_revoker		m_activated;
 
     std::unique_ptr<sample::DeviceResources>    m_deviceResources;
+    std::unique_ptr<sample::SamplingRenderer>   m_samplingRenderer;
 
     std::mutex                                  m_blockRendering;           //block render thread for the swap chain resizes
 
