@@ -359,14 +359,20 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         });
     }
 
+    uint32_t align8(uint32_t value)
+    {
+        return (value + 7) & ~7;
+    }
+
     void SetWindow(const CoreWindow& w)
     {
         m_closed			        = w.Closed(winrt::auto_revoke, { this, &ViewProvider::OnWindowClosed });
         m_size_changed		        = w.SizeChanged(winrt::auto_revoke, { this, &ViewProvider::OnWindowSizeChanged });
 
         auto envrionment            = sample::build_environment(w, winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView());
-        auto width                  = static_cast<UINT>(envrionment.m_back_buffer_size.Width);
-        auto height                 = static_cast<UINT>(envrionment.m_back_buffer_size.Height);
+
+        auto width                  = align8(static_cast<uint32_t>(envrionment.m_back_buffer_size.Width));
+        auto height                 = align8(static_cast<uint32_t>(envrionment.m_back_buffer_size.Height));
 
         m_frame_index               = m_deviceResources->CreateSwapChain(w, width, height);
 
@@ -393,7 +399,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         CoreWindow::GetForCurrentThread().Activate();
     }
 
-    void OnWindowSizeChanged(const CoreWindow& w, const WindowSizeChangedEventArgs& a)
+    void OnWindowSizeChanged(const CoreWindow& window, const WindowSizeChangedEventArgs& a)
     {
         //wait for the render thread to finish and block it so we can submit a command
         std::lock_guard lock(m_blockRendering);
@@ -406,15 +412,33 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_deviceResources->SignalFenceValue(fence_value);
         m_deviceResources->WaitForFenceValue(fence_value);
 
-        auto envrionment = sample::build_environment(w, winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView());
+        auto envrionment = sample::build_environment(window, winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView());
+
+        auto w = align8(static_cast<uint32_t>(envrionment.m_back_buffer_size.Width));
+        auto h = align8(static_cast<uint32_t>(envrionment.m_back_buffer_size.Height));
 
         {
-            auto w = static_cast<UINT>(envrionment.m_back_buffer_size.Width);
-            auto h = static_cast<UINT>(envrionment.m_back_buffer_size.Height);
             m_frame_index = m_deviceResources->ResizeBuffers(w, h);
         }
+
+        {
+            //Create the sampling renderer
+            sample::ResizeSamplingRendererContext ctx = {};
+
+            ctx.m_device = m_deviceResources->Device();
+            ctx.m_width = w;
+            ctx.m_height = h;
+            ctx.m_depth_index = 2;
+            ctx.m_render_target_index = 2;
+            ctx.m_depth_heap = m_deviceResources->DepthHeap();
+            ctx.m_render_target_heap = m_deviceResources->RenderTargetHeap();
+            m_samplingRenderer->CreateSamplingRenderer(ctx);
+        }
+
         //Prepare to unblock the rendering
         m_fence_value[m_frame_index] = fence_value + 1;
+
+
     }
 
     bool m_window_running = true;
