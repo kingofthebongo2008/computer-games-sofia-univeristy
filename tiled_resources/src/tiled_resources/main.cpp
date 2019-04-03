@@ -57,21 +57,22 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     #include <triangle_vertex.h>
 
     D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
-    state.pRootSignature			= root;
-    state.SampleMask				= UINT_MAX;
-    state.RasterizerState			= CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    state.pRootSignature			        = root;
+    state.SampleMask				        = UINT_MAX;
+    state.RasterizerState			        = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 
-    state.RasterizerState.CullMode	= D3D12_CULL_MODE_NONE;
-    state.RasterizerState.FrontCounterClockwise = TRUE;
+    state.PrimitiveTopologyType		        = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    state.NumRenderTargets			        = 1;
+    state.RTVFormats[0]				        = DXGI_FORMAT_B8G8R8A8_UNORM;
+    state.SampleDesc.Count			        = 1;
+    state.BlendState				        = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    state.DSVFormat                         = DXGI_FORMAT_D24_UNORM_S8_UINT;
 
-    state.PrimitiveTopologyType		= D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    state.NumRenderTargets			= 1;
-    state.RTVFormats[0]				= DXGI_FORMAT_B8G8R8A8_UNORM;
-    state.SampleDesc.Count			= 1;
-    state.BlendState				= CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    state.DepthStencilState.DepthEnable     = TRUE;
+    state.DepthStencilState.DepthWriteMask  = D3D12_DEPTH_WRITE_MASK_ALL;
+    state.DepthStencilState.DepthFunc       = D3D12_COMPARISON_FUNC_LESS;
+    state.DepthStencilState.StencilEnable   = FALSE;
 
-    state.DepthStencilState.DepthEnable = FALSE;
-    state.DepthStencilState.StencilEnable = FALSE;
 
     state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
     state.PS = { &g_triangle_pixel[0], sizeof(g_triangle_pixel) };
