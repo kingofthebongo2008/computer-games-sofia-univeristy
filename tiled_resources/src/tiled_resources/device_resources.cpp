@@ -127,7 +127,7 @@ namespace sample
             d.DepthOrArraySize = 1;
             d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
             d.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-            d.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;           //important for computing the resource footprint
+            d.Format = DXGI_FORMAT_D32_FLOAT;           //important for computing the resource footprint
             d.Height = height;
             d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
             d.MipLevels = 1;
@@ -149,7 +149,7 @@ namespace sample
             D3D12_CLEAR_VALUE v = {};
             v.DepthStencil.Depth = 1.0f;
             v.DepthStencil.Stencil = 0;
-            v.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+            v.Format = DXGI_FORMAT_D32_FLOAT;
 
             ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
             return r;
@@ -168,7 +168,7 @@ namespace sample
         {
             D3D12_DEPTH_STENCIL_VIEW_DESC d = {};
             d.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-            d.Format        = DXGI_FORMAT_D24_UNORM_S8_UINT;       //how we will view the resource during rendering
+            d.Format        = DXGI_FORMAT_D32_FLOAT;       //how we will view the resource during rendering
             device->CreateDepthStencilView(resource, &d, handle);
         }
     }

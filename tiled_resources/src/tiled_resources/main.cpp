@@ -66,7 +66,7 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     state.RTVFormats[0]				        = DXGI_FORMAT_B8G8R8A8_UNORM;
     state.SampleDesc.Count			        = 1;
     state.BlendState				        = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-    state.DSVFormat                         = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    state.DSVFormat                         = DXGI_FORMAT_D32_FLOAT;
 
     state.DepthStencilState.DepthEnable     = TRUE;
     state.DepthStencilState.DepthWriteMask  = D3D12_DEPTH_WRITE_MASK_ALL;
@@ -255,7 +255,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
             //do the clear, fill the memory with a value
             {
-                FLOAT c[4] = { 1.0f, 0.f,0.f,0.f };
+                FLOAT c[4] = { 0.0f, 0.f,0.f,0.f };
                 commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
                 commandList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
             }
