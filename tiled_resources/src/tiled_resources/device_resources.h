@@ -25,6 +25,7 @@ namespace sample
         void                                        SignalFenceValue(uint64_t value);
 
         D3D12_CPU_DESCRIPTOR_HANDLE                 SwapChainHandle(uint32_t) const;
+        D3D12_CPU_DESCRIPTOR_HANDLE                 SwapChainDepthHandle(uint32_t) const;
 
         private:
         winrt::com_ptr <ID3D12Debug>                m_debug;                    //debug interface
@@ -39,8 +40,10 @@ namespace sample
         winrt::com_ptr <ID3D12DescriptorHeap>   	m_depth_stencil_descriptor_heap;  //descriptor heap for the render_targets
 
         winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];
-        uint64_t                                    m_swap_chain_descriptors[2];
+        winrt::com_ptr<ID3D12Resource1>             m_swap_chain_depths[2];
 
+
+        uint64_t                                    m_swap_chain_descriptors[2];
         uint32_t									m_back_buffer_width = 0;
         uint32_t									m_back_buffer_height = 0;
     };

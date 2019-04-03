@@ -63,13 +63,24 @@ namespace sample
             return r;
         }
 
-        static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeap(ID3D12Device1* device)
+        static winrt::com_ptr <ID3D12DescriptorHeap> CreateRenderDescriptorHeap(ID3D12Device1* device)
         {
             winrt::com_ptr<ID3D12DescriptorHeap> r;
             D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
             d.NumDescriptors = 2;
             d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+            device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
+            return r;
+        }
+
+        static winrt::com_ptr <ID3D12DescriptorHeap> CreateDepthDescriptorHeap(ID3D12Device1* device)
+        {
+            winrt::com_ptr<ID3D12DescriptorHeap> r;
+            D3D12_DESCRIPTOR_HEAP_DESC d = {};
+
+            d.NumDescriptors = 2;
+            d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
             device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
             return r;
         }
@@ -97,12 +108,50 @@ namespace sample
             return r.as< IDXGISwapChain3>();
         }
 
+
+
         //Get the buffer for the swap chain, this is the end result for the window
         static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* device, IDXGISwapChain* chain, uint32_t buffer)
         {
             winrt::com_ptr<ID3D12Resource1> r;
 
             chain->GetBuffer(buffer, __uuidof(ID3D12Resource1), r.put_void());
+            return r;
+        }
+
+        //compute sizes
+        static D3D12_RESOURCE_DESC DescribeDepth(uint32_t width, uint32_t height)
+        {
+            D3D12_RESOURCE_DESC d = {};
+            d.Alignment = 0;
+            d.DepthOrArraySize = 1;
+            d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+            d.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+            d.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;           //important for computing the resource footprint
+            d.Height = height;
+            d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+            d.MipLevels = 1;
+            d.SampleDesc.Count = 1;
+            d.SampleDesc.Quality = 0;
+            d.Width = width;
+            return                  d;
+        }
+
+        static winrt::com_ptr<ID3D12Resource1> CreateDepthResource1(ID3D12Device1* device, uint32_t width, uint32_t height)
+        {
+            D3D12_RESOURCE_DESC d = DescribeDepth(width, height);
+
+            winrt::com_ptr<ID3D12Resource1>     r;
+            D3D12_HEAP_PROPERTIES p = {};
+            p.Type = D3D12_HEAP_TYPE_DEFAULT;
+            D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+
+            D3D12_CLEAR_VALUE v = {};
+            v.DepthStencil.Depth = 1.0f;
+            v.DepthStencil.Stencil = 0.0f;
+            v.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+
+            ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
             return r;
         }
 
@@ -114,6 +163,14 @@ namespace sample
             d.Format = DXGI_FORMAT_B8G8R8A8_UNORM;       //how we will view the resource during rendering
             device->CreateRenderTargetView(resource, &d, handle);
         }
+
+        static void CreateDepthDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+        {
+            D3D12_DEPTH_STENCIL_VIEW_DESC d = {};
+            d.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+            d.Format        = DXGI_FORMAT_D24_UNORM_S8_UINT;       //how we will view the resource during rendering
+            device->CreateDepthStencilView(resource, &d, handle);
+        }
     }
 
     DeviceResources::DeviceResources()
@@ -122,7 +179,8 @@ namespace sample
         m_device = CreateDevice();
 
         m_queue = CreateCommandQueue(m_device.get());
-        m_render_target_descriptor_heap = CreateDescriptorHeap(m_device.get());
+        m_render_target_descriptor_heap = CreateRenderDescriptorHeap(m_device.get());
+        m_depth_stencil_descriptor_heap = CreateDepthDescriptorHeap(m_device.get());
 
         //fence, sync from the gpu and cpu
         m_fence = CreateFence(m_device.get(), 2);
@@ -166,18 +224,29 @@ namespace sample
         m_back_buffer_width = width;
         m_back_buffer_height = height;
 
-        //allocate memory for the view
+        //allocate memory for the swap chain again
         m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
         m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
 
+        //allocate memory for the depth buffers in the swap chain
+        m_swap_chain_depths[0] = CreateDepthResource1(m_device.get(), width, height);
+        m_swap_chain_depths[1] = CreateDepthResource1(m_device.get(), width, height);
+
+        //set names so we can see them in pix
         m_swap_chain_buffers[0]->SetName(L"Buffer 0");
         m_swap_chain_buffers[1]->SetName(L"Buffer 1");
+
+        m_swap_chain_depths[0]->SetName(L"Depth 0");
+        m_swap_chain_depths[1]->SetName(L"Depth 1");
 
         //create render target views, that will be used for rendering
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_render_target_descriptor_heap.get()) + 0);
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_render_target_descriptor_heap.get()) + 1);
 
-        //Where are located the descriptors
+        //create depth stencil view, that will be used for rendering
+        CreateDepthDescriptor(m_device.get(), m_swap_chain_depths[0].get(), CpuView(m_device.get(), m_depth_stencil_descriptor_heap.get()) + 0);
+        CreateDepthDescriptor(m_device.get(), m_swap_chain_depths[1].get(), CpuView(m_device.get(), m_depth_stencil_descriptor_heap.get()) + 1);
+
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
 
@@ -189,8 +258,13 @@ namespace sample
         m_back_buffer_width     = width;
         m_back_buffer_height    = height;
 
+        //Reset swap chains
         m_swap_chain_buffers[0] = nullptr;
         m_swap_chain_buffers[1] = nullptr;
+
+        //Reset depths. Reset First ensure that we release the pressure on the driver to allocate new memory for us and release the old one
+        m_swap_chain_depths[0] = nullptr;
+        m_swap_chain_depths[1] = nullptr;
 
         sample::ThrowIfFailed(m_swap_chain->ResizeBuffers(2, m_back_buffer_width, m_back_buffer_height, DXGI_FORMAT_B8G8R8A8_UNORM, 0));
 
@@ -198,13 +272,24 @@ namespace sample
         m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
         m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
 
+        //allocate memory for the depth buffers in the swap chain
+        m_swap_chain_depths[0] = CreateDepthResource1(m_device.get(), width, height);
+        m_swap_chain_depths[1] = CreateDepthResource1(m_device.get(), width, height);
+
         //set names so we can see them in pix
         m_swap_chain_buffers[0]->SetName(L"Buffer 0");
         m_swap_chain_buffers[1]->SetName(L"Buffer 1");
 
+        m_swap_chain_depths[0]->SetName(L"Depth 0");
+        m_swap_chain_depths[1]->SetName(L"Depth 1");
+
         //create render target views, that will be used for rendering
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_render_target_descriptor_heap.get()) + 0);
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_render_target_descriptor_heap.get()) + 1);
+
+        //create depth stencil view, that will be used for rendering
+        CreateDepthDescriptor(m_device.get(), m_swap_chain_depths[0].get(), CpuView(m_device.get(), m_depth_stencil_descriptor_heap.get()) + 0);
+        CreateDepthDescriptor(m_device.get(), m_swap_chain_depths[1].get(), CpuView(m_device.get(), m_depth_stencil_descriptor_heap.get()) + 1);
 
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
@@ -240,5 +325,10 @@ namespace sample
     D3D12_CPU_DESCRIPTOR_HANDLE  DeviceResources::SwapChainHandle(uint32_t index) const
     {
         return CpuView(m_device.get(), m_render_target_descriptor_heap.get()) + m_swap_chain_descriptors[index];
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE  DeviceResources::SwapChainDepthHandle(uint32_t index) const
+    {
+        return CpuView(m_device.get(), m_depth_stencil_descriptor_heap.get()) + m_swap_chain_descriptors[index];
     }
 }

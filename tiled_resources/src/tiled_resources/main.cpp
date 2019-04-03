@@ -242,17 +242,20 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 commandList->ResourceBarrier(1, &barrier);
             }
 
+            //Get Depth Buffer
+            D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = m_deviceResources->SwapChainDepthHandle(m_frame_index);
+
             //Mark the resources in the rasterizer output
             {
-                commandList->OMSetRenderTargets(1, &back_buffer, TRUE, nullptr);
+                commandList->OMSetRenderTargets(1, &back_buffer, TRUE, &depth_buffer);
             }
 
             //do the clear, fill the memory with a value
             {
                 FLOAT c[4] = { 1.0f, 0.f,0.f,0.f };
                 commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
+                commandList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
             }
-
 
             {
                 //set the type of the parameters that we will use in the shader
