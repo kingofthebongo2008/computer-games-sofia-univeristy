@@ -11,7 +11,7 @@
 
 namespace sample
 {
-	Concurrency::task<std::vector<uint8_t>> ReadDataAsync(const std::wstring& filename);
+	concurrency::task<std::vector<uint8_t>> ReadDataAsync(const std::wstring& filename);
 }
 
 

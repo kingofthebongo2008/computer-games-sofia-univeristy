@@ -6,7 +6,7 @@
 namespace sample
 {
 	// Function that reads from a binary file asynchronously.
-	inline Concurrency::task<std::vector<uint8_t>> ReadDataAsync(const std::wstring& filename)
+	concurrency::task<std::vector<uint8_t>> ReadDataAsync(const std::wstring& filename)
 	{
 		using namespace Windows::Storage;
 		using namespace Concurrency;

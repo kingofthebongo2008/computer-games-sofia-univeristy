@@ -10,6 +10,7 @@
 #include "device_resources.h"
 #include "sampling_renderer.h"
 #include "error.h"
+#include "file_helper.h"
 
 
 
@@ -343,6 +344,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         //use concurrency runtime 
         concurrency::task_group g;
 
+		//spawn many loading tasks
+
         g.run( [this, d]
         {
             m_triangle_state = CreateTrianglePipelineState(d, m_root_signature.get());
@@ -352,6 +355,18 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         {
             m_sampling_renderer_state = CreateSamplingRendererState(d, m_root_signature.get()); 
         });
+
+		g.run([this, d]
+		{
+			auto bytes = sample::ReadDataAsync(L"data0\\geometry.vb.bin").get();
+
+		});
+
+		g.run([this, d]
+		{
+			auto bytes = sample::ReadDataAsync(L"data0\\geometry.ib.bin").get();
+
+		});
 
         //let the waiting thread do some work also
         g.run_and_wait([this, d]
