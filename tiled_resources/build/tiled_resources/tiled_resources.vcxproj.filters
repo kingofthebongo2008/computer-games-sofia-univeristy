@@ -30,6 +30,7 @@
     <ClCompile Include="..\..\src\tiled_resources\device_resources.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\sampling_renderer.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\file_helper.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\free_camera.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\tiled_resources\pch.h" />
@@ -41,6 +42,7 @@
     <ClInclude Include="..\..\src\tiled_resources\sampling_renderer.h" />
     <ClInclude Include="..\..\src\tiled_resources\sample_settings.h" />
     <ClInclude Include="..\..\src\tiled_resources\file_helper.h" />
+    <ClInclude Include="..\..\src\tiled_resources\free_camera.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png">

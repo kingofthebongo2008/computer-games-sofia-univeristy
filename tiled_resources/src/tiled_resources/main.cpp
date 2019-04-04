@@ -345,11 +345,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 m_geometry_index_buffer->SetName(L"geometry.ib.bin");
 
                 m_planet_vertex_view.BufferLocation   = m_geometry_vertex_buffer->GetGPUVirtualAddress();
-                m_planet_vertex_view.SizeInBytes      = vericesSize;
+                m_planet_vertex_view.SizeInBytes      = static_cast<uint32_t>(vericesSize);
                 m_planet_vertex_view.StrideInBytes    = 3 * sizeof(float);  //spacing between every two vertices x,y,z for this demo
 
                 m_planet_index_view.BufferLocation      = m_geometry_index_buffer->GetGPUVirtualAddress();
-                m_planet_index_view.SizeInBytes         = indicesSize;
+                m_planet_index_view.SizeInBytes         = static_cast<uint32_t>(indicesSize);
                 m_planet_index_view.Format              = DXGI_FORMAT_R32_UINT;
 
                 //Copy the resources to the gpu memory
