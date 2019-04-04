@@ -1,12 +1,12 @@
 #include "default_signature.hlsli"
+#include "default_samplers.hlsli"
 
 TextureCube<float> tex : register(t1);
-SamplerState sam;
 
 [RootSignature(MyRS1)]
 float4 main(float4 coord : TEXCOORD0) : SV_TARGET
 {
-    float val = 1.0f - tex.Sample(sam, normalize(coord.xyz));
+    float val = 1.0f - tex.Sample(samplerWrapPoint, normalize(coord.xyz));
     float3 color = float3(0.0f, 0.0f, 0.0f);
     if (val < 0.25f)
     {

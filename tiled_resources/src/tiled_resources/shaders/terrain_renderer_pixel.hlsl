@@ -1,12 +1,10 @@
 #include "default_signature.hlsli"
+#include "default_samplers.hlsli"
 
 TextureCube<float3> ColorTexture : register(t1);
 TextureCube<float> ColorResidency : register(t2);
 TextureCube<float2> NormalTexture : register(t3);
 TextureCube<float> NormalResidency : register(t4);
-
-SamplerState Trilinear : register(s0);
-SamplerState MaxFilter : register(s1);
 
 cbuffer PixelShaderConstants : register(b0)
 {
@@ -27,26 +25,26 @@ float4 main(PS_IN input) : SV_TARGET
 
 #if RESTRICT_TIER_1
     // Gather can be used to emulate the MAXIMUM filter variants when on Tier 1.
-    float4 normalSampleValues = NormalResidency.Gather(MaxFilter, tex) * 16.0f;
+    float4 normalSampleValues = NormalResidency.Gather(samplerWrapMaximum, tex) * 16.0f;
     float normalMinLod = normalSampleValues.x;
     normalMinLod = max(normalMinLod, normalSampleValues.y);
     normalMinLod = max(normalMinLod, normalSampleValues.z);
     normalMinLod = max(normalMinLod, normalSampleValues.w);
-    float4 diffuseSampleValues = ColorResidency.Gather(MaxFilter, tex) * 16.0f;
+    float4 diffuseSampleValues = ColorResidency.Gather(samplerWrapMaximum, tex) * 16.0f;
     float diffuseMinLod = diffuseSampleValues.x;
     diffuseMinLod = max(diffuseMinLod, diffuseSampleValues.y);
     diffuseMinLod = max(diffuseMinLod, diffuseSampleValues.z);
     diffuseMinLod = max(diffuseMinLod, diffuseSampleValues.w);
     // SampleLevel in conjunction with CalculateLevelOfDetail can be used to emulate LOD Clamp behavior when on Tier 1.
-    float diffuseCalculatedLod = ColorTexture.CalculateLevelOfDetail(Trilinear, tex);
-    float3 diffuse = diffuseCalculatedLod < diffuseMinLod ? ColorTexture.SampleLevel(Trilinear, tex, diffuseMinLod) : ColorTexture.Sample(Trilinear, tex);
-    float normalCalculatedLod = NormalTexture.CalculateLevelOfDetail(Trilinear, tex);
-    float2 tangent = normalCalculatedLod < normalMinLod ? NormalTexture.SampleLevel(Trilinear, tex, normalMinLod) : NormalTexture.Sample(Trilinear, tex);
+    float diffuseCalculatedLod = ColorTexture.CalculateLevelOfDetail(samplerWrapAnisotropic, tex);
+    float3 diffuse = diffuseCalculatedLod < diffuseMinLod ? ColorTexture.SampleLevel(samplerWrapAnisotropic, tex, diffuseMinLod) : ColorTexture.Sample(samplerWrapAnisotropic, tex);
+    float normalCalculatedLod = NormalTexture.CalculateLevelOfDetail(samplerWrapAnisotropic, tex);
+    float2 tangent = normalCalculatedLod < normalMinLod ? NormalTexture.SampleLevel(samplerWrapAnisotropic, tex, normalMinLod) : NormalTexture.Sample(samplerWrapAnisotropic, tex);
 #else
-    float normalMinLod = NormalResidency.Sample(MaxFilter, tex) * 16.0f;
-    float diffuseMinLod = ColorResidency.Sample(MaxFilter, tex) * 16.0f;
-    float3 diffuse = ColorTexture.Sample(Trilinear, tex, diffuseMinLod);
-    float2 tangent = NormalTexture.Sample(Trilinear, tex, normalMinLod);
+    float normalMinLod = NormalResidency.Sample(samplerWrapMaximum, tex) * 16.0f;
+    float diffuseMinLod = ColorResidency.Sample(samplerWrapMaximum, tex) * 16.0f;
+    float3 diffuse = ColorTexture.Sample(samplerWrapAnisotropic, tex, diffuseMinLod);
+    float2 tangent = NormalTexture.Sample(samplerWrapAnisotropic, tex, normalMinLod);
 #endif
 
     float dataScaleFactor = 10.0f;

@@ -217,10 +217,10 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\tiled_resources\shaders\default_samplers.hlsli" />
     <None Include="..\..\src\tiled_resources\shaders\default_signature.hlsli" />
     <None Include="tiled_resources_TemporaryKey.pfx" />
   </ItemGroup>
-
   <ItemGroup>
     <None Include="data0/diffuse.bin">
       <DeploymentContent>true</DeploymentContent>
@@ -239,7 +239,6 @@
       <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>
-
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

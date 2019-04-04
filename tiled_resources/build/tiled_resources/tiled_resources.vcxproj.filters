@@ -20,6 +20,9 @@
     <Filter Include="data0">
       <UniqueIdentifier>{03cf2ddc-46b3-4460-adb0-413fdb2d107a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="shaders\signature">
+      <UniqueIdentifier>{b88b3fb1-7484-4fe4-879b-e923a199972a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\tiled_resources\main.cpp" />
@@ -104,15 +107,13 @@
     <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl">
       <Filter>shaders\vertex</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
     <FxCompile Include="..\..\src\tiled_resources\shaders\default_graphics_signature.hlsl">
-      <Filter>shaders</Filter>
+      <Filter>shaders\signature</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="tiled_resources_TemporaryKey.pfx" />
-    <None Include="..\..\src\tiled_resources\shaders\default_signature.hlsli">
-      <Filter>common</Filter>
-    </None>
     <None Include="data0/geometry.ib.bin">
       <Filter>data0</Filter>
     </None>
@@ -124,6 +125,12 @@
     </None>
     <None Include="data0/normal.bin">
       <Filter>data0</Filter>
+    </None>
+    <None Include="..\..\src\tiled_resources\shaders\default_signature.hlsli">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\src\tiled_resources\shaders\default_samplers.hlsli">
+      <Filter>shaders</Filter>
     </None>
   </ItemGroup>
 </Project>
