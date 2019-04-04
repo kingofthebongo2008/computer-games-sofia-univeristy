@@ -6,32 +6,17 @@ struct interpolated_value
     float3 m_color    : TEXCOORD0;
 };
 
+struct value
+{
+    float3 m_position : POSITION;
+};
+
+
 [RootSignature( MyRS1 ) ]
-interpolated_value main(uint v : SV_VERTEXID)
+interpolated_value main(in value v)
 {
 	interpolated_value r = (interpolated_value)0;
-	r.m_position = float4(0.0f, 0.0f, 0.0f, 1.0f);
-
-	if (v == 0)
-	{
-		r.m_position    = float4(-0.5f, 0.0f, 0.5f, 1.0f);
-        r.m_color       = float3(0.0f, 1.0f, 0.0f);
-		return r;
-	}
-
-    if (v == 1)
-    {
-        r.m_position = float4(0.0f, 0.5f, 0.5f, 1.0f);
-        r.m_color = float3(1.0f, 0.0f, 0.0f);
-        return r;
-    }
-
-	if (v == 2)
-	{
-		r.m_position    = float4(0.5f, 0.0f, 0.5f, 1.0f);
-        r.m_color       = float3(0.0f, 0.0f, 1.0f);
-		return r;
-	}
-
+    r.m_position = float4(v.m_position, 1.0f);
+    r.m_color    = float3(0.0f, 1.0f, 0.0f);
 	return r;
 }

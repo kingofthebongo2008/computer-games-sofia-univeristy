@@ -126,7 +126,7 @@ namespace sample
             d.Alignment = 0;
             d.DepthOrArraySize = 1;
             d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-            d.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+            d.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL | D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE; //say that the depth will not be used as a shader resource to trigger compression
             d.Format = DXGI_FORMAT_D32_FLOAT;           //important for computing the resource footprint
             d.Height = height;
             d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
