@@ -46,7 +46,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <PackageCertificateKeyFile>tiled_resources_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <PackageCertificateThumbprint>C54992D16D7CCC465A3537490563E8E2F3CEF234</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>1D391748E5D6E0FFF8FC18534B45761C20CD2402</PackageCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>
@@ -84,6 +84,7 @@
     <ClInclude Include="..\..\src\tiled_resources\cpu_view.h" />
     <ClInclude Include="..\..\src\tiled_resources\d3dx12.h" />
     <ClInclude Include="..\..\src\tiled_resources\device_resources.h" />
+    <ClInclude Include="..\..\src\tiled_resources\file_helper.h" />
     <ClInclude Include="..\..\src\tiled_resources\sample_settings.h" />
     <ClInclude Include="..\..\src\tiled_resources\sampling_renderer.h" />
     <ClInclude Include="..\..\src\tiled_resources\error.h" />
@@ -105,6 +106,7 @@
     <Image Include="assets\wide_310x150_logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\tiled_resources\file_helper.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\sampling_renderer.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\device_resources.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\main.cpp" />
@@ -218,6 +220,26 @@
     <None Include="..\..\src\tiled_resources\shaders\default_signature.hlsli" />
     <None Include="tiled_resources_TemporaryKey.pfx" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Include="data0/diffuse.bin">
+      <DeploymentContent>true</DeploymentContent>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="data0/geometry.ib.bin">
+      <DeploymentContent>true</DeploymentContent>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="data0/geometry.vb.bin">
+      <DeploymentContent>true</DeploymentContent>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="data0/normal.bin">
+      <DeploymentContent>true</DeploymentContent>
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+  </ItemGroup>
+
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
