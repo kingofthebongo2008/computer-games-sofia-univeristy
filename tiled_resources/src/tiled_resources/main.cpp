@@ -175,6 +175,56 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTerrainRendererState(ID3D12De
 }
 
 
+inline D3D12_RESOURCE_DESC DescribeBuffer(uint64_t elements, uint64_t elementSize = 1)
+{
+	D3D12_RESOURCE_DESC desc = {};
+	desc.Alignment = 0;
+	desc.DepthOrArraySize = 1;
+	desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	desc.Format = DXGI_FORMAT_UNKNOWN;
+	desc.Height = 1;
+	desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	desc.MipLevels = 1;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Width = elements * elementSize;
+	return desc;
+}
+
+//compute sizes
+static D3D12_RESOURCE_DESC DescribeGeometryBuffer(uint32_t byte_size)
+{
+	return DescribeBuffer(byte_size);
+}
+
+static winrt::com_ptr<ID3D12Resource1 > CreateGeometryUploadBuffer(ID3D12Device1* device, uint32_t size_in_bytes)
+{
+	D3D12_RESOURCE_DESC d = DescribeGeometryBuffer(size_in_bytes);
+
+	winrt::com_ptr<ID3D12Resource1>     r;
+	D3D12_HEAP_PROPERTIES p			  = {};
+	p.Type							  = D3D12_HEAP_TYPE_UPLOAD;
+	D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_GENERIC_READ;
+
+	sample::ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+	return r;
+}
+
+static winrt::com_ptr<ID3D12Resource1 > CreateGeometryBuffer(ID3D12Device1* device, uint32_t size_in_bytes)
+{
+	D3D12_RESOURCE_DESC d = DescribeGeometryBuffer(size_in_bytes);
+
+	winrt::com_ptr<ID3D12Resource1>     r;
+	D3D12_HEAP_PROPERTIES p = {};
+	p.Type = D3D12_HEAP_TYPE_DEFAULT;
+	D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_DEST;
+
+	sample::ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+	return r;
+}
+
+
 class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFrameworkViewSource>
 {
     public:
@@ -358,14 +408,55 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 		g.run([this, d]
 		{
-			auto bytes = sample::ReadDataAsync(L"data0\\geometry.vb.bin").get();
+			auto bytes0 = sample::ReadDataAsync(L"data0\\geometry.vb.bin").then([d](std::vector<uint8_t> && b)
+			{
+				auto buf0Upload = CreateGeometryUploadBuffer(d, b.size());
+				void* upload;
+				CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
+				sample::ThrowIfFailed(buf0Upload->Map(0, &readRange, reinterpret_cast<void**>(&upload)));
+				memcpy(upload, &b[0], b.size());
+				buf0Upload->Unmap(0, nullptr);
+				return buf0Upload;
+			});
 
-		});
+			auto bytes1 = sample::ReadDataAsync(L"data0\\geometry.ib.bin").then([d](std::vector<uint8_t> && b)
+			{
+				auto buf0Upload = CreateGeometryUploadBuffer(d, b.size());
 
-		g.run([this, d]
-		{
-			auto bytes = sample::ReadDataAsync(L"data0\\geometry.ib.bin").get();
 
+				void* upload;
+				CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
+				sample::ThrowIfFailed(buf0Upload->Map(0, &readRange, reinterpret_cast<void**>(&upload)));
+				memcpy(upload, &b[0], b.size());
+				buf0Upload->Unmap(0, nullptr);
+				return buf0Upload;
+			});
+
+			auto bytes1		= sample::ReadDataAsync(L"data0\\geometry.ib.bin").get();
+			auto buf0		= CreateGeometryBuffer(d, bytes0.size());
+
+			
+
+
+
+			/*
+			auto createBufferGeometry in UploadHeap
+			auto createIndexGeometry  in UploadHeap
+
+			auto createBufferGeometry in DefaultHeap
+			auto createIndexGeometry  in defaultHeap;
+
+			winrt::com_ptr <ID3D12Resource1>   			m_geometry_vertex_buffer;	//one per frame
+			winrt::com_ptr <ID3D12Resource1>   			m_geometry_index_buffer;	//one per frame
+
+			//get command lists
+			//transition resources
+			//execute
+
+			
+			ComPtr<ID3D12Resource> m_vertexBuffer;
+			D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
+			*/
 		});
 
         //let the waiting thread do some work also
@@ -373,6 +464,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         {
             m_terrain_renderer_state = CreateTerrainRendererState(d, m_root_signature.get());  
         });
+
     }
 
     uint32_t align8(uint32_t value)
@@ -453,8 +545,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
         //Prepare to unblock the rendering
         m_fence_value[m_frame_index] = fence_value + 1;
-
-
     }
 
     bool m_window_running = true;
@@ -481,6 +571,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
     winrt::com_ptr< ID3D12PipelineState>		m_sampling_renderer_state;  //responsible for output of the parts that we want
     winrt::com_ptr< ID3D12PipelineState>		m_terrain_renderer_state;   //responsible to renderer the terrain
+
+
+	winrt::com_ptr <ID3D12Resource1>   			m_geometry_vertex_buffer;	//one per frame
+	winrt::com_ptr <ID3D12Resource1>   			m_geometry_index_buffer;	//one per frame
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
