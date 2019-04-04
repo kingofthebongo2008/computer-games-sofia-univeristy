@@ -183,7 +183,7 @@ namespace sample
         m_depth_stencil_descriptor_heap = CreateDepthDescriptorHeap(m_device.get());
 
         //fence, sync from the gpu and cpu
-        m_fence = CreateFence(m_device.get(), 2);
+        m_fence = CreateFence(m_device.get(), 0);
         m_fence_event = CreateEvent(nullptr, false, false, nullptr);
 
         if (m_fence_event == nullptr)

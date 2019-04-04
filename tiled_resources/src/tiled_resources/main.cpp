@@ -193,12 +193,12 @@ inline D3D12_RESOURCE_DESC DescribeBuffer(uint64_t elements, uint64_t elementSiz
 }
 
 //compute sizes
-static D3D12_RESOURCE_DESC DescribeGeometryBuffer(uint32_t byte_size)
+static D3D12_RESOURCE_DESC DescribeGeometryBuffer(size_t byte_size)
 {
 	return DescribeBuffer(byte_size);
 }
 
-static winrt::com_ptr<ID3D12Resource1 > CreateGeometryUploadBuffer(ID3D12Device1* device, uint32_t size_in_bytes)
+static winrt::com_ptr<ID3D12Resource1 > CreateGeometryUploadBuffer(ID3D12Device1* device, size_t size_in_bytes)
 {
 	D3D12_RESOURCE_DESC d = DescribeGeometryBuffer(size_in_bytes);
 
@@ -211,7 +211,7 @@ static winrt::com_ptr<ID3D12Resource1 > CreateGeometryUploadBuffer(ID3D12Device1
 	return r;
 }
 
-static winrt::com_ptr<ID3D12Resource1 > CreateGeometryBuffer(ID3D12Device1* device, uint32_t size_in_bytes)
+static winrt::com_ptr<ID3D12Resource1 > CreateGeometryBuffer(ID3D12Device1* device, size_t size_in_bytes)
 {
 	D3D12_RESOURCE_DESC d = DescribeGeometryBuffer(size_in_bytes);
 
@@ -408,7 +408,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 		g.run([this, d]
 		{
-			auto bytes0 = sample::ReadDataAsync(L"data0\\geometry.vb.bin").then([d](std::vector<uint8_t> && b)
+            //Pattern for uploading resources
+
+            //Create resource on the upload heap. Example works with 1 heap per resource
+            //Read the data and copy to the resource
+			auto bytes0 = sample::ReadDataAsync(L"data0\\geometry.vb.bin").then([d](std::vector<uint8_t> b)
 			{
 				auto buf0Upload = CreateGeometryUploadBuffer(d, b.size());
 				void* upload;
@@ -416,47 +420,82 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 				sample::ThrowIfFailed(buf0Upload->Map(0, &readRange, reinterpret_cast<void**>(&upload)));
 				memcpy(upload, &b[0], b.size());
 				buf0Upload->Unmap(0, nullptr);
-				return buf0Upload;
+                return std::make_tuple(buf0Upload, b.size());
 			});
 
-			auto bytes1 = sample::ReadDataAsync(L"data0\\geometry.ib.bin").then([d](std::vector<uint8_t> && b)
+            //Create resource on the upload heap. Example works with 1 heap per resource
+            //Read the data and copy to the resource
+			auto bytes1 = sample::ReadDataAsync(L"data0\\geometry.ib.bin").then([d](std::vector<uint8_t>  b)
 			{
 				auto buf0Upload = CreateGeometryUploadBuffer(d, b.size());
 
-
 				void* upload;
-				CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
+                CD3DX12_RANGE readRange(0, 0);        // We do not intend to read from this resource on the CPU.
 				sample::ThrowIfFailed(buf0Upload->Map(0, &readRange, reinterpret_cast<void**>(&upload)));
 				memcpy(upload, &b[0], b.size());
 				buf0Upload->Unmap(0, nullptr);
-				return buf0Upload;
+
+                return std::make_tuple(buf0Upload, b.size());
 			});
 
-			auto bytes1		= sample::ReadDataAsync(L"data0\\geometry.ib.bin").get();
-			auto buf0		= CreateGeometryBuffer(d, bytes0.size());
+            //indices and vertices memory must be alive on execute
+            auto   vertices = bytes0.get();
+            auto   indices  = bytes1.get();
 
-			
+            auto   verticesBuffer = std::get<0>(vertices).get();
+            auto   indicesBuffer  = std::get<0>(indices).get();
 
+            //Create resource on in the gpu memory
 
+            m_geometry_vertex_buffer    = CreateGeometryBuffer(d, std::get<1>(vertices));
+            m_geometry_index_buffer     = CreateGeometryBuffer(d, std::get<1>(indices));
 
-			/*
-			auto createBufferGeometry in UploadHeap
-			auto createIndexGeometry  in UploadHeap
+            //Set debugging names
+            m_geometry_vertex_buffer->SetName(L"geometry.vb.bin");
+            m_geometry_index_buffer->SetName(L"geometry.ib.bin");
 
-			auto createBufferGeometry in DefaultHeap
-			auto createIndexGeometry  in defaultHeap;
+            //Copy the resources to the gpu memory
+            //and prepare them for usage by the gpu
+            ID3D12CommandAllocator* allocator       = m_command_allocator[m_frame_index].get();
+            ID3D12GraphicsCommandList1* commandList = m_command_list[m_frame_index].get();
+            allocator->Reset();
+            commandList->Reset(allocator, nullptr);
 
-			winrt::com_ptr <ID3D12Resource1>   			m_geometry_vertex_buffer;	//one per frame
-			winrt::com_ptr <ID3D12Resource1>   			m_geometry_index_buffer;	//one per frame
+            commandList->CopyResource(m_geometry_vertex_buffer.get(), verticesBuffer);
+            commandList->CopyResource(m_geometry_index_buffer.get(), indicesBuffer);
 
-			//get command lists
-			//transition resources
-			//execute
+            {
+                D3D12_RESOURCE_BARRIER barrier[2] = {};
 
-			
-			ComPtr<ID3D12Resource> m_vertexBuffer;
-			D3D12_VERTEX_BUFFER_VIEW m_vertexBufferView;
-			*/
+                barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier[0].Transition.pResource = m_geometry_vertex_buffer.get();
+                barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+                barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+                barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+                barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier[1].Transition.pResource = m_geometry_index_buffer.get();
+                barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_INDEX_BUFFER;
+                barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+                barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                commandList->ResourceBarrier(2, &barrier[0]);
+            }
+
+            commandList->Close();
+
+            
+            //Execute what we have now
+            {
+                //form group of several command lists
+                ID3D12CommandList* lists[] = { commandList };
+                m_deviceResources->Queue()->ExecuteCommandLists(1, lists); //Execute what we have, submission of commands to the gpu
+            }
+
+            //Insert in the gpu a command after all submitted commands so far.
+            const uint64_t fence_value = m_fence_value[m_frame_index];
+            m_deviceResources->SignalFenceValue(fence_value);
+            m_deviceResources->WaitForFenceValue(fence_value); //block the cpu
+            m_fence_value[m_frame_index] = fence_value + 1;    //increase the fence
 		});
 
         //let the waiting thread do some work also
@@ -464,7 +503,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         {
             m_terrain_renderer_state = CreateTerrainRendererState(d, m_root_signature.get());  
         });
-
     }
 
     uint32_t align8(uint32_t value)
