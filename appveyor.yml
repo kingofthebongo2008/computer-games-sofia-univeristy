@@ -1,15 +1,11 @@
 version: 1.0.{build}
-image: Visual Studio 2019 Preview
+image: Visual Studio 2017
 clone_folder: c:\projects
 install:
   - cd c:\projects
   - git submodule update --init --recursive
 build_script:
 - cmd: >-
-    nuget restore c:\projects\hello_directx_11\build\build.sln
+    nuget restore c:\projects\tiled_resources\build\build.sln
 
-    nuget restore c:\projects\hello_directx_12\build\build.sln
-
-    msbuild c:\projects\hello_directx_11\build\build.sln /p:Configuration="Release" /verbosity:quiet
-
-    msbuild c:\projects\hello_directx_12\build\build.sln /p:Configuration="Release" /verbosity:quiet
+    msbuild c:\projects\tiled_resources\build\build.sln /p:Configuration="Release" /verbosity:quiet

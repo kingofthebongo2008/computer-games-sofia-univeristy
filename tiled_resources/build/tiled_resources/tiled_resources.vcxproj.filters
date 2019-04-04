@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="common">
+      <UniqueIdentifier>ea657e57-cf9d-4e03-b87b-9a693133390c</UniqueIdentifier>
+    </Filter>
+    <Filter Include="assets">
+      <UniqueIdentifier>e94ed907-e44e-41a5-9379-cdeba6132364</UniqueIdentifier>
+      <Extensions>bmp;fbx;gif;jpg;jpeg;tga;tiff;tif;png</Extensions>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{dfba3b57-6816-4942-9ab6-28df1b0f84ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaders\pixel">
+      <UniqueIdentifier>{9b2855ff-d7d5-4459-8c94-34ff06017b0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaders\vertex">
+      <UniqueIdentifier>{8a862b5b-3bf8-47f5-89b4-05d3298cdfd3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\tiled_resources\main.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\pch.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\device_resources.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\sampling_renderer.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\tiled_resources\pch.h" />
+    <ClInclude Include="..\..\src\tiled_resources\d3dx12.h" />
+    <ClInclude Include="..\..\src\tiled_resources\device_resources.h" />
+    <ClInclude Include="..\..\src\tiled_resources\window_environment.h" />
+    <ClInclude Include="..\..\src\tiled_resources\error.h" />
+    <ClInclude Include="..\..\src\tiled_resources\cpu_view.h" />
+    <ClInclude Include="..\..\src\tiled_resources\sampling_renderer.h" />
+    <ClInclude Include="..\..\src\tiled_resources\sample_settings.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\lock_screen_logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="assets\splash_screen.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="assets\square_150x150_logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="assets\square_44x44_logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="assets\square_44x44_logo.targetsize-24_altform-unplated.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="assets\store_logo.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="assets\wide_310x150_logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <AppxManifest Include="package.appxmanifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\default_graphics_signature.hlsl" />
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_pixel.hlsl">
+      <Filter>shaders\pixel</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\residency_viewer_pixel.hlsl">
+      <Filter>shaders\pixel</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_renderer_pixel.hlsl">
+      <Filter>shaders\pixel</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_viewer_pixel.hlsl">
+      <Filter>shaders\pixel</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_pixel.hlsl">
+      <Filter>shaders\pixel</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_tier1_pixel.hlsl">
+      <Filter>shaders\pixel</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_tier2_pixel.hlsl">
+      <Filter>shaders\pixel</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\residency_viewer_vertex.hlsl">
+      <Filter>shaders\vertex</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_viewer_vertex.hlsl">
+      <Filter>shaders\vertex</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_vertex.hlsl">
+      <Filter>shaders\vertex</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl">
+      <Filter>shaders\vertex</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="tiled_resources_TemporaryKey.pfx" />
+    <None Include="..\..\src\tiled_resources\shaders\default_signature.hlsli">
+      <Filter>common</Filter>
+    </None>
+  </ItemGroup>
+</Project>
