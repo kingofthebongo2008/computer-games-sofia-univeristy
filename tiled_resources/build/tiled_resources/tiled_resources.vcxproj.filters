@@ -74,13 +74,7 @@
     <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_pixel.hlsl">
       <Filter>shaders\pixel</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\src\tiled_resources\shaders\residency_viewer_pixel.hlsl">
-      <Filter>shaders\pixel</Filter>
-    </FxCompile>
     <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_renderer_pixel.hlsl">
-      <Filter>shaders\pixel</Filter>
-    </FxCompile>
-    <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_viewer_pixel.hlsl">
       <Filter>shaders\pixel</Filter>
     </FxCompile>
     <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_pixel.hlsl">
@@ -91,12 +85,6 @@
     </FxCompile>
     <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_tier2_pixel.hlsl">
       <Filter>shaders\pixel</Filter>
-    </FxCompile>
-    <FxCompile Include="..\..\src\tiled_resources\shaders\residency_viewer_vertex.hlsl">
-      <Filter>shaders\vertex</Filter>
-    </FxCompile>
-    <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_viewer_vertex.hlsl">
-      <Filter>shaders\vertex</Filter>
     </FxCompile>
     <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_vertex.hlsl">
       <Filter>shaders\vertex</Filter>
@@ -112,6 +100,10 @@
     <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
     <FxCompile Include="..\..\src\tiled_resources\shaders\default_graphics_signature.hlsl">
       <Filter>shaders\signature</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
+    <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_renderer_vertex.hlsl">
+      <Filter>shaders\vertex</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
@@ -132,6 +124,9 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="..\..\src\tiled_resources\shaders\default_samplers.hlsli">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\..\src\tiled_resources\shaders\pass_constants.hlsli">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>

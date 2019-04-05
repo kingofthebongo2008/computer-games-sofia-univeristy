@@ -1,4 +1,5 @@
 #include "default_signature.hlsli"
+#include "pass_constants.hlsli"
 
 struct interpolated_value
 {
@@ -11,14 +12,7 @@ struct value
     float3 m_position : POSITION;
 };
 
-//36 DWORDS
-cbuffer VertexShaderConstants : register(b9)
-{
-    row_major float4x4 ViewMatrix;
-    row_major float4x4 ProjectionMatrix; // Also may include device orientation rotation transform.
-    float3             m_SunPosition;    // Used in the pixel shader for lighting
-    float              m_ScaleFactor;    // Scale factor
-};
+
 
 float4x4 makeTestView()
 {

@@ -1,9 +1,9 @@
 #ifndef __default_signature_hlsli__
 #define __default_signature_hlsli__
-//CBV 2
-//SRV 2
-//UAV 2
-//Descriptor Table 1
+//CBV 2 dwords
+//SRV 2 dwords
+//UAV 2 dwords
+//Descriptor Table 1 dword
 
 //Sum must be up 60 64
 

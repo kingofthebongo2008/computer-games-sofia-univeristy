@@ -14,8 +14,6 @@
 #include "file_helper.h"
 #include "free_camera.h"
 
-
-
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::ApplicationModel::Activation;
@@ -100,45 +98,47 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
 //It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
 static winrt::com_ptr< ID3D12PipelineState>	 CreateSamplingRendererState(ID3D12Device1* device, ID3D12RootSignature* root)
 {
-    static
-    #include <sampling_renderer_pixel.h>
+	static
+	#include <sampling_renderer_pixel.h>
 
-    static
-    #include <terrain_renderer_vertex.h>
+	static
+	#include <sampling_renderer_vertex.h>
 
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
-    state.pRootSignature = root;
-    state.SampleMask = UINT_MAX;
-    state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+	state.pRootSignature = root;
+	state.SampleMask = UINT_MAX;
+	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 
-    state.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-    state.RasterizerState.FrontCounterClockwise = TRUE;
+	state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	state.NumRenderTargets = 1;
+	state.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
+	state.SampleDesc.Count = 1;
+	state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	state.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
-    state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    state.NumRenderTargets = 1;
-    state.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
-    state.SampleDesc.Count = 1;
-    state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	state.DepthStencilState.DepthEnable = TRUE;
+	state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+	state.DepthStencilState.StencilEnable = FALSE;
 
-    state.DepthStencilState.DepthEnable = FALSE;
-    state.DepthStencilState.StencilEnable = FALSE;
+	//Describe the format of the vertices. In the gpu they are going to be unpacked into the registers
+   //If you apply compression to then, you can always make them bytes
+	D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+	};
 
-    //Describe the format of the vertices. In the gpu they are going to be unpacked into the registers
-    //If you apply compression to then, you can always make them bytes
-    D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
-    {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-    };
+	state.InputLayout.NumElements = 1;
+	state.InputLayout.pInputElementDescs = &inputLayoutDesc[0];
 
-    state.InputLayout.NumElements = 1;
-    state.InputLayout.pInputElementDescs = &inputLayoutDesc[0];
 
-    state.VS = { &g_terrain_renderer_vertex[0], sizeof(g_terrain_renderer_vertex) };
-    state.PS = { &g_sampling_renderer_pixel[0], sizeof(g_sampling_renderer_pixel) };
+	state.VS = { &g_sampling_renderer_vertex[0], sizeof(g_sampling_renderer_vertex) };
+	state.PS = { &g_sampling_renderer_pixel[0], sizeof(g_sampling_renderer_pixel) };
 
-    winrt::com_ptr<ID3D12PipelineState> r;
-    sample::ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
-    return r;
+	winrt::com_ptr<ID3D12PipelineState> r;
+
+	sample::ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
+	return r;
 }
 
 //create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
@@ -468,8 +468,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 //set the type of the parameters that we will use in the shader
                 commandList->SetGraphicsRootSignature(m_root_signature.get());
 
-
-
                 //Now map constants for the two passes
                 //Root constants are used to put there access to most commonly used data
                 PassConstants constants;
@@ -484,7 +482,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 commandList->SetGraphicsRoot32BitConstants(7, 36, &constants, 0);
 
                 //set the raster pipeline state as a whole, it was prebuilt before
-                commandList->SetPipelineState(m_triangle_state.get());
+                commandList->SetPipelineState(m_sampling_renderer_state.get());
 
                 uint32_t  w = m_deviceResources->SwapChainWidth();
                 uint32_t  h = m_deviceResources->SwapChainHeight();
@@ -599,11 +597,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 			initialCamera.z *= mult;
 			m_camera.SetViewParameters(initialCamera, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(-0.3f, 0.0f, 1.0f));
 			m_camera.SetProjectionParameters(width, height);
-
-			auto m = m_camera.GetViewMatrix();
-			auto k = m_camera.GetProjectionMatrix();
-
-			//__debugbreak();
 		}
     }
 
