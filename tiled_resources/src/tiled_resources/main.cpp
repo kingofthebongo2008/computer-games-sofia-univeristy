@@ -5,12 +5,14 @@
 #include <ppl.h>
 
 #include "d3dx12.h"
+#include <DirectXMath.h>
 
 #include "window_environment.h"
 #include "device_resources.h"
 #include "sampling_renderer.h"
 #include "error.h"
 #include "file_helper.h"
+#include "free_camera.h"
 
 
 
@@ -262,7 +264,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             m_command_list[0] = CreateCommandList(d, m_command_allocator[0].get());
             m_command_list[1] = CreateCommandList(d, m_command_allocator[1].get());
         }
-        
     }
 
     void Uninitialize() 
@@ -561,6 +562,25 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         ctx.m_depth_heap            = m_deviceResources->DepthHeap();
         ctx.m_render_target_heap    = m_deviceResources->RenderTargetHeap();
         m_samplingRenderer->CreateSamplingRenderer(ctx);
+
+
+		//Camera
+		{
+			using namespace DirectX;
+
+			XMFLOAT3 initialCamera(-0.149467558f, 1.04009187f, -0.145361549f);
+			float mult = 2.0f;
+			initialCamera.x *= mult;
+			initialCamera.y *= mult;
+			initialCamera.z *= mult;
+			m_camera.SetViewParameters(initialCamera, XMFLOAT3(0.0f, 0.0f, 0.0f), XMFLOAT3(-0.3f, 0.0f, 1.0f));
+			m_camera.SetProjectionParameters(width, height);
+
+			auto m = m_camera.GetViewMatrix();
+			auto k = m_camera.GetProjectionMatrix();
+
+			//__debugbreak();
+		}
     }
 
     void OnWindowClosed(const CoreWindow&w, const CoreWindowEventArgs& a)
@@ -643,8 +663,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 	winrt::com_ptr <ID3D12Resource1>   			m_geometry_index_buffer;	//planet indices
 
     //view concepts
-    D3D12_VERTEX_BUFFER_VIEW                    m_planet_vertex_view;       //
-    D3D12_INDEX_BUFFER_VIEW                     m_planet_index_view;
+    D3D12_VERTEX_BUFFER_VIEW                    m_planet_vertex_view;       //vertices for render
+    D3D12_INDEX_BUFFER_VIEW                     m_planet_index_view;		//indices for render
+
+	sample::FreeCamera							m_camera;
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
