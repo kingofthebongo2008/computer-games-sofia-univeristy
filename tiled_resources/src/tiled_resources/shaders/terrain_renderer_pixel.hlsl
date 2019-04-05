@@ -1,15 +1,12 @@
 #include "default_signature.hlsli"
 #include "default_samplers.hlsli"
+#include "pass_constants.hlsli"
 
-TextureCube<float3> ColorTexture : register(t1);
-TextureCube<float> ColorResidency : register(t2);
-TextureCube<float2> NormalTexture : register(t3);
-TextureCube<float> NormalResidency : register(t4);
+TextureCube<float3> ColorTexture	: register(t1);
+TextureCube<float>	ColorResidency	: register(t2);
+TextureCube<float2> NormalTexture	: register(t3);
+TextureCube<float>	NormalResidency : register(t4);
 
-cbuffer PixelShaderConstants : register(b0)
-{
-    float4 SunPosition;
-};
 
 struct PS_IN
 {
@@ -48,24 +45,27 @@ float4 main(PS_IN input) : SV_TARGET
 #endif
 
     float dataScaleFactor = 10.0f;
-    float scaleFactor = SunPosition.w;
+    float scaleFactor	  = m_ScaleFactor;
 
     float3 normal = tangent.x * input.utan + tangent.y * input.vtan;
+
     float arg = 1.0f - tangent.x * tangent.x - tangent.y * tangent.y;
     if (arg > 0.0f)
     {
         normal += (dataScaleFactor / scaleFactor) * sqrt(arg) * cross(input.utan, input.vtan);
     }
+
     normal = normalize(normal);
-    float ambient = 0.2f;
-    float lighting = ambient + (1.0f - ambient) * saturate(dot(normal,SunPosition.xyz));
 
-    float3 dustColor = float3(0.92f, 0.65f, 0.41f);
+	//simulate simple lighting
+    float ambient		= 0.2f;
+    float lighting		= ambient + (1.0f - ambient) * saturate(dot(normal,m_SunPosition.xyz));
+    float3 dustColor	= float3(0.92f, 0.65f, 0.41f);
 
-    float3 litColor = diffuse * lighting;
+    float3 litColor		= diffuse * lighting;
 
-    float3 finalColor = lerp(litColor, dustColor, 0.5f);
-    finalColor = litColor;
+    float3 finalColor	= lerp(litColor, dustColor, 0.5f);
+    finalColor			= litColor;
 
     return float4(finalColor, 1.0f);
 }
