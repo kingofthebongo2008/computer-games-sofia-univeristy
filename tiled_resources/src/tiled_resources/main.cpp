@@ -236,6 +236,15 @@ static winrt::com_ptr<ID3D12Resource1 > CreateGeometryBuffer(ID3D12Device1* devi
 	return r;
 }
 
+//Directly maps constants
+struct PassConstants
+{
+    DirectX::XMFLOAT4X4 m_View;
+    DirectX::XMFLOAT4X4 m_Projection;
+    DirectX::XMFLOAT3   m_SunPosition;
+    float               m_ScaleFactor;
+};
+
 
 class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFrameworkViewSource>
 {
@@ -458,6 +467,21 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             {
                 //set the type of the parameters that we will use in the shader
                 commandList->SetGraphicsRootSignature(m_root_signature.get());
+
+
+
+                //Now map constants for the two passes
+                //Root constants are used to put there access to most commonly used data
+                PassConstants constants;
+
+                constants.m_View        = m_camera.GetViewMatrix();
+                constants.m_Projection  = m_camera.GetProjectionMatrix();
+                constants.m_ScaleFactor = 10.0f;
+                DirectX::XMStoreFloat3(&constants.m_SunPosition, DirectX::g_XMOne3);
+
+                //Constants are important and must match;
+                static_assert(sizeof(PassConstants) == 36 * 4);
+                commandList->SetGraphicsRoot32BitConstants(7, 36, &constants, 0);
 
                 //set the raster pipeline state as a whole, it was prebuilt before
                 commandList->SetPipelineState(m_triangle_state.get());

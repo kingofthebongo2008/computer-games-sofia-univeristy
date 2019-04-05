@@ -1,5 +1,11 @@
 #ifndef __default_signature_hlsli__
 #define __default_signature_hlsli__
+//CBV 2
+//SRV 2
+//UAV 2
+//Descriptor Table 1
+
+//Sum must be up 60 64
 
 #define MyRS1 "RootFlags( ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT ), " \
               "CBV(b0, space = 0), " \
@@ -9,7 +15,7 @@
               "DescriptorTable( UAV(u1, numDescriptors = 2))," \
               "DescriptorTable( SRV(t1, numDescriptors = 8))," \
               "DescriptorTable( SRV(t9, numDescriptors = 2) ), " \
-              "RootConstants(num32BitConstants=1, b9), " \
+              "RootConstants(num32BitConstants=36, b9), " \
               "DescriptorTable( UAV(u3), UAV(u4), UAV(u5)), " \
               "StaticSampler(s0, addressU = TEXTURE_ADDRESS_WRAP,   addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP,  filter = FILTER_MIN_MAG_MIP_POINT )," \
               "StaticSampler(s1, addressU = TEXTURE_ADDRESS_WRAP,   addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP,  filter = FILTER_MIN_MAG_MIP_LINEAR )," \

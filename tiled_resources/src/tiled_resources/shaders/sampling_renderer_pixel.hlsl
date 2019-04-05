@@ -1,10 +1,5 @@
 #include "default_signature.hlsli"
 
-cbuffer SamplingConstants : register(b0)
-{
-    float2 EncodeConstants;
-};
-
 struct PS_IN
 {
     float3 tex : TEXCOORD0;
@@ -19,6 +14,10 @@ struct PS_IN
 [RootSignature(MyRS1)]
 float4 main(PS_IN input) : SV_TARGET
 {
+    // For simplicity, assume all textures are maximally sized and have full MIP chains.
+    // Extracted sample values will be transformed as necessary to account for this.
+    const  float SamplingRatio = 8.0f; // Must match  SampleSettings::Sampling::Ratio
+    float2 EncodeConstants = { 16384.0f / SamplingRatio, 15.0f };
     float4 ret;
 
     // Save the interpolated texcoords.

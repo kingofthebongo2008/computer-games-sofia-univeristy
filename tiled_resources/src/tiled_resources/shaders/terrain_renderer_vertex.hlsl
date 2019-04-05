@@ -1,14 +1,11 @@
 #include "default_signature.hlsli"
 
-Texture2D<float> HeightTexture : register(t0);
-SamplerState Anisotropic : register(s0);
-
-cbuffer VertexShaderConstants : register(b0)
+cbuffer VertexShaderConstants : register(b9)
 {
     row_major float4x4 ViewMatrix;
     row_major float4x4 ProjectionMatrix; // Also may include device orientation rotation transform.
     row_major float4x4 ModelMatrix;
-    float scaleFactor;
+    float              scaleFactor;
 };
 
 struct VS_IN
