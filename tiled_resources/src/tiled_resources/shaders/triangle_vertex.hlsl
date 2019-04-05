@@ -2,8 +2,8 @@
 
 struct interpolated_value
 {
-	float4 m_position : SV_POSITION;
-    float3 m_color    : TEXCOORD0;
+	float4 m_position   : SV_POSITION;
+    float3 m_uv         : TEXCOORD0;
 };
 
 struct value
@@ -11,7 +11,7 @@ struct value
     float3 m_position : POSITION;
 };
 
-//53 DWORDS
+//36 DWORDS
 cbuffer VertexShaderConstants : register(b9)
 {
     row_major float4x4 ViewMatrix;
@@ -87,10 +87,12 @@ interpolated_value main(in value input)
 	offset *= scaleFactor;
 
 	pos.xyz = normalize(pos.xyz) * (1.0f + offset);
-	pos = mul(pos, view);
-	pos = mul(pos, projection);
+	pos = mul(pos, view);           //column major
+	pos = mul(pos, projection);     //row major
 
-    r.m_position = pos;
-    r.m_color    = float3(0.0f, 1.0f, 0.0f);
+    r.m_position    = pos;
+    r.m_uv          = normalize(input.m_position);
+ 
+
 	return r;
 }

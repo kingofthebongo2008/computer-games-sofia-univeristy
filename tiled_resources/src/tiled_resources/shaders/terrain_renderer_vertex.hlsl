@@ -1,11 +1,12 @@
 #include "default_signature.hlsli"
 
+//36 DWORDS
 cbuffer VertexShaderConstants : register(b9)
 {
     row_major float4x4 ViewMatrix;
     row_major float4x4 ProjectionMatrix; // Also may include device orientation rotation transform.
-    row_major float4x4 ModelMatrix;
-    float              scaleFactor;
+    float3             m_SunPosition;    // Used in the pixel shader for lighting
+    float              m_ScaleFactor;    // Scale factor
 };
 
 struct VS_IN
@@ -36,7 +37,7 @@ VS_OUT main(VS_IN input)
     float offset = length(pos.xyz) - 1.0f;
 
     offset /= dataScaleFactor;
-    offset *= scaleFactor;
+    offset *= m_ScaleFactor;
     
     pos.xyz = normalize(pos.xyz) * (1.0f + offset);
     pos = mul(pos, ViewMatrix);
