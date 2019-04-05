@@ -3,6 +3,7 @@
 #include "sample_settings.h"
 #include "error.h"
 #include "cpu_view.h"
+#include "d3dx12.h"
 
 namespace sample
 {
@@ -219,5 +220,16 @@ namespace sample
 	ID3D12Resource1* SamplingRenderer::SamplingStaging(uint32_t index) const
 	{
 		return m_sampling_staging[index].get();
+	}
+
+	void SamplingRenderer::CollectSamples( uint32_t index, uint32_t row_pitch, uint32_t height, uint64_t total_bytes )
+	{
+		std::vector<uint8_t> values;
+		values.resize(total_bytes);
+		auto resource = m_sampling_staging[index].get();
+		uint8_t* data;
+		resource->Map(0, &CD3DX12_RANGE(0, total_bytes), reinterpret_cast<void**>(&data));
+		std::memcpy(&values[0], data, total_bytes);
+		resource->Unmap(0, nullptr);
 	}
 }

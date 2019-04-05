@@ -41,6 +41,9 @@ namespace sample
 		ID3D12Resource1*							SamplingRenderTarget(uint32_t) const;
 		ID3D12Resource1*							SamplingStaging(uint32_t) const;
 
+
+		void										CollectSamples(uint32_t, uint32_t row_pitch, uint32_t height, uint64_t total_bytes);
+
         private:
 
         DescriptorHeapCpuView                       m_render_target_descriptor_heap;

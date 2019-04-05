@@ -634,9 +634,22 @@ namespace sample
 			m_deviceResources->SwapChain()->Present(1, 0);    //present the swap chain
 		}
 
+		
+
 		//prepare for the next frame
 		m_frame_index = m_deviceResources->SwapChain()->GetCurrentBackBufferIndex();
 		m_fence_value[m_frame_index] = fence_value + 1;
+
+		//Now we can readback the data from the previous frame
+		{
+			auto source = m_samplingRenderer->SamplingRenderTarget(m_frame_index);
+			D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedFootprint;
+			uint32_t rows = 0;
+			uint64_t rowSizeInBytes = 0;
+			uint64_t totalBytes = 0;
+			m_deviceResources->Device()->GetCopyableFootprints(&source->GetDesc(), 0, 1, 0, &PlacedFootprint, &rows, &rowSizeInBytes, &totalBytes);
+			m_samplingRenderer->CollectSamples(m_frame_index, PlacedFootprint.Footprint.RowPitch, PlacedFootprint.Footprint.Height, totalBytes);
+		}
 	}
 
 	static inline uint32_t align8(uint32_t value)
