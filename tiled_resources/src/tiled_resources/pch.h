@@ -16,19 +16,12 @@
 #include <windows.h>
 #include <cstdint>
 
-#include <d3d12.h>
-#include <dxgi1_5.h>
-
+#include <Unknwn.h>
 #include <winrt/base.h>
-#include <winrt/Windows.UI.Core.h>
-#include <winrt/Windows.ApplicationModel.Core.h>
-#include <winrt/Windows.ApplicationModel.Activation.h>
-#include <winrt/Windows.UI.ViewManagement.h>
 
-#include <winrt/Windows.Foundation.h>
-#include <winrt/windows.ui.core.h>
-#include <winrt/windows.ui.xaml.h>
-#include <winrt/Windows.Graphics.Display.h>
+
+
+
 
 
 

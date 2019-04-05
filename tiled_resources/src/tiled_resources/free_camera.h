@@ -11,12 +11,14 @@
 
 namespace sample
 {
+	using namespace DirectX;
+
     class FreeCamera
     {
     public:
         FreeCamera();
 
-        void SetViewParameters(DirectX::XMFLOAT3 eye, DirectX::XMFLOAT3 at, DirectX::XMFLOAT3 up);
+        void SetViewParameters(XMFLOAT3 eye, XMFLOAT3 at, XMFLOAT3 up);
         void SetProjectionParameters(float width, float height);
 
         // +X = right, +Y = up, +Z = out of the screen
@@ -29,7 +31,7 @@ namespace sample
         DirectX::XMFLOAT4X4 GetViewMatrix() const;
         DirectX::XMFLOAT4X4 GetProjectionMatrix() const;
 
-    //private:
+
         DirectX::XMFLOAT3 m_position;
         DirectX::XMFLOAT4 m_orientation;
         DirectX::XMFLOAT4X4 m_projectionMatrix;

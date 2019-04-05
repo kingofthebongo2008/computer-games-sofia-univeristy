@@ -20,7 +20,8 @@ namespace sample
     void FreeCamera::SetViewParameters(XMFLOAT3 eye, XMFLOAT3 at, XMFLOAT3 up)
     {
         m_position = eye;
-        XMVECTOR orientation = XMQuaternionRotationMatrix
+        
+		XMVECTOR orientation = XMQuaternionRotationMatrix
         (
             XMMatrixLookAtRH( XMLoadFloat3(&eye), XMLoadFloat3(&at), XMLoadFloat3(&up) )
         );

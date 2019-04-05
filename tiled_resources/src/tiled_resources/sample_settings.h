@@ -7,7 +7,7 @@
 
 #pragma once
 
-namespace TiledResources
+namespace sample
 {
     namespace SampleSettings
     {
