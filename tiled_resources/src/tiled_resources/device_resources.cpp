@@ -34,17 +34,29 @@ namespace sample
             return r;
         }
 
-        static winrt::com_ptr<ID3D12Device4> CreateDevice()
+        static winrt::com_ptr<ID3D12Device4> CreateDevice(IUnknown* adapter = nullptr)
         {
             winrt::com_ptr<ID3D12Device4> r;
 
             //One can use d3d12 rendering with d3d11 capable hardware. You will just be missing new functionality.
             //Example, d3d12 on a D3D_FEATURE_LEVEL_9_1 hardare (as some phone are ).
             D3D_FEATURE_LEVEL features = D3D_FEATURE_LEVEL_11_1;
-            ThrowIfFailed(D3D12CreateDevice(nullptr, features, __uuidof(ID3D12Device4), r.put_void()));
+            ThrowIfFailed(D3D12CreateDevice(adapter, features, __uuidof(ID3D12Device4), r.put_void()));
             return r.as<ID3D12Device4>();
         }
 
+        static winrt::com_ptr<ID3D12Device4> CreateWarpDevice() 
+        {
+            winrt::com_ptr<IDXGIFactory4> f;
+
+            ThrowIfFailed(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, __uuidof(IDXGIFactory4), f.put_void()));
+
+            winrt::com_ptr<IDXGIAdapter1> adapter;
+
+            ThrowIfFailed(f->EnumWarpAdapter(__uuidof(IDXGIAdapter1), adapter.put_void()));
+
+            return CreateDevice(adapter.get());
+        }
 
         static winrt::com_ptr<ID3D12CommandQueue> CreateCommandQueue(ID3D12Device* d)
         {
@@ -176,7 +188,7 @@ namespace sample
     DeviceResources::DeviceResources()
     {
         m_debug = CreateDebug();
-        m_device = CreateDevice();
+        m_device = CreateWarpDevice();
 
         m_queue = CreateCommandQueue(m_device.get());
         m_render_target_descriptor_heap = CreateRenderDescriptorHeap(m_device.get());
