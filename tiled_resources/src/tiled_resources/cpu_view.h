@@ -1,5 +1,7 @@
 #pragma once
 
+#include <d3d12.h>
+
 namespace sample
 {
     //Helper class that assists us using the descriptors

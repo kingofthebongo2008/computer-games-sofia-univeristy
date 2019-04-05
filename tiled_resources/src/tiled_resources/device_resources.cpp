@@ -1,5 +1,9 @@
 #include "pch.h"
 #include "device_resources.h"
+
+#include <d3d12.h>
+#include <dxgi1_5.h>
+
 #include "error.h"
 #include "cpu_view.h"
 
@@ -7,21 +11,6 @@ namespace sample
 {
     namespace
     {
-        template <typename to, typename from> to* copy_to_abi_private(const from& w)
-        {
-            void* v = nullptr;
-            winrt::copy_to_abi(w, v);
-
-            return reinterpret_cast<to*>(v);
-        }
-
-        template <typename to, typename from> winrt::com_ptr<to> copy_to_abi(const from& w)
-        {
-            winrt::com_ptr<to> v;
-            v.attach(sample::copy_to_abi_private<IUnknown>(w));
-            return v;
-        }
-
         //Debug layer, issues warnings if something broken. Use it when you develop stuff
         static winrt::com_ptr<ID3D12Debug> CreateDebug()
         {
@@ -42,7 +31,7 @@ namespace sample
             //Example, d3d12 on a D3D_FEATURE_LEVEL_9_1 hardare (as some phone are ).
             D3D_FEATURE_LEVEL features = D3D_FEATURE_LEVEL_11_1;
             ThrowIfFailed(D3D12CreateDevice(adapter, features, __uuidof(ID3D12Device4), r.put_void()));
-            return r.as<ID3D12Device4>();
+            return r;
         }
 
         static winrt::com_ptr<ID3D12Device4> CreateWarpDevice() 
@@ -97,7 +86,7 @@ namespace sample
             return r;
         }
 
-        static winrt::com_ptr<IDXGISwapChain3> CreateSwapChainPrivate(const CoreWindow& w, ID3D12CommandQueue* d, uint32_t width, uint32_t height)
+        static winrt::com_ptr<IDXGISwapChain3> CreateSwapChainPrivate( IUnknown* w, ID3D12CommandQueue* d, uint32_t width, uint32_t height)
         {
             winrt::com_ptr<IDXGIFactory2> f;
             winrt::com_ptr<IDXGISwapChain1> r;
@@ -116,7 +105,8 @@ namespace sample
             desc.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
             desc.Scaling = DXGI_SCALING_NONE;
 
-            ThrowIfFailed(f->CreateSwapChainForCoreWindow(d, sample::copy_to_abi<IUnknown>(w).get(), &desc, nullptr, r.put()));
+            //ThrowIfFailed(f->CreateSwapChainForCoreWindow(d, sample::copy_to_abi<IUnknown>(w).get(), &desc, nullptr, r.put()));
+			ThrowIfFailed(f->CreateSwapChainForCoreWindow(d, w, &desc, nullptr, r.put()));
             return r.as< IDXGISwapChain3>();
         }
 
@@ -229,7 +219,7 @@ namespace sample
         return m_swap_chain.get();
     }
 
-    uint32_t DeviceResources::CreateSwapChain(const CoreWindow& w, uint32_t width, uint32_t height)
+    uint32_t DeviceResources::CreateSwapChain( IUnknown* w, uint32_t width, uint32_t height)
     {
         m_swap_chain = CreateSwapChainPrivate(w, m_queue.get(), width, height);
 
@@ -261,8 +251,6 @@ namespace sample
 
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
-
-
 
         return m_swap_chain->GetCurrentBackBufferIndex();
     }

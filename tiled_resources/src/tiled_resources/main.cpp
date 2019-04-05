@@ -7,7 +7,8 @@
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
 {
     sample::ThrowIfFailed(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
-    CoreApplication::Run(ViewProvider());
+	auto v = winrt::make<ViewProvider>();
+    CoreApplication::Run(v.as<IFrameworkViewSource>());
     CoUninitialize();
     return 0;
 }

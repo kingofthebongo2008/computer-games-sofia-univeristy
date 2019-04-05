@@ -1,6 +1,7 @@
 #pragma once
 
-using namespace winrt::Windows::UI::Core;
+#include <dxgi1_6.h>
+#include <d3d12.h>
 
 namespace sample
 {
@@ -15,7 +16,7 @@ namespace sample
         ID3D12Resource1*                            SwapChainBuffer(uint32_t index) const;
         IDXGISwapChain3*                            SwapChain() const;
 
-        uint32_t                                    CreateSwapChain(const CoreWindow& w, uint32_t width, uint32_t height);
+        uint32_t                                    CreateSwapChain(IUnknown* w, uint32_t width, uint32_t height);
         uint32_t                                    ResizeBuffers( uint32_t width, uint32_t height);
          
         uint32_t                                    SwapChainWidth() const;

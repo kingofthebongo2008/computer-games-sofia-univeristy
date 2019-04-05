@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.190404.8\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190404.8\build\native\Microsoft.Windows.CppWinRT.props')" />
   <PropertyGroup Label="Globals">
     <ProjectGuid>{ea657e57-cf9d-4e03-b87b-9a693133390c}</ProjectGuid>
     <RootNamespace>tiled_resources</RootNamespace>
@@ -8,8 +9,8 @@
     <AppContainerApplication>true</AppContainerApplication>
     <ApplicationType>Windows Store</ApplicationType>
     <ApplicationTypeRevision>10.0</ApplicationTypeRevision>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
-    <WindowsTargetPlatformMinVersion>10.0.10586.0</WindowsTargetPlatformMinVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformMinVersion>10.0.16299.0</WindowsTargetPlatformMinVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <ItemGroup Label="ProjectConfigurations">
@@ -61,11 +62,10 @@
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>true</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\3rdparty\cppwinrt\10.0.14393.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>D3d12.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>D3d12.lib;WindowsApp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -73,11 +73,10 @@
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>true</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\3rdparty\cppwinrt\10.0.14393.0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>D3d12.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>D3d12.lib;WindowsApp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -91,7 +90,10 @@
     <ClInclude Include="..\..\src\tiled_resources\error.h" />
     <ClInclude Include="..\..\src\tiled_resources\pch.h" />
     <ClInclude Include="..\..\src\tiled_resources\window_environment.h" />
+    <ClInclude Include="..\..\src\tiled_resources\build_window_environment.h" />
     <ClInclude Include="..\..\src\tiled_resources\view_provider.h" />
+    <ClInclude Include="..\..\src\tiled_resources\main_renderer.h" />
+    <ClInclude Include="..\..\src\tiled_resources\main_renderer_interface.h" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="package.appxmanifest">
@@ -114,6 +116,9 @@
     <ClCompile Include="..\..\src\tiled_resources\device_resources.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\main.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\view_provider.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\main_renderer.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\window_environment.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\build_window_environment.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -202,6 +207,7 @@
     <None Include="..\..\src\tiled_resources\shaders\default_samplers.hlsli" />
     <None Include="..\..\src\tiled_resources\shaders\default_signature.hlsli" />
     <None Include="..\..\src\tiled_resources\shaders\pass_constants.hlsli" />
+    <None Include="packages.config" />
     <None Include="tiled_resources_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
@@ -224,5 +230,13 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.190404.8\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190404.8\build\native\Microsoft.Windows.CppWinRT.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190404.8\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.190404.8\build\native\Microsoft.Windows.CppWinRT.props'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190404.8\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.190404.8\build\native\Microsoft.Windows.CppWinRT.targets'))" />
+  </Target>
 </Project>

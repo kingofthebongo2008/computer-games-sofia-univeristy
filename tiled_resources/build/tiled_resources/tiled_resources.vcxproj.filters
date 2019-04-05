@@ -31,6 +31,7 @@
     <ClCompile Include="..\..\src\tiled_resources\sampling_renderer.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\file_helper.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\free_camera.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\view_provider.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\tiled_resources\pch.h" />
@@ -43,6 +44,7 @@
     <ClInclude Include="..\..\src\tiled_resources\sample_settings.h" />
     <ClInclude Include="..\..\src\tiled_resources\file_helper.h" />
     <ClInclude Include="..\..\src\tiled_resources\free_camera.h" />
+    <ClInclude Include="..\..\src\tiled_resources\view_provider.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png">
@@ -105,6 +107,7 @@
     <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_renderer_vertex.hlsl">
       <Filter>shaders\vertex</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="tiled_resources_TemporaryKey.pfx" />
@@ -129,5 +132,6 @@
     <None Include="..\..\src\tiled_resources\shaders\pass_constants.hlsli">
       <Filter>shaders</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
