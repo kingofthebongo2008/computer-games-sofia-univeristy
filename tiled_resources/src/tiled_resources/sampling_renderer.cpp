@@ -69,7 +69,7 @@ namespace sample
             winrt::com_ptr<ID3D12Resource1>     r;
             D3D12_HEAP_PROPERTIES p = {};
             p.Type = D3D12_HEAP_TYPE_DEFAULT;
-            D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_RENDER_TARGET;
+			D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
             D3D12_CLEAR_VALUE v = {};
             v.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -77,6 +77,37 @@ namespace sample
             ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
             return r;
         }
+
+		//compute sizes
+		static D3D12_RESOURCE_DESC DescribeStagingResource(uint32_t width)
+		{
+			D3D12_RESOURCE_DESC d = {};
+			d.Alignment = 0;
+			d.DepthOrArraySize = 1;
+			d.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+			d.Format = DXGI_FORMAT_UNKNOWN;			          //important for computing the resource footprint
+			d.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+			d.MipLevels = 1;
+			d.SampleDesc.Count = 1;
+			d.SampleDesc.Quality = 0;
+			d.Width = width;
+			d.Height = 1;
+			return   d;
+		}
+
+		static winrt::com_ptr<ID3D12Resource1> CreateStagingResource1(ID3D12Device1* device, ID3D12Resource1* source)
+		{
+			uint64_t size = 0;
+			device->GetCopyableFootprints(&source->GetDesc(), 0, 1, 0, nullptr, nullptr, nullptr, &size);
+			
+			D3D12_RESOURCE_DESC d = DescribeStagingResource(size);
+			winrt::com_ptr<ID3D12Resource1>     r;
+			D3D12_HEAP_PROPERTIES p = {};
+			p.Type = D3D12_HEAP_TYPE_READBACK;
+			D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_DEST;
+			ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+			return r;
+		}
 
         //Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
         static void CreateRenderTargetDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
@@ -108,13 +139,17 @@ namespace sample
 
         ID3D12Device1* d = ctx.m_device;
 
-        //allocate memory for the render target
+        //allocate memory for the render target for sampling renderer
         m_sampling_render_target[0] = CreateRenderTargetResource1(d, m_sampling_width, m_sampling_height);
         m_sampling_render_target[1] = CreateRenderTargetResource1(d, m_sampling_width, m_sampling_height);
 
         //allocate memory for the depth buffers in the swap chain
         m_sampling_depth[0] = CreateDepthResource1(d, m_sampling_width, m_sampling_height);
         m_sampling_depth[1] = CreateDepthResource1(d, m_sampling_width, m_sampling_height);
+
+		//allocate memory that will be read on the cpu
+		m_sampling_staging[0] = CreateStagingResource1(d, m_sampling_render_target[0].get());
+		m_sampling_staging[1] = CreateStagingResource1(d, m_sampling_render_target[1].get());
 
         //set names so we can see them in pix
         m_sampling_render_target[0]->SetName(L"Sampling Buffer 0");
@@ -175,4 +210,14 @@ namespace sample
     {
         return m_depth_stencil_descriptor_heap + m_sampling_descriptors[index];
     }
+
+	ID3D12Resource1* SamplingRenderer::SamplingRenderTarget(uint32_t index) const
+	{
+		return m_sampling_render_target[index].get();
+	}
+
+	ID3D12Resource1* SamplingRenderer::SamplingStaging(uint32_t index) const
+	{
+		return m_sampling_staging[index].get();
+	}
 }

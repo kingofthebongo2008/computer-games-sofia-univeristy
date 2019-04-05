@@ -405,107 +405,216 @@ namespace sample
 		allocator->Reset();
 		commandList->Reset(allocator, nullptr);
 
-		// Set Descriptor heaps
+		//Do the main depth
 		{
-			//ID3D12DescriptorHeap* heaps[] = { m_descriptorHeap.get()};
-			//commandList->SetDescriptorHeaps(1, heaps);
-		}
 
-		//get the pointer to the gpu memory
-		D3D12_CPU_DESCRIPTOR_HANDLE back_buffer = m_deviceResources->SwapChainHandle(m_frame_index);
+			//get the pointer to the gpu memory
+			D3D12_CPU_DESCRIPTOR_HANDLE back_buffer = m_deviceResources->SwapChainHandle(m_frame_index);
 
-		//Transition resources for writing. flush caches
-		{
-			D3D12_RESOURCE_BARRIER barrier = {};
-
-			barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-			barrier.Transition.pResource = m_deviceResources->SwapChainBuffer(m_frame_index);
-			barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-			barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-			barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-			commandList->ResourceBarrier(1, &barrier);
-		}
-
-		//Get Depth Buffer
-		D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = m_deviceResources->SwapChainDepthHandle(m_frame_index);
-
-		//Mark the resources in the rasterizer output
-		{
-			commandList->OMSetRenderTargets(1, &back_buffer, TRUE, &depth_buffer);
-		}
-
-		//do the clear, fill the memory with a value
-		{
-			FLOAT c[4] = { 0.0f, 0.f,0.f,0.f };
-			commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
-			commandList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-		}
-
-		{
-			//set the type of the parameters that we will use in the shader
-			commandList->SetGraphicsRootSignature(m_root_signature.get());
-
-			//Now map constants for the two passes
-			//Root constants are used to put there access to most commonly used data
-			PassConstants constants;
-
-			constants.m_View = m_camera.GetViewMatrix();
-			constants.m_Projection = m_camera.GetProjectionMatrix();
-			constants.m_ScaleFactor = 10.0f;
-			DirectX::XMStoreFloat3(&constants.m_SunPosition, DirectX::g_XMOne3);
-
-			//Constants are important and must match;
-			static_assert(sizeof(PassConstants) == 36 * 4);
-			commandList->SetGraphicsRoot32BitConstants(7, 36, &constants, 0);
-
-			//set the raster pipeline state as a whole, it was prebuilt before
-			commandList->SetPipelineState(m_sampling_renderer_state.get());
-
-			uint32_t  w = m_deviceResources->SwapChainWidth();
-			uint32_t  h = m_deviceResources->SwapChainHeight();
-
-			//set the scissor test separately (which parts of the view port will survive)
+			//Transition resources for writing. flush caches
 			{
-				D3D12_RECT r = { 0, 0, static_cast<int32_t>(w), static_cast<int32_t>(h) };
-				commandList->RSSetScissorRects(1, &r);
+				D3D12_RESOURCE_BARRIER barrier = {};
+
+				barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+				barrier.Transition.pResource = m_deviceResources->SwapChainBuffer(m_frame_index);
+				barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+				barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+				barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+				commandList->ResourceBarrier(1, &barrier);
 			}
 
-			//set the viewport. 
+			//Get Depth Buffer
+			D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = m_deviceResources->SwapChainDepthHandle(m_frame_index);
+
+			//Mark the resources in the rasterizer output
 			{
-				D3D12_VIEWPORT v;
-				v.TopLeftX = 0;
-				v.TopLeftY = 0;
-				v.MinDepth = 0.0f;
-				v.MaxDepth = 1.0f;
-				v.Width = static_cast<float>(w);
-				v.Height = static_cast<float>(h);
-				commandList->RSSetViewports(1, &v);
+				commandList->OMSetRenderTargets(1, &back_buffer, TRUE, &depth_buffer);
 			}
 
-			//set the types of the triangles we will use
+			//do the clear, fill the memory with a value
 			{
-				commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				commandList->IASetIndexBuffer(&m_planet_index_view);
-				commandList->IASetVertexBuffers(0, 1, &m_planet_vertex_view);
-
+				FLOAT c[4] = { 0.0f, 0.f,0.f,0.f };
+				commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
+				commandList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 			}
 
-			//draw the triangles
-			//indices to draw
-			commandList->DrawIndexedInstanced(m_planet_index_view.SizeInBytes / 4, 1, 0, 0, 0);
+			{
+				//set the type of the parameters that we will use in the shader
+				commandList->SetGraphicsRootSignature(m_root_signature.get());
+
+				//Now map constants for the two passes
+				//Root constants are used to put there access to most commonly used data
+				PassConstants constants;
+
+				constants.m_View = m_camera.GetViewMatrix();
+				constants.m_Projection = m_camera.GetProjectionMatrix();
+				constants.m_ScaleFactor = 10.0f;
+				DirectX::XMStoreFloat3(&constants.m_SunPosition, DirectX::g_XMOne3);
+
+				//Constants are important and must match;
+				static_assert(sizeof(PassConstants) == 36 * 4);
+				commandList->SetGraphicsRoot32BitConstants(7, 36, &constants, 0);
+
+				//set the raster pipeline state as a whole, it was prebuilt before
+				commandList->SetPipelineState(m_sampling_renderer_state.get());
+
+				uint32_t  w = m_deviceResources->SwapChainWidth();
+				uint32_t  h = m_deviceResources->SwapChainHeight();
+
+				//set the scissor test separately (which parts of the view port will survive)
+				{
+					D3D12_RECT r = { 0, 0, static_cast<int32_t>(w), static_cast<int32_t>(h) };
+					commandList->RSSetScissorRects(1, &r);
+				}
+
+				//set the viewport. 
+				{
+					D3D12_VIEWPORT  v;
+					v.TopLeftX = 0;
+					v.TopLeftY = 0;
+					v.MinDepth = 0.0f;
+					v.MaxDepth = 1.0f;
+					v.Width = static_cast<float>(w);
+					v.Height = static_cast<float>(h);
+					commandList->RSSetViewports(1, &v);
+				}
+
+				//set the types of the triangles we will use
+				{
+					commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					commandList->IASetIndexBuffer(&m_planet_index_view);
+					commandList->IASetVertexBuffers(0, 1, &m_planet_vertex_view);
+
+				}
+
+				//draw the triangles indices to draw
+				commandList->DrawIndexedInstanced(m_planet_index_view.SizeInBytes / 4, 1, 0, 0, 0);
+			}
+
+			//Transition resources for presenting, flush the gpu caches
+			{
+				D3D12_RESOURCE_BARRIER barrier = {};
+
+				barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+				barrier.Transition.pResource = m_deviceResources->SwapChainBuffer(m_frame_index);
+				barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+				barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+				barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+				commandList->ResourceBarrier(1, &barrier);
+			}
 		}
 
-
-		//Transition resources for presenting, flush the gpu caches
+		//Now do the sampling renderer
 		{
-			D3D12_RESOURCE_BARRIER barrier = {};
+			//get the pointer to the gpu memory
+			D3D12_CPU_DESCRIPTOR_HANDLE back_buffer = m_samplingRenderer->SamplingHandle(m_frame_index);
 
-			barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-			barrier.Transition.pResource = m_deviceResources->SwapChainBuffer(m_frame_index);
-			barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-			barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-			barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-			commandList->ResourceBarrier(1, &barrier);
+			//Transition resources for writing. flush caches
+			{
+				D3D12_RESOURCE_BARRIER barrier = {};
+
+				barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+				barrier.Transition.pResource = m_samplingRenderer->SamplingRenderTarget(m_frame_index);
+				barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+				barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+				barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+				commandList->ResourceBarrier(1, &barrier);
+			}
+
+			//Get Depth Buffer
+			D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = m_samplingRenderer->SamplingDepthHandle(m_frame_index);
+
+			//Mark the resources in the rasterizer output
+			{
+				commandList->OMSetRenderTargets(1, &back_buffer, TRUE, &depth_buffer);
+			}
+
+			//do the clear, fill the memory with a value
+			{
+				FLOAT c[4] = { 0.0f, 0.f,0.f,0.f };
+				commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
+				commandList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+			}
+
+			{
+				//set the type of the parameters that we will use in the shader
+				commandList->SetGraphicsRootSignature(m_root_signature.get());
+
+				//Now map constants for the two passes
+				//Root constants are used to put there access to most commonly used data
+				PassConstants constants;
+
+				constants.m_View = m_camera.GetViewMatrix();
+				constants.m_Projection = m_camera.GetProjectionMatrix();
+				constants.m_ScaleFactor = 10.0f;
+				DirectX::XMStoreFloat3(&constants.m_SunPosition, DirectX::g_XMOne3);
+
+				//Constants are important and must match;
+				static_assert(sizeof(PassConstants) == 36 * 4);
+				commandList->SetGraphicsRoot32BitConstants(7, 36, &constants, 0);
+
+				//set the raster pipeline state as a whole, it was prebuilt before
+				commandList->SetPipelineState(m_sampling_renderer_state.get());
+
+				uint32_t  w = m_samplingRenderer->SamplingWidth();
+				uint32_t  h = m_samplingRenderer->SamplingHeight();
+
+				//set the scissor test separately (which parts of the view port will survive)
+				{
+					D3D12_RECT r = { 0, 0, static_cast<int32_t>(w), static_cast<int32_t>(h) };
+					commandList->RSSetScissorRects(1, &r);
+				}
+
+				//set the viewport. 
+				{
+					D3D12_VIEWPORT  v;
+					v.TopLeftX = 0;
+					v.TopLeftY = 0;
+					v.MinDepth = 0.0f;
+					v.MaxDepth = 1.0f;
+					v.Width = static_cast<float>(w);
+					v.Height = static_cast<float>(h);
+					commandList->RSSetViewports(1, &v);
+				}
+
+				//set the types of the triangles we will use
+				{
+					commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					commandList->IASetIndexBuffer(&m_planet_index_view);
+					commandList->IASetVertexBuffers(0, 1, &m_planet_vertex_view);
+
+				}
+
+				//draw the triangles indices to draw
+				commandList->DrawIndexedInstanced(m_planet_index_view.SizeInBytes / 4, 1, 0, 0, 0);
+			}
+
+			//Transition resources for copying, flush the gpu caches
+			{
+				D3D12_RESOURCE_BARRIER barrier = {};
+
+				barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+				barrier.Transition.pResource = m_samplingRenderer->SamplingRenderTarget(m_frame_index);
+				barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+				barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+				barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+				commandList->ResourceBarrier(1, &barrier);
+			}
+
+			//copy to back buffer
+			{
+				auto source			= m_samplingRenderer->SamplingRenderTarget(m_frame_index);
+				auto destination	= m_samplingRenderer->SamplingStaging(m_frame_index);
+
+				// The footprint may depend on the device of the resource, but we assume there is only one device.
+				D3D12_PLACED_SUBRESOURCE_FOOTPRINT PlacedFootprint;
+
+				m_deviceResources->Device()->GetCopyableFootprints(&source->GetDesc(), 0, 1, 0, &PlacedFootprint, nullptr, nullptr, nullptr);
+
+				commandList->CopyTextureRegion(
+					&CD3DX12_TEXTURE_COPY_LOCATION(destination, PlacedFootprint), 0, 0, 0,
+					&CD3DX12_TEXTURE_COPY_LOCATION(source, 0), nullptr);
+			}
 		}
 
 		commandList->Close();   //close the list
