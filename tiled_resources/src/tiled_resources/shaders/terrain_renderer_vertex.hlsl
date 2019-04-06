@@ -20,7 +20,7 @@ VS_OUT main(VS_IN input)
     float dataScaleFactor = 10.0f;
 
     VS_OUT output;
-    output.tex = normalize(input.pos);
+    output.tex	= normalize(input.pos);
     output.utan = normalize(float3(-input.pos.y, input.pos.x, 0.0f));
     output.vtan = normalize(cross(input.pos, output.utan));
 

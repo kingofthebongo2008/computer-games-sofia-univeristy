@@ -31,10 +31,11 @@ float4 main(interpolated_value input) : SV_TARGET
 	float2 duvdy = float2(0.0f, 0.0f);
 
 	float3 absTex = abs(input.m_uv);
+
 	if (absTex.x > absTex.y && absTex.x > absTex.z)
 	{
 		// Major Axis = X.
-		float2 texp = -input.m_uv.yz;
+		float2 texp  = -input.m_uv.yz;
 		float2 dtdxp = -dtdx.yz;
 		float2 dtdyp = -dtdy.yz;
 		duvdx = (input.m_uv.x * dtdxp - texp * dtdx.x) / (input.m_uv.x * input.m_uv.x);
@@ -64,16 +65,16 @@ float4 main(interpolated_value input) : SV_TARGET
 	float dldy = sqrt(duvdx.y * duvdx.y + duvdy.y * duvdy.y);
 	float derivative = max(dldx, dldy) * 0.5f; // Multiply by 0.5 due to texcube faces spanning -1 to 1.
 
-	// Useful derivative values will range from TargetRatio/ResourceDimension, corresponding to the
+	// Useful derivative values will range from TargetRatio / ResourceDimension, corresponding to the
 	// most detailed mip, to TargetRatio, corresponding to the least detailed MIP. Roughly,
 	// derivative = TargetRatio * 2 ^ MipLevel / ResourceDimension. Since the resulting MipLevel is
 	// the interesting linear value to extract, we want to encode it as
-	// MipLevel = log2(derivative * ResourceDimension / TargetRatio). To encode this in the UNORM
+	// MipLevel = log2(d erivative * ResourceDimension / TargetRatio ). To encode this in the UNORM
 	// range of 0..1, we divide by the total MIP count of the resource.
 	// EncodedValue = log2(derivative * ResourceDimension / TargetRatio) / MipCount.
 	// The constants (ResourceDimension / TargetRatio) and (MipCount) are stored in
 	// EncodeConstants.x and EncodeConstants.y, respectively.
-	float encodedLevelOfDetail = log2(derivative * EncodeConstants.x) / EncodeConstants.y;
+	float encodedLevelOfDetail = log2( derivative * EncodeConstants.x) / EncodeConstants.y;
 	ret.a = encodedLevelOfDetail;
 
 	return ret;

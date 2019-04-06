@@ -38,10 +38,10 @@ float4 main(PS_IN input) : SV_TARGET
     float normalCalculatedLod = NormalTexture.CalculateLevelOfDetail(samplerWrapAnisotropic, tex);
     float2 tangent = normalCalculatedLod < normalMinLod ? NormalTexture.SampleLevel(samplerWrapAnisotropic, tex, normalMinLod) : NormalTexture.Sample(samplerWrapAnisotropic, tex);
 #else
-    float normalMinLod = NormalResidency.Sample(samplerWrapMaximum, tex) * 16.0f;
+    float normalMinLod	= NormalResidency.Sample(samplerWrapMaximum, tex) * 16.0f;
     float diffuseMinLod = ColorResidency.Sample(samplerWrapMaximum, tex) * 16.0f;
-    float3 diffuse = ColorTexture.Sample(samplerWrapAnisotropic, tex, diffuseMinLod);
-    float2 tangent = NormalTexture.Sample(samplerWrapAnisotropic, tex, normalMinLod);
+    float3 diffuse		= ColorTexture.Sample(samplerWrapAnisotropic, tex, diffuseMinLod);
+    float2 tangent		= NormalTexture.Sample(samplerWrapAnisotropic, tex, normalMinLod);
 #endif
 
     float dataScaleFactor = 10.0f;
