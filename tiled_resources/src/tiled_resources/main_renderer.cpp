@@ -40,7 +40,7 @@ namespace sample
 	static winrt::com_ptr< ID3D12RootSignature>	 CreateRootSignature(ID3D12Device1* device)
 	{
 		static
-#include <default_graphics_signature.h>
+        #include <default_graphics_signature.h>
 
 			winrt::com_ptr<ID3D12RootSignature> r;
 		sample::ThrowIfFailed(device->CreateRootSignature(0, &g_default_graphics_signature[0], sizeof(g_default_graphics_signature), __uuidof(ID3D12RootSignature), r.put_void()));
@@ -49,62 +49,15 @@ namespace sample
 
 	//create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
 	//It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
-	static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
-	{
-		static
-#include <triangle_pixel.h>
-
-			static
-#include <triangle_vertex.h>
-
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
-		state.pRootSignature = root;
-		state.SampleMask = UINT_MAX;
-		state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-
-		state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		state.NumRenderTargets = 1;
-		state.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
-		state.SampleDesc.Count = 1;
-		state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-		state.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-
-		state.DepthStencilState.DepthEnable = TRUE;
-		state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-		state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
-		state.DepthStencilState.StencilEnable = FALSE;
-
-		//Describe the format of the vertices. In the gpu they are going to be unpacked into the registers
-	   //If you apply compression to then, you can always make them bytes
-		D3D12_INPUT_ELEMENT_DESC inputLayoutDesc[] =
-		{
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-		};
-
-		state.InputLayout.NumElements = 1;
-		state.InputLayout.pInputElementDescs = &inputLayoutDesc[0];
-
-
-		state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
-		state.PS = { &g_triangle_pixel[0], sizeof(g_triangle_pixel) };
-
-		winrt::com_ptr<ID3D12PipelineState> r;
-
-		sample::ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
-		return r;
-	}
-
-	//create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
-	//It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
 	static winrt::com_ptr< ID3D12PipelineState>	 CreateSamplingRendererState(ID3D12Device1* device, ID3D12RootSignature* root)
 	{
 		static
-#include <sampling_renderer_pixel.h>
+        #include <sampling_renderer_pixel.h>
 
-			static
-#include <sampling_renderer_vertex.h>
+		static
+        #include <sampling_renderer_vertex.h>
 
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
 		state.pRootSignature = root;
 		state.SampleMask = UINT_MAX;
 		state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -146,12 +99,12 @@ namespace sample
 	static winrt::com_ptr< ID3D12PipelineState>	 CreateTerrainRendererState(ID3D12Device1* device, ID3D12RootSignature* root)
 	{
 		static
-#include <terrain_renderer_tier2_pixel.h>
+        #include <terrain_renderer_tier2_pixel.h>
 
-			static
-#include <terrain_renderer_vertex.h>
+        static
+        #include <terrain_renderer_vertex.h>
 
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
 		state.pRootSignature = root;
 		state.SampleMask = UINT_MAX;
 		state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -503,6 +456,8 @@ namespace sample
 				commandList->ResourceBarrier(1, &barrier);
 			}
 		}
+
+        //Note, how transition barriers are not scheduled well.
 
 		//Now do the sampling renderer
 		{

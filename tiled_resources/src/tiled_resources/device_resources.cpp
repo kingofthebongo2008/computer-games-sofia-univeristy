@@ -178,7 +178,8 @@ namespace sample
     DeviceResources::DeviceResources()
     {
         m_debug = CreateDebug();
-        m_device = CreateWarpDevice();
+        //m_device = CreateWarpDevice();
+		m_device = CreateDevice();
 
         m_queue = CreateCommandQueue(m_device.get());
         m_render_target_descriptor_heap = CreateRenderDescriptorHeap(m_device.get());

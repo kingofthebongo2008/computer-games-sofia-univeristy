@@ -1,6 +1,11 @@
 #pragma once
 #include "cpu_view.h"
 
+
+//Responsible for residency management.
+//Which parts of the resources get upoaded
+
+
 namespace sample
 {
     struct ResizeSamplingRendererContext

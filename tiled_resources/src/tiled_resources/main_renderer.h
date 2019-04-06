@@ -8,6 +8,9 @@
 #include "sampling_renderer.h"
 #include "free_camera.h"
 
+
+//Main renderer of the app
+
 namespace sample
 {
 	class MainRenderer : public IMainRenderer
@@ -24,8 +27,8 @@ namespace sample
 
 		private:
 
-		std::unique_ptr<sample::DeviceResources>    m_deviceResources;
-		std::unique_ptr<sample::SamplingRenderer>   m_samplingRenderer;
+		std::unique_ptr<sample::DeviceResources>    m_deviceResources;          //gpu, swapchain, queues, heaps for rtv
+		std::unique_ptr<sample::SamplingRenderer>   m_samplingRenderer;         //render targets for residency
 
 		std::mutex                                  m_blockRendering;           //block render thread for the swap chain resizes
 
