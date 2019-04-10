@@ -580,20 +580,22 @@ namespace sample
 			m_deviceResources->Queue()->ExecuteCommandLists(1, lists); //Execute what we have, submission of commands to the gpu
 		}
 
+		
 		const uint64_t fence_value = m_fence_value[m_frame_index];
 
 		{
 			//Tell the gpu to signal the cpu after it finishes executing the commands that we have just submitted
 			m_deviceResources->SignalFenceValue(fence_value);
-			m_deviceResources->WaitForFenceValue(fence_value);
-			m_deviceResources->SwapChain()->Present(1, 0);    //present the swap chain
 		}
 
-		
+		m_deviceResources->SwapChain()->Present(1, 0);    //present the swap chain
 
 		//prepare for the next frame
-		m_frame_index = m_deviceResources->SwapChain()->GetCurrentBackBufferIndex();
-		m_fence_value[m_frame_index] = fence_value + 1;
+		{
+			m_frame_index = m_deviceResources->SwapChain()->GetCurrentBackBufferIndex();
+			m_deviceResources->WaitForFenceValue(m_fence_value[m_frame_index]);
+			m_fence_value[m_frame_index] = fence_value + 1;
+		}
 
 		//Now we can readback the data from the previous frame
 		{
