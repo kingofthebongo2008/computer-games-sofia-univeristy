@@ -7,11 +7,13 @@
 
 #pragma once
 
-#include <ppltasks.h> // For create_task
+#include <ppltasks.h>
+
 
 namespace sample
 {
-	concurrency::task<std::vector<uint8_t>> ReadDataAsync(const std::wstring& filename);
+	using namespace concurrency;
+	task<std::vector<uint8_t> > ReadFileAsync(const std::wstring& filename);
 }
 
 

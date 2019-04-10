@@ -242,7 +242,7 @@ namespace sample
 
 			//Create resource on the upload heap. Example works with 1 heap per resource
 			//Read the data and copy to the resource
-			auto bytes0 = sample::ReadDataAsync(L"data0\\geometry.vb.bin").then([d](std::vector<uint8_t> b)
+			auto bytes0 = sample::ReadFileAsync(L"data0\\geometry.vb.bin").then([d](std::vector<uint8_t> b)
 			{
 				auto buf0Upload = CreateGeometryUploadBuffer(d, b.size());
 				void* upload;
@@ -255,7 +255,7 @@ namespace sample
 
 			//Create resource on the upload heap. Example works with 1 heap per resource
 			//Read the data and copy to the resource
-			auto bytes1 = sample::ReadDataAsync(L"data0\\geometry.ib.bin").then([d](std::vector<uint8_t>  b)
+			auto bytes1 = sample::ReadFileAsync(L"data0\\geometry.ib.bin").then([d](std::vector<uint8_t>  b)
 			{
 				auto buf0Upload = CreateGeometryUploadBuffer(d, b.size());
 

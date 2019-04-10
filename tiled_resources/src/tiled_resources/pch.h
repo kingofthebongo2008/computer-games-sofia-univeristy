@@ -18,6 +18,9 @@
 
 #include <Unknwn.h>
 #include <winrt/base.h>
+#include <winrt/coroutine.h>
+#include <experimental/coroutine>
+#include <experimental/resumable>
 
 
 

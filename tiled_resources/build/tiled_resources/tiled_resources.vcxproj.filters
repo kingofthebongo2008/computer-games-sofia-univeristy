@@ -32,6 +32,9 @@
     <ClCompile Include="..\..\src\tiled_resources\file_helper.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\free_camera.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\view_provider.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\main_renderer.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\window_environment.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\build_window_environment.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\tiled_resources\pch.h" />
@@ -45,6 +48,9 @@
     <ClInclude Include="..\..\src\tiled_resources\file_helper.h" />
     <ClInclude Include="..\..\src\tiled_resources\free_camera.h" />
     <ClInclude Include="..\..\src\tiled_resources\view_provider.h" />
+    <ClInclude Include="..\..\src\tiled_resources\build_window_environment.h" />
+    <ClInclude Include="..\..\src\tiled_resources\main_renderer.h" />
+    <ClInclude Include="..\..\src\tiled_resources\main_renderer_interface.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png">
@@ -73,9 +79,6 @@
     <AppxManifest Include="package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_pixel.hlsl">
-      <Filter>shaders\pixel</Filter>
-    </FxCompile>
     <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_renderer_pixel.hlsl">
       <Filter>shaders\pixel</Filter>
     </FxCompile>
@@ -91,11 +94,6 @@
     <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_vertex.hlsl">
       <Filter>shaders\vertex</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl">
-      <Filter>shaders\vertex</Filter>
-    </FxCompile>
-    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
-    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
     <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl">
       <Filter>shaders\vertex</Filter>
     </FxCompile>

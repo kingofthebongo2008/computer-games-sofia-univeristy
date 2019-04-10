@@ -1,27 +1,52 @@
 ﻿#include "pch.h"
 #include "file_helper.h"
 #include "error.h"
+#include <future>
 
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.ApplicationModel.h>
+#include <winrt/Windows.Storage.h>
+#include <winrt/Windows.Storage.Streams.h>
+
+#include <experimental/resumable>
 
 namespace sample
 {
+	using namespace winrt;
+	using namespace winrt::Windows::Foundation;
+	using namespace winrt::Windows::Foundation::Collections;
+	using namespace winrt::Windows::Storage;
+
+	using namespace std::experimental;
+	using namespace Concurrency;
+
 	// Function that reads from a binary file asynchronously.
-	concurrency::task<std::vector<uint8_t>> ReadDataAsync(const std::wstring& filename)
+	IAsyncOperation< Streams::IBuffer > ReadDataAsync(const std::wstring& filename)
 	{
-		using namespace Windows::Storage;
 		using namespace Concurrency;
 
-		auto folder = Windows::ApplicationModel::Package::Current->InstalledLocation;
+		auto folder = winrt::Windows::ApplicationModel::Package::Current().InstalledLocation();
 
-		return create_task(folder->GetFileAsync(Platform::StringReference(filename.c_str()))).then([](StorageFile ^ file)
+		auto file		 = co_await folder.GetFileAsync(filename.c_str());
+		auto r			 = co_await FileIO::ReadBufferAsync(file);
+		return r;
+	}
+
+	concurrency::task<std::vector<uint8_t> > ReadFileAsync(const std::wstring& filename)
+	{
+		using namespace winrt::Windows::Storage;
+		return concurrency::create_task([filename]()
 		{
-			return FileIO::ReadBufferAsync(file);
-		}).then([](Streams::IBuffer ^ fileBuffer) -> std::vector<uint8_t>
-		{
-			std::vector<uint8_t> returnBuffer;
-			returnBuffer.resize(fileBuffer->Length);
-			Streams::DataReader::FromBuffer(fileBuffer)->ReadBytes(Platform::ArrayReference<uint8_t>(returnBuffer.data(), fileBuffer->Length));
-			return returnBuffer;
+			auto buffer = ReadDataAsync(filename).get();
+			auto length = buffer.Length();
+
+			std::vector <uint8_t > v;
+			v.resize(length);
+			winrt::array_view<uint8_t> view(v);
+			Streams::DataReader::FromBuffer(buffer).ReadBytes(view);
+			return v;
 		});
 	}
+	
 }
