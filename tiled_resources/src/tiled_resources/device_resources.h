@@ -32,7 +32,7 @@ namespace sample
         ID3D12DescriptorHeap*                       DepthHeap() const;
 
         private:
-        winrt::com_ptr <ID3D12Debug>                m_debug;                    //debug interface
+        winrt::com_ptr <ID3D12Debug1>               m_debug;                    //debug interface
         winrt::com_ptr <ID3D12Device1>				m_device;                   //device for gpu resources
         winrt::com_ptr <IDXGISwapChain3>			m_swap_chain;               //swap chain for 
 

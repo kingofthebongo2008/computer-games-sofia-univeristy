@@ -12,13 +12,14 @@ namespace sample
     namespace
     {
         //Debug layer, issues warnings if something broken. Use it when you develop stuff
-        static winrt::com_ptr<ID3D12Debug> CreateDebug()
+        static winrt::com_ptr<ID3D12Debug1> CreateDebug()
         {
-            winrt::com_ptr<ID3D12Debug> r;
+            winrt::com_ptr<ID3D12Debug1> r;
             //check if you have installed debug layer, from the option windows components
-            if (D3D12GetDebugInterface(__uuidof(ID3D12Debug), r.put_void()) == S_OK)
+            if (D3D12GetDebugInterface(__uuidof(ID3D12Debug1), r.put_void()) == S_OK)
             {
                 r->EnableDebugLayer();
+				r->SetEnableGPUBasedValidation(TRUE);
             }
             return r;
         }
@@ -178,8 +179,9 @@ namespace sample
     DeviceResources::DeviceResources()
     {
         m_debug = CreateDebug();
-        //m_device = CreateWarpDevice();
-		m_device = CreateDevice();
+		
+        m_device = CreateWarpDevice();
+		//m_device = CreateDevice();
 
         m_queue = CreateCommandQueue(m_device.get());
         m_render_target_descriptor_heap = CreateRenderDescriptorHeap(m_device.get());
