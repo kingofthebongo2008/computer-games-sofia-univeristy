@@ -19,6 +19,7 @@
 #include <string>
 #include <memory>
 #include <list>
+#include <map>
 
 #include <Unknwn.h>
 #include <winrt/base.h>
