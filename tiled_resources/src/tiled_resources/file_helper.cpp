@@ -33,20 +33,16 @@ namespace sample
 		return r;
 	}
 
-	concurrency::task<std::vector<uint8_t> > ReadFileAsync(const std::wstring& filename)
+	concurrency::task< std::vector<uint8_t> > ReadFileAsync(const std::wstring& filename)
 	{
-		using namespace winrt::Windows::Storage;
-		return concurrency::create_task([filename]()
-		{
-			auto buffer = ReadDataAsync(filename).get();
-			auto length = buffer.Length();
+		auto buffer = co_await ReadDataAsync(filename);
+		auto length = buffer.Length();
 
-			std::vector <uint8_t > v;
-			v.resize(length);
-			winrt::array_view<uint8_t> view(v);
-			Streams::DataReader::FromBuffer(buffer).ReadBytes(view);
-			return v;
-		});
+		std::vector <uint8_t > v;
+		v.resize(length);
+		winrt::array_view<uint8_t> view(v);
+		Streams::DataReader::FromBuffer(buffer).ReadBytes(view);
+		co_return v;
 	}
 	
 }

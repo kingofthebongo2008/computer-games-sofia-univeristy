@@ -35,6 +35,8 @@
     <ClCompile Include="..\..\src\tiled_resources\main_renderer.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\window_environment.cpp" />
     <ClCompile Include="..\..\src\tiled_resources\build_window_environment.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\residency_manager.cpp" />
+    <ClCompile Include="..\..\src\tiled_resources\tiled_loader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\tiled_resources\pch.h" />
@@ -51,6 +53,8 @@
     <ClInclude Include="..\..\src\tiled_resources\build_window_environment.h" />
     <ClInclude Include="..\..\src\tiled_resources\main_renderer.h" />
     <ClInclude Include="..\..\src\tiled_resources\main_renderer_interface.h" />
+    <ClInclude Include="..\..\src\tiled_resources\residency_manager.h" />
+    <ClInclude Include="..\..\src\tiled_resources\tile_loader.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png">
@@ -92,9 +96,6 @@
       <Filter>shaders\pixel</Filter>
     </FxCompile>
     <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_vertex.hlsl">
-      <Filter>shaders\vertex</Filter>
-    </FxCompile>
-    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl">
       <Filter>shaders\vertex</Filter>
     </FxCompile>
     <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />

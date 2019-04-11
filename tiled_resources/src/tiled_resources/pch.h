@@ -15,12 +15,18 @@
 // cppwinrt takes too much time to compile, so it is good to precompile it
 #include <windows.h>
 #include <cstdint>
+#include <vector>
+#include <string>
 
 #include <Unknwn.h>
 #include <winrt/base.h>
+//for async
 #include <winrt/coroutine.h>
 #include <experimental/coroutine>
 #include <experimental/resumable>
+
+//for async
+#include <pplawait.h>
 
 
 

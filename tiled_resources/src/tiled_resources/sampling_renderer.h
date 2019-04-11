@@ -32,6 +32,14 @@ namespace sample
     {
         public:
 
+		struct CollectParameters
+		{
+			uint64_t m_width;
+			uint64_t m_height;
+			uint64_t m_row_pitch;
+			uint64_t m_total_bytes;
+		};
+
         SamplingRenderer();
 
         ResizeSamplingRendererResult                CreateSamplingRenderer(const ResizeSamplingRendererContext& ctx);
@@ -47,7 +55,7 @@ namespace sample
 		ID3D12Resource1*							SamplingStaging(uint32_t) const;
 
 
-		void										CollectSamples(uint32_t, uint32_t row_pitch, uint32_t height, uint64_t total_bytes);
+		void										CollectSamples(uint32_t index, CollectParameters values);
 
         private:
 

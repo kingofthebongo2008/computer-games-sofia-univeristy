@@ -7,8 +7,6 @@
 
 #pragma once
 
-#include <ppltasks.h>
-
 
 namespace sample
 {

@@ -605,7 +605,15 @@ namespace sample
 			uint64_t rowSizeInBytes = 0;
 			uint64_t totalBytes = 0;
 			m_deviceResources->Device()->GetCopyableFootprints(&source->GetDesc(), 0, 1, 0, &PlacedFootprint, &rows, &rowSizeInBytes, &totalBytes);
-			m_samplingRenderer->CollectSamples(m_frame_index, PlacedFootprint.Footprint.RowPitch, PlacedFootprint.Footprint.Height, totalBytes);
+
+			SamplingRenderer::CollectParameters collect;
+
+			collect.m_height	= PlacedFootprint.Footprint.Height;
+			collect.m_width		= PlacedFootprint.Footprint.Width;
+			collect.m_row_pitch = PlacedFootprint.Footprint.RowPitch;
+			collect.m_total_bytes = totalBytes;
+
+			m_samplingRenderer->CollectSamples(m_frame_index, collect);
 		}
 	}
 

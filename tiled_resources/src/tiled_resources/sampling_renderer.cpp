@@ -9,6 +9,95 @@ namespace sample
 {
     namespace
     {
+		//Mipmap faces
+		//face = 0 +X
+		//face = 1 -X
+		//face = 2 +Y
+		//face = 3 -Y
+		//face = 5 +Z
+		//face = 6 -Z
+		
+
+		// A decoded sample from a sampling render pass.
+		struct DecodedSample
+		{
+			float u;
+			float v;
+			short mip;
+			short face;
+		};
+
+		DecodedSample DecodeSample(unsigned int encodedSample)
+		{
+			//Separate the bytes
+			uint8_t sampleB = static_cast<uint8_t>(encodedSample & 0xFF);
+			uint8_t sampleG = static_cast<uint8_t>((encodedSample >> 8) & 0xFF);
+			uint8_t sampleR = static_cast<uint8_t>((encodedSample >> 16) & 0xFF);
+			uint8_t sampleA = static_cast<uint8_t>((encodedSample >> 24) & 0xFF);
+
+			//Dequantize to [-1 ; 1]
+			float x = 2.0f * static_cast<float>(sampleR) / 255.0f - 1.0f;
+			float y = 2.0f * static_cast<float>(sampleG) / 255.0f - 1.0f;
+			float z = 2.0f * static_cast<float>(sampleB) / 255.0f - 1.0f;
+
+			//Compute the load
+			float lod = (static_cast<float>(sampleA) / 255.0f) * 16.0f;	//maximum mip levels from 0 - 15
+
+			short mip = lod < 0.0f ? 0 : lod > 14.0f ? 14 : static_cast<unsigned short>(lod); //clamp to texture data
+
+			short face = 0;
+			float u = 0.0f;
+			float v = 0.0f;
+
+			if (abs(x) > abs(y) && abs(x) > abs(z))
+			{
+				if (x > 0) // +X
+				{
+					face = 0;
+					u = (1.0f - z / x) / 2.0f;
+					v = (1.0f - y / x) / 2.0f;
+				}
+				else // -X
+				{
+					face = 1;
+					u = (z / -x + 1.0f) / 2.0f;
+					v = (1.0f - y / -x) / 2.0f;
+				}
+			}
+			else if (abs(y) > abs(x) && abs(y) > abs(z))
+			{
+				if (y > 0) // +Y
+				{
+					face = 2;
+					u = (x / y + 1.0f) / 2.0f;
+					v = (z / y + 1.0f) / 2.0f;
+				}
+				else // -Y
+				{
+					face = 3;
+					u = (x / -y + 1.0f) / 2.0f;
+					v = (1.0f - z / -y) / 2.0f;
+				}
+			}
+			else
+			{
+				if (z > 0) // +Z
+				{
+					face = 4;
+					u = (x / z + 1.0f) / 2.0f;
+					v = (1.0f - y / z) / 2.0f;
+				}
+				else // -Z
+				{
+					face = 5;
+					u = (1.0f - x / -z) / 2.0f;
+					v = (1.0f - y / -z) / 2.0f;
+				}
+			}
+
+			return  { u, v, mip, face };
+		}
+
         //compute sizes
         static D3D12_RESOURCE_DESC DescribeDepth(uint32_t width, uint32_t height)
         {
@@ -222,14 +311,35 @@ namespace sample
 		return m_sampling_staging[index].get();
 	}
 
-	void SamplingRenderer::CollectSamples( uint32_t index, uint32_t row_pitch, uint32_t height, uint64_t total_bytes )
+	void SamplingRenderer::CollectSamples( uint32_t index, CollectParameters values)
 	{
-		std::vector<uint8_t> values;
-		values.resize(total_bytes);
-		auto resource = m_sampling_staging[index].get();
-		uint8_t* data;
-		resource->Map(0, &CD3DX12_RANGE(0, total_bytes), reinterpret_cast<void**>(&data));
-		std::memcpy(&values[0], data, total_bytes);
-		resource->Unmap(0, nullptr);
+		std::vector<uint8_t> v;
+
+		{
+			v.resize(values.m_total_bytes);
+			auto resource = m_sampling_staging[index].get();
+			uint8_t* data;
+			resource->Map(0, &CD3DX12_RANGE(0, values.m_total_bytes), reinterpret_cast<void**>(&data));
+			std::memcpy(&v[0], data, values.m_total_bytes);
+			resource->Unmap(0, nullptr);
+		}
+
+		std::vector< DecodedSample > samples;
+		samples.reserve(10000);
+
+		for ( auto y = 0UL; y < values.m_height; ++y )
+		{
+			uint32_t* row = reinterpret_cast<uint32_t*> (&v[0] + y * values.m_row_pitch);
+
+			for (auto x = 0U; x <  values.m_width; ++x)
+			{
+				uint32_t value = row[x];
+				//clear value
+				if (value > 0)
+				{
+					samples.push_back(DecodeSample(value));
+				}
+			}
+		}
 	}
 }

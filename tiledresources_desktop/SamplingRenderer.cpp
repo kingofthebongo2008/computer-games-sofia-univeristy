@@ -333,106 +333,106 @@ bool SamplingRenderer::GetNextSamplePosition(int* row, int* column)
     return ++m_sampleCount <= SampleSettings::Sampling::SamplesPerFrame;
 }
 
-DecodedSample SamplingRenderer::DecodeSample(unsigned int encodedSample)
-{
-    unsigned char sampleB = static_cast<unsigned char>(encodedSample & 0xFF);
-    unsigned char sampleG = static_cast<unsigned char>((encodedSample >> 8) & 0xFF);
-    unsigned char sampleR = static_cast<unsigned char>((encodedSample >> 16) & 0xFF);
-    unsigned char sampleA = static_cast<unsigned char>((encodedSample >> 24) & 0xFF);
-    float x = 2.0f * static_cast<float>(sampleR) / 255.0f - 1.0f;
-    float y = 2.0f * static_cast<float>(sampleG) / 255.0f - 1.0f;
-    float z = 2.0f * static_cast<float>(sampleB) / 255.0f - 1.0f;
-    float lod = (static_cast<float>(sampleA) / 255.0f) * 16.0f;
-    short mip = lod < 0.0f ? 0 :  lod > 14.0f ? 14 : static_cast<unsigned short>(lod);
-    short face = 0;
-    float u = 0.0f;
-    float v = 0.0f;
-    if (abs(x) > abs(y) && abs(x) > abs(z))
-    {
-        if (x > 0) // +X
-        {
-            face = 0;
-            u = (1.0f - z / x) / 2.0f;
-            v = (1.0f - y / x) / 2.0f;
-        }
-        else // -X
-        {
-            face = 1;
-            u = (z / -x + 1.0f) / 2.0f;
-            v = (1.0f - y / -x) / 2.0f;
-        }
-    }
-    else if (abs(y) > abs(x) && abs(y) > abs(z))
-    {
-        if (y > 0) // +Y
-        {
-            face = 2;
-            u = (x / y + 1.0f) / 2.0f;
-            v = (z / y + 1.0f) / 2.0f;
-        }
-        else // -Y
-        {
-            face = 3;
-            u = (x / -y + 1.0f) / 2.0f;
-            v = (1.0f - z / -y) / 2.0f;
-        }
-    }
-    else
-    {
-        if (z > 0) // +Z
-        {
-            face = 4;
-            u = (x / z + 1.0f) / 2.0f;
-            v = (1.0f - y / z) / 2.0f;
-        }
-        else // -Z
-        {
-            face = 5;
-            u = (1.0f - x / -z) / 2.0f;
-            v = (1.0f - y / -z) / 2.0f;
-        }
-    }
-    DecodedSample decodedSample;
-    ZeroMemory(&decodedSample, sizeof(decodedSample));
-    decodedSample.u = u;
-    decodedSample.v = v;
-    decodedSample.mip = mip;
-    decodedSample.face = face;
+	DecodedSample SamplingRenderer::DecodeSample(unsigned int encodedSample)
+	{
+		unsigned char sampleB = static_cast<unsigned char>(encodedSample & 0xFF);
+		unsigned char sampleG = static_cast<unsigned char>((encodedSample >> 8) & 0xFF);
+		unsigned char sampleR = static_cast<unsigned char>((encodedSample >> 16) & 0xFF);
+		unsigned char sampleA = static_cast<unsigned char>((encodedSample >> 24) & 0xFF);
+		float x = 2.0f * static_cast<float>(sampleR) / 255.0f - 1.0f;
+		float y = 2.0f * static_cast<float>(sampleG) / 255.0f - 1.0f;
+		float z = 2.0f * static_cast<float>(sampleB) / 255.0f - 1.0f;
+		float lod = (static_cast<float>(sampleA) / 255.0f) * 16.0f;
+		short mip = lod < 0.0f ? 0 :  lod > 14.0f ? 14 : static_cast<unsigned short>(lod);
+		short face = 0;
+		float u = 0.0f;
+		float v = 0.0f;
+		if (abs(x) > abs(y) && abs(x) > abs(z))
+		{
+			if (x > 0) // +X
+			{
+				face = 0;
+				u = (1.0f - z / x) / 2.0f;
+				v = (1.0f - y / x) / 2.0f;
+			}
+			else // -X
+			{
+				face = 1;
+				u = (z / -x + 1.0f) / 2.0f;
+				v = (1.0f - y / -x) / 2.0f;
+			}
+		}
+		else if (abs(y) > abs(x) && abs(y) > abs(z))
+		{
+			if (y > 0) // +Y
+			{
+				face = 2;
+				u = (x / y + 1.0f) / 2.0f;
+				v = (z / y + 1.0f) / 2.0f;
+			}
+			else // -Y
+			{
+				face = 3;
+				u = (x / -y + 1.0f) / 2.0f;
+				v = (1.0f - z / -y) / 2.0f;
+			}
+		}
+		else
+		{
+			if (z > 0) // +Z
+			{
+				face = 4;
+				u = (x / z + 1.0f) / 2.0f;
+				v = (1.0f - y / z) / 2.0f;
+			}
+			else // -Z
+			{
+				face = 5;
+				u = (1.0f - x / -z) / 2.0f;
+				v = (1.0f - y / -z) / 2.0f;
+			}
+		}
+		DecodedSample decodedSample;
+		ZeroMemory(&decodedSample, sizeof(decodedSample));
+		decodedSample.u = u;
+		decodedSample.v = v;
+		decodedSample.mip = mip;
+		decodedSample.face = face;
 
-#ifdef _DEBUG
-    if (m_debugMode)
-    {
-        std::ostringstream sampleInfoMessage;
-        sampleInfoMessage << "SamplingRenderer::DecodeSample --> Face = ";
-        switch(face)
-        {
-        case 0:
-            sampleInfoMessage << "[+X]";
-            break;
-        case 1:
-            sampleInfoMessage << "[-X]";
-            break;
-        case 2:
-            sampleInfoMessage << "[+Y]";
-            break;
-        case 3:
-            sampleInfoMessage << "[-Y]";
-            break;
-        case 4:
-            sampleInfoMessage << "[+Z]";
-            break;
-        case 5:
-            sampleInfoMessage << "[-Z]";
-            break;
-        default:
-            sampleInfoMessage << "[error]";
-            break;
-        }
-        sampleInfoMessage << " MIP = [" << mip << "]";
-        sampleInfoMessage << " UV = (" << u << "," << v << ")" << std::endl;
-        OutputDebugStringA(sampleInfoMessage.str().c_str());
-    }
-#endif
+	#ifdef _DEBUG
+		if (m_debugMode)
+		{
+			std::ostringstream sampleInfoMessage;
+			sampleInfoMessage << "SamplingRenderer::DecodeSample --> Face = ";
+			switch(face)
+			{
+			case 0:
+				sampleInfoMessage << "[+X]";
+				break;
+			case 1:
+				sampleInfoMessage << "[-X]";
+				break;
+			case 2:
+				sampleInfoMessage << "[+Y]";
+				break;
+			case 3:
+				sampleInfoMessage << "[-Y]";
+				break;
+			case 4:
+				sampleInfoMessage << "[+Z]";
+				break;
+			case 5:
+				sampleInfoMessage << "[-Z]";
+				break;
+			default:
+				sampleInfoMessage << "[error]";
+				break;
+			}
+			sampleInfoMessage << " MIP = [" << mip << "]";
+			sampleInfoMessage << " UV = (" << u << "," << v << ")" << std::endl;
+			OutputDebugStringA(sampleInfoMessage.str().c_str());
+		}
+	#endif
 
-    return decodedSample;
-}
+		return decodedSample;
+	}
