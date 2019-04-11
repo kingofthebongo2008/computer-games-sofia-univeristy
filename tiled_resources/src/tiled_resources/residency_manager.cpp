@@ -6,6 +6,7 @@
 //// Copyright (c) Microsoft Corporation. All rights reserved
 
 #include "pch.h"
+#include "residency_manager.h"
 /*
 #include "DirectXHelper.h"
 #include "SampleSettings.h"
@@ -108,31 +109,6 @@ void ResidencyManager::CreateDeviceDependentResources()
     tilePoolDesc.Usage = D3D11_USAGE_DEFAULT;
     tilePoolDesc.MiscFlags = D3D11_RESOURCE_MISC_TILE_POOL;
     DX::ThrowIfFailed(device->CreateBuffer(&tilePoolDesc, nullptr, &m_tilePool));
-}
-
-task<void> ResidencyManager::CreateDeviceDependentResourcesAsync()
-{
-    // Load and create the vertex shader and input layout.
-    auto vsTask = DX::ReadDataAsync(L"ResidencyViewer.vs.cso").then([this](std::vector<byte> fileData)
-    {
-        auto device = m_deviceResources->GetD3DDevice();
-        D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] =
-        {
-            { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,       0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "TEXCOORD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        };
-        DX::ThrowIfFailed(device->CreateInputLayout(inputLayoutDesc, ARRAYSIZE(inputLayoutDesc), fileData.data(), fileData.size(), &m_viewerInputLayout));
-        DX::ThrowIfFailed(device->CreateVertexShader(fileData.data(), fileData.size(), nullptr, &m_viewerVertexShader));
-    });
-
-    // Load and create the pixel shader.
-    auto psTask = DX::ReadDataAsync(L"ResidencyViewer.ps.cso").then([this](std::vector<byte> fileData)
-    {
-        auto device = m_deviceResources->GetD3DDevice();
-        DX::ThrowIfFailed(device->CreatePixelShader(fileData.data(), fileData.size(), nullptr, &m_viewerPixelShader));
-    });
-
-    return (vsTask && psTask);
 }
 
 void ResidencyManager::ReleaseDeviceDependentResources()

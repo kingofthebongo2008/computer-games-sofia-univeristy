@@ -17,6 +17,8 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include <memory>
+#include <list>
 
 #include <Unknwn.h>
 #include <winrt/base.h>
