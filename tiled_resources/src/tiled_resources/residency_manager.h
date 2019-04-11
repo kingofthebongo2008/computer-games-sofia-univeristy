@@ -28,6 +28,9 @@ namespace sample
 
 		uint32_t											m_totalTiles;
 		uint32_t											m_residencyTextureViewOffset;
+
+		uint32_t ResidencyWidth()	const { return m_subresourceTilings[0].WidthInTiles;  }
+		uint32_t ResidencyHeight()	const { return m_subresourceTilings[0].HeightInTiles; }
     };
 
     // Unique identifier for a tile.
@@ -83,12 +86,14 @@ namespace sample
         //concurrency::task<void> CreateDeviceDependentResourcesAsync();
         //void ReleaseDeviceDependentResources();
 
-		void ManageTexture(ID3D12Device* d, ID3D12Resource1* texture, const std::wstring& filename);
+		ManagedTiledResource* ManageTexture(ID3D12Device* d, ID3D12Resource1* texture, const std::wstring& filename);
 
         //void EnqueueSamples(const std::vector<DecodedSample>& samples, const DX::StepTimer& timer);
         //void ProcessQueues();
 
     private:
+
+		ManagedTiledResource* MakeResource();
 
         // Set of resources managed by this class.
         std::vector<std::unique_ptr<ManagedTiledResource>> m_managedResources;

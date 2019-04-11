@@ -7,6 +7,7 @@
 
 #include "pch.h"
 #include "residency_manager.h"
+#include "assert.h"
 
 namespace sample
 {
@@ -15,9 +16,38 @@ namespace sample
 
 	}
 
-	void ResidencyManager::ManageTexture(ID3D12Device* d, ID3D12Resource1* texture, const std::wstring& filename)
+	ManagedTiledResource* ResidencyManager::MakeResource()
 	{
+		auto resource = std::make_unique<ManagedTiledResource>();
+		auto resourceNative = resource.get();
+		m_managedResources.emplace_back(std::move(resource));
+		return resourceNative;
+	}
 
+	ManagedTiledResource* ResidencyManager::ManageTexture(ID3D12Device* d, ID3D12Resource1* texture, const std::wstring& filename)
+	{
+		ManagedTiledResource* resource	= MakeResource();
+
+		resource->m_texture				= texture;
+		resource->m_textureDesc			= texture->GetDesc();
+		const auto& description			= resource->m_textureDesc;
+		uint32_t subresourceTilings		= description.MipLevels * description.DepthOrArraySize;
+
+		resource->m_subresourceTilings.resize(subresourceTilings);
+
+		d->GetResourceTiling(
+			texture,
+			&resource->m_totalTiles,
+			&resource->m_packedMipDesc,
+			&resource->m_tileShape,
+			&subresourceTilings,
+			0,
+			resource->m_subresourceTilings.data()
+		);
+
+		assert(subresourceTilings == description.MipLevels * description.DepthOrArraySize);
+		resource->m_loader = std::make_unique<TileLoader>(filename, &resource->m_subresourceTilings);
+		return resource;
 	}
 }
 /*
@@ -550,7 +580,9 @@ void ResidencyManager::ResetTileMappings()
         }
     }
 }
+*/
 
+/*
 ID3D11ShaderResourceView* ResidencyManager::ManageTexture(ID3D11Texture2D* texture, const std::wstring& filename)
 {
     auto device = m_deviceResources->GetD3DDevice();

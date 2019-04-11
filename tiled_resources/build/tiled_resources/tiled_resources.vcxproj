@@ -47,7 +47,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <PackageCertificateKeyFile>tiled_resources_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <PackageCertificateThumbprint>1D391748E5D6E0FFF8FC18534B45761C20CD2402</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>EECFE1B1B863CB75090249EB2E22D27D3C40172D</PackageCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>
@@ -194,21 +194,33 @@
   <ItemGroup>
     <None Include="data0/diffuse.bin">
       <DeploymentContent>true</DeploymentContent>
-      <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="data0/geometry.ib.bin">
-      <DeploymentContent>true</DeploymentContent>
       <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="data0/geometry.vb.bin">
       <DeploymentContent>true</DeploymentContent>
-      <DeploymentContent>true</DeploymentContent>
     </None>
     <None Include="data0/normal.bin">
       <DeploymentContent>true</DeploymentContent>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="data1/diffuse.bin">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="data1/geometry.ib.bin">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="data1/geometry.vb.bin">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="data1/normal.bin">
       <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>
+
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.190408.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190408.1\build\native\Microsoft.Windows.CppWinRT.targets')" />

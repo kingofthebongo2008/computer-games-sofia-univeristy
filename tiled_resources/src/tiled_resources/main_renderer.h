@@ -51,6 +51,9 @@ namespace sample
 		winrt::com_ptr <ID3D12Resource1>			m_diffuse;					//diffuse.bin
 		winrt::com_ptr <ID3D12Resource1>			m_normal;					//normal.bin
 
+		winrt::com_ptr <ID3D12Resource1>			m_diffuse_residency;		//diffuse residency -> Texture which holds which mip level is resident
+		winrt::com_ptr <ID3D12Resource1>			m_normal_residency;			//normal  residency -> Texture which holds which mip level is resident
+
 		//view concepts
 		D3D12_VERTEX_BUFFER_VIEW                    m_planet_vertex_view;       //vertices for render
 		D3D12_INDEX_BUFFER_VIEW                     m_planet_index_view;		//indices for render

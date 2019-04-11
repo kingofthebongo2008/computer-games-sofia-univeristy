@@ -190,27 +190,6 @@ namespace sample
 		return r;
 	}
 
-	/*
-	// Create a tiled texture and view for the diffuse layer.
-	D3D11_TEXTURE2D_DESC diffuseTextureDesc;
-	ZeroMemory(&diffuseTextureDesc, sizeof(diffuseTextureDesc));
-	diffuseTextureDesc.Width = SampleSettings::TerrainAssets::Diffuse::DimensionSize;
-	diffuseTextureDesc.Height = SampleSettings::TerrainAssets::Diffuse::DimensionSize;
-	diffuseTextureDesc.ArraySize = 6;
-	diffuseTextureDesc.Format = SampleSettings::TerrainAssets::Diffuse::Format;
-	diffuseTextureDesc.SampleDesc.Count = 1;
-	if (m_deviceResources->GetTiledResourcesTier() <= D3D11_TILED_RESOURCES_TIER_1)
-	{
-		// On Tier 1, texture arrays (including texture cubes) may not include packed MIPs.
-		diffuseTextureDesc.MipLevels = SampleSettings::TerrainAssets::Diffuse::UnpackedMipCount;
-	}
-	diffuseTextureDesc.Usage = D3D11_USAGE_DEFAULT;
-	diffuseTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	diffuseTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE | D3D11_RESOURCE_MISC_TILED;
-	DX::ThrowIfFailed(device->CreateTexture2D(&diffuseTextureDesc, nullptr, &m_diffuseTexture));
-
-	*/
-
 	//Cube map
 	inline D3D12_RESOURCE_DESC DescribeDiffuse()
 	{
@@ -237,6 +216,37 @@ namespace sample
 		D3D12_RESOURCE_STATES       state	= D3D12_RESOURCE_STATE_COPY_DEST;
 		sample::ThrowIfFailed(device->CreateReservedResource(&d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
 
+		return r;
+	}
+
+	//Diffuse Residency
+	inline D3D12_RESOURCE_DESC DescribeResidency( uint32_t width, uint32_t height)
+	{
+		D3D12_RESOURCE_DESC desc = {};
+		desc.Alignment = 0;
+		desc.DepthOrArraySize	= 6;
+		desc.Dimension			= D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		desc.Flags				= D3D12_RESOURCE_FLAG_NONE;
+		desc.Format				= DXGI_FORMAT_R8_UNORM;
+		desc.Height				= height;
+		desc.Layout				= D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		desc.MipLevels			= 1;
+		desc.SampleDesc.Count	= 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Width				= width;
+		return desc;
+	}
+
+	static winrt::com_ptr<ID3D12Resource1> CreateResidency(ID3D12Device1* device, uint32_t width, uint32_t height)
+	{
+		D3D12_RESOURCE_DESC d = DescribeResidency(width, height);
+
+		winrt::com_ptr<ID3D12Resource1>     r;
+		D3D12_HEAP_PROPERTIES p = {};
+		p.Type = D3D12_HEAP_TYPE_DEFAULT;
+		D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+		ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
 		return r;
 	}
 
@@ -319,7 +329,7 @@ namespace sample
 
 			//Create resource on the upload heap. Example works with 1 heap per resource
 			//Read the data and copy to the resource
-			auto bytes0 = sample::ReadFileAsync(L"data0\\geometry.vb.bin").then([d](std::vector<uint8_t> b)
+			auto bytes0 = sample::ReadFileAsync(L"data1\\geometry.vb.bin").then([d](std::vector<uint8_t> b)
 			{
 				auto buf0Upload = CreateGeometryUploadBuffer(d, b.size());
 				void* upload;
@@ -332,7 +342,7 @@ namespace sample
 
 			//Create resource on the upload heap. Example works with 1 heap per resource
 			//Read the data and copy to the resource
-			auto bytes1 = sample::ReadFileAsync(L"data0\\geometry.ib.bin").then([d](std::vector<uint8_t>  b)
+			auto bytes1 = sample::ReadFileAsync(L"data1\\geometry.ib.bin").then([d](std::vector<uint8_t>  b)
 			{
 				auto buf0Upload = CreateGeometryUploadBuffer(d, b.size());
 
@@ -418,20 +428,33 @@ namespace sample
 			m_fence_value[m_frame_index] = fence_value + 1;    //increase the fence
 		});
 
-
 		g.run([this, d]
 		{
 			m_residencyManager	= std::make_unique<ResidencyManager>();
-			m_diffuse			= CreateDiffuseTexture(d);	//Create the reserved resource
-			m_residencyManager->ManageTexture(d, m_diffuse.get(), L"diffuse.bin");
 
+			{
+				m_diffuse = CreateDiffuseTexture(d);	//Create the reserved resource
+				m_diffuse->SetName(L"diffuse.bin");
+
+				auto managed = m_residencyManager->ManageTexture(d, m_diffuse.get(), L"data1\\diffuse.bin");
+				m_diffuse_residency = CreateResidency(d, managed->ResidencyWidth(), managed->ResidencyHeight());
+
+			}
+
+			{
+				m_normal = CreateNormalTexture(d);	//Create the reserved resource
+				m_normal->SetName(L"normal.bin");
+
+				auto managed		= m_residencyManager->ManageTexture(d, m_normal.get(), L"data1\\normal.bin");
+				m_normal_residency	= CreateResidency(d, managed->ResidencyWidth(), managed->ResidencyHeight());
+
+			}
 		});
 
 		g.run([this, d]
 		{
-			m_residencyManager	= std::make_unique<ResidencyManager>();
-			m_diffuse			= CreateNormalTexture(d);	//Create the reserved resource
-			m_residencyManager->ManageTexture(d, m_diffuse.get(), L"normal.bin");
+			//m_residencyManager	= std::make_unique<ResidencyManager>();
+			
 
 		});
 

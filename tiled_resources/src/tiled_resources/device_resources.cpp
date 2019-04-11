@@ -222,7 +222,7 @@ namespace sample
         return m_swap_chain.get();
     }
 
-    uint32_t DeviceResources::CreateSwapChain( IUnknown* w, uint32_t width, uint32_t height)
+    uint32_t DeviceResources::CreateSwapChain( ::IUnknown* w, uint32_t width, uint32_t height)
     {
         m_swap_chain = CreateSwapChainPrivate(w, m_queue.get(), width, height);
 

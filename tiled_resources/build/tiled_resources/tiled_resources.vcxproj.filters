@@ -98,7 +98,6 @@
     <FxCompile Include="..\..\src\tiled_resources\shaders\terrain_renderer_vertex.hlsl">
       <Filter>shaders\vertex</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
     <FxCompile Include="..\..\src\tiled_resources\shaders\default_graphics_signature.hlsl">
       <Filter>shaders\signature</Filter>
     </FxCompile>
