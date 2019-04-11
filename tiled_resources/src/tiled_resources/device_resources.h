@@ -30,6 +30,7 @@ namespace sample
 
         ID3D12DescriptorHeap*                       RenderTargetHeap() const;
         ID3D12DescriptorHeap*                       DepthHeap() const;
+		ID3D12DescriptorHeap*						ShaderHeap() const;
 
         private:
         winrt::com_ptr <ID3D12Debug1>               m_debug;                    //debug interface
@@ -40,12 +41,12 @@ namespace sample
         winrt::com_ptr <ID3D12Fence>        		m_fence;                     //fence for cpu/gpu synchronization
         winrt::com_ptr <ID3D12CommandQueue>   		m_queue;                     //queue to the device
 
-        winrt::com_ptr <ID3D12DescriptorHeap>   	m_render_target_descriptor_heap;  //descriptor heap for the render_targets
-        winrt::com_ptr <ID3D12DescriptorHeap>   	m_depth_stencil_descriptor_heap;  //descriptor heap for the render_targets
+        winrt::com_ptr <ID3D12DescriptorHeap>   	m_render_target_descriptor_heap;	 //descriptor heap for the render_targets
+        winrt::com_ptr <ID3D12DescriptorHeap>   	m_depth_stencil_descriptor_heap;	 //descriptor heap for the render_targets
+		winrt::com_ptr <ID3D12DescriptorHeap>   	m_shader_descriptor_heap;			 //descriptor heap for the shaders
 
         winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];
         winrt::com_ptr<ID3D12Resource1>             m_swap_chain_depths[2];
-
 
         uint64_t                                    m_swap_chain_descriptors[2];
         uint32_t									m_back_buffer_width = 0;

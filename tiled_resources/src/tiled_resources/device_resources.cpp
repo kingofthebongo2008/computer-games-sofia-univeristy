@@ -87,6 +87,17 @@ namespace sample
             return r;
         }
 
+		static winrt::com_ptr <ID3D12DescriptorHeap> CreateShaderDescriptorHeap(ID3D12Device1* device)
+		{
+			winrt::com_ptr<ID3D12DescriptorHeap> r;
+			D3D12_DESCRIPTOR_HEAP_DESC d = {};
+
+			d.NumDescriptors = 4;
+			d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
+			return r;
+		}
+
         static winrt::com_ptr<IDXGISwapChain3> CreateSwapChainPrivate( IUnknown* w, ID3D12CommandQueue* d, uint32_t width, uint32_t height)
         {
             winrt::com_ptr<IDXGIFactory2> f;
@@ -180,12 +191,13 @@ namespace sample
     {
         m_debug = CreateDebug();
 		
-        m_device = CreateWarpDevice();
-		//m_device = CreateDevice();
+        //m_device = CreateWarpDevice();
+		m_device = CreateDevice();
 
         m_queue = CreateCommandQueue(m_device.get());
         m_render_target_descriptor_heap = CreateRenderDescriptorHeap(m_device.get());
         m_depth_stencil_descriptor_heap = CreateDepthDescriptorHeap(m_device.get());
+		m_shader_descriptor_heap		= CreateShaderDescriptorHeap(m_device.get());
 
         //fence, sync from the gpu and cpu
         m_fence = CreateFence(m_device.get(), 0);
@@ -346,4 +358,9 @@ namespace sample
     {
         return m_depth_stencil_descriptor_heap.get();
     }
+
+	ID3D12DescriptorHeap* DeviceResources::ShaderHeap() const
+	{
+		return m_shader_descriptor_heap.get();
+	}
 }

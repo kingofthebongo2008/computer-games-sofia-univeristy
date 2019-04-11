@@ -219,6 +219,22 @@ namespace sample
 		return r;
 	}
 
+	inline D3D12_SHADER_RESOURCE_VIEW_DESC DescribeDiffuseView()
+	{
+		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		desc.Format					= SampleSettings::TerrainAssets::Diffuse::Format;
+		desc.ViewDimension			= D3D12_SRV_DIMENSION_TEXTURECUBE;
+		desc.TextureCube.MipLevels  = SampleSettings::TerrainAssets::Diffuse::UnpackedMipCount;
+		return desc;
+	}
+
+	static void CreateDiffuseShaderResourceView(ID3D12Device1* d, ID3D12Resource1* r, D3D12_CPU_DESCRIPTOR_HANDLE h)
+	{
+		D3D12_SHADER_RESOURCE_VIEW_DESC v = DescribeDiffuseView();
+		d->CreateShaderResourceView(r, &v, h);
+	}
+
 	//Diffuse Residency
 	inline D3D12_RESOURCE_DESC DescribeResidency( uint32_t width, uint32_t height)
 	{
@@ -431,14 +447,14 @@ namespace sample
 		g.run([this, d]
 		{
 			m_residencyManager	= std::make_unique<ResidencyManager>();
-
+			/*
 			{
 				m_diffuse = CreateDiffuseTexture(d);	//Create the reserved resource
 				m_diffuse->SetName(L"diffuse.bin");
 
-				auto managed = m_residencyManager->ManageTexture(d, m_diffuse.get(), L"data1\\diffuse.bin");
+				auto managed		= m_residencyManager->ManageTexture(d, m_diffuse.get(), L"data1\\diffuse.bin");
 				m_diffuse_residency = CreateResidency(d, managed->ResidencyWidth(), managed->ResidencyHeight());
-
+				//CreateDiffuseShaderResourceView(d, m_diffuse.get(), CpuView( d, m_deviceResources->ShaderHeap()) + m_diffuse_srt);
 			}
 
 			{
@@ -449,6 +465,7 @@ namespace sample
 				m_normal_residency	= CreateResidency(d, managed->ResidencyWidth(), managed->ResidencyHeight());
 
 			}
+			*/
 		});
 
 		g.run([this, d]
