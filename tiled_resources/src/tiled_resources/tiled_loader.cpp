@@ -31,14 +31,14 @@ namespace sample
 		, m_subresourcesPerFaceInResource( 0 )
 		, m_subresourcesPerFaceInFile ( 0 )
 	{
-		m_openStream = OpenStreamPrivate(m_filename, tilingInfo);
+		m_openStream = OpenStreamPrivate(m_filename, m_tilingInfo);
 	}
 
 	IAsyncOperation< IRandomAccessStream >	 TileLoader::OpenStreamPrivate(const std::wstring& s, std::vector<D3D12_SUBRESOURCE_TILING>* tilingInfo )
 	{
 		auto stream = co_await OpenStreamAsync(s);
 
-		m_subresourcesPerFaceInResource				= static_cast<uint32_t>( m_tilingInfo->size() / 6 );
+		m_subresourcesPerFaceInResource				= static_cast<uint32_t>(tilingInfo->size() / 6 );
 		uint32_t tilesForSingleFaceMostDetailedMip	= tilingInfo->at(1).StartTileIndexInOverallResource;
 		uint32_t tilesPerFace						= static_cast<uint32_t>( (stream.Size() / SampleSettings::TileSizeInBytes) / 6 );
 		
