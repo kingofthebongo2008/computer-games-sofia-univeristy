@@ -83,7 +83,7 @@ namespace sample
         //concurrency::task<void> CreateDeviceDependentResourcesAsync();
         //void ReleaseDeviceDependentResources();
 
-        //ID3D11ShaderResourceView* ManageTexture(ID3D11Texture2D* texture, const std::wstring& filename);
+		void ManageTexture(ID3D12Device* d, ID3D12Resource1* texture, const std::wstring& filename);
 
         //void EnqueueSamples(const std::vector<DecodedSample>& samples, const DX::StepTimer& timer);
         //void ProcessQueues();
@@ -97,7 +97,7 @@ namespace sample
         //Microsoft::WRL::ComPtr<ID3D11Buffer> m_tilePool;
 
         // Map of all tracked tiles.
-        std::unordered_map<TileKey, std::unique_ptr<TrackedTile>> m_trackedTiles;
+        std::map<TileKey, std::unique_ptr<TrackedTile> > m_trackedTiles;
 
         // List of seen tiles ready for loading.
         std::list<std::unique_ptr<TrackedTile>> m_seenTileList;

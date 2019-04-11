@@ -7,6 +7,19 @@
 
 #include "pch.h"
 #include "residency_manager.h"
+
+namespace sample
+{
+	ResidencyManager::ResidencyManager()
+	{
+
+	}
+
+	void ResidencyManager::ManageTexture(ID3D12Device* d, ID3D12Resource1* texture, const std::wstring& filename)
+	{
+
+	}
+}
 /*
 #include "DirectXHelper.h"
 #include "SampleSettings.h"
