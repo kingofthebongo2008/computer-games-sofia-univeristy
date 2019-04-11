@@ -11,6 +11,7 @@
 #include "device_resources.h"
 
 #include "sampling_renderer.h"
+#include "sample_settings.h"
 #include "error.h"
 #include "file_helper.h"
 #include "free_camera.h"
@@ -47,8 +48,7 @@ namespace sample
 		return r;
 	}
 
-	//create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
-	//It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
+	//sampling
 	static winrt::com_ptr< ID3D12PipelineState>	 CreateSamplingRendererState(ID3D12Device1* device, ID3D12RootSignature* root)
 	{
 		static
@@ -94,8 +94,7 @@ namespace sample
 		return r;
 	}
 
-	//create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
-	//It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
+	//render sampled resouces
 	static winrt::com_ptr< ID3D12PipelineState>	 CreateTerrainRendererState(ID3D12Device1* device, ID3D12RootSignature* root)
 	{
 		static
@@ -139,7 +138,7 @@ namespace sample
 		return r;
 	}
 
-
+	//prepare for creation
 	inline D3D12_RESOURCE_DESC DescribeBuffer(uint64_t elements, uint64_t elementSize = 1)
 	{
 		D3D12_RESOURCE_DESC desc = {};
@@ -157,12 +156,13 @@ namespace sample
 		return desc;
 	}
 
-	//compute sizes
+	//compute geometry sizes
 	static D3D12_RESOURCE_DESC DescribeGeometryBuffer(size_t byte_size)
 	{
 		return DescribeBuffer(byte_size);
 	}
 
+	//create buffer for upload
 	static winrt::com_ptr<ID3D12Resource1 > CreateGeometryUploadBuffer(ID3D12Device1* device, size_t size_in_bytes)
 	{
 		D3D12_RESOURCE_DESC d = DescribeGeometryBuffer(size_in_bytes);
@@ -176,6 +176,7 @@ namespace sample
 		return r;
 	}
 
+	//create buffer in vram
 	static winrt::com_ptr<ID3D12Resource1 > CreateGeometryBuffer(ID3D12Device1* device, size_t size_in_bytes)
 	{
 		D3D12_RESOURCE_DESC d = DescribeGeometryBuffer(size_in_bytes);
@@ -186,6 +187,82 @@ namespace sample
 		D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_DEST;
 
 		sample::ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+		return r;
+	}
+
+	/*
+	// Create a tiled texture and view for the diffuse layer.
+	D3D11_TEXTURE2D_DESC diffuseTextureDesc;
+	ZeroMemory(&diffuseTextureDesc, sizeof(diffuseTextureDesc));
+	diffuseTextureDesc.Width = SampleSettings::TerrainAssets::Diffuse::DimensionSize;
+	diffuseTextureDesc.Height = SampleSettings::TerrainAssets::Diffuse::DimensionSize;
+	diffuseTextureDesc.ArraySize = 6;
+	diffuseTextureDesc.Format = SampleSettings::TerrainAssets::Diffuse::Format;
+	diffuseTextureDesc.SampleDesc.Count = 1;
+	if (m_deviceResources->GetTiledResourcesTier() <= D3D11_TILED_RESOURCES_TIER_1)
+	{
+		// On Tier 1, texture arrays (including texture cubes) may not include packed MIPs.
+		diffuseTextureDesc.MipLevels = SampleSettings::TerrainAssets::Diffuse::UnpackedMipCount;
+	}
+	diffuseTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+	diffuseTextureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	diffuseTextureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE | D3D11_RESOURCE_MISC_TILED;
+	DX::ThrowIfFailed(device->CreateTexture2D(&diffuseTextureDesc, nullptr, &m_diffuseTexture));
+
+	*/
+
+	//Cube map
+	inline D3D12_RESOURCE_DESC DescribeDiffuse()
+	{
+		D3D12_RESOURCE_DESC desc = {};
+		desc.Alignment = 0;
+		desc.DepthOrArraySize = 6;
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		desc.Format = SampleSettings::TerrainAssets::Diffuse::Format;
+		desc.Height = SampleSettings::TerrainAssets::Diffuse::DimensionSize;
+		desc.Layout		= D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE;
+		desc.MipLevels	= SampleSettings::TerrainAssets::Diffuse::UnpackedMipCount;	
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Width = SampleSettings::TerrainAssets::Diffuse::DimensionSize;
+		return desc;
+	}
+
+	static winrt::com_ptr<ID3D12Resource1 > CreateDiffuseTexture(ID3D12Device1* device)
+	{
+		D3D12_RESOURCE_DESC d = DescribeDiffuse();
+
+		winrt::com_ptr<ID3D12Resource1>     r;
+		D3D12_RESOURCE_STATES       state	= D3D12_RESOURCE_STATE_COPY_DEST;
+		sample::ThrowIfFailed(device->CreateReservedResource(&d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+
+		return r;
+	}
+
+	inline D3D12_RESOURCE_DESC DescribeNormal()
+	{
+		D3D12_RESOURCE_DESC desc = {};
+		desc.Alignment = 0;
+		desc.DepthOrArraySize = 6;
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		desc.Format = SampleSettings::TerrainAssets::Normal::Format;
+		desc.Height = SampleSettings::TerrainAssets::Normal::DimensionSize;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE;
+		desc.MipLevels = SampleSettings::TerrainAssets::Normal::UnpackedMipCount;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Width = SampleSettings::TerrainAssets::Normal::DimensionSize;
+		return desc;
+	}
+
+	static winrt::com_ptr<ID3D12Resource1 > CreateNormalTexture(ID3D12Device1* device)
+	{
+		D3D12_RESOURCE_DESC d = DescribeNormal();
+		winrt::com_ptr<ID3D12Resource1>     r;
+		D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_DEST;
+		sample::ThrowIfFailed(device->CreateReservedResource(&d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
 		return r;
 	}
 
@@ -339,6 +416,23 @@ namespace sample
 			m_deviceResources->SignalFenceValue(fence_value);
 			m_deviceResources->WaitForFenceValue(fence_value); //block the cpu
 			m_fence_value[m_frame_index] = fence_value + 1;    //increase the fence
+		});
+
+
+		g.run([this, d]
+		{
+			m_residencyManager	= std::make_unique<ResidencyManager>();
+			m_diffuse			= CreateDiffuseTexture(d);	//Create the reserved resource
+			m_residencyManager->ManageTexture(d, m_diffuse.get(), L"diffuse.bin");
+
+		});
+
+		g.run([this, d]
+		{
+			m_residencyManager	= std::make_unique<ResidencyManager>();
+			m_diffuse			= CreateNormalTexture(d);	//Create the reserved resource
+			m_residencyManager->ManageTexture(d, m_diffuse.get(), L"normal.bin");
+
 		});
 
 		//let the waiting thread do some work also
@@ -622,7 +716,7 @@ namespace sample
 		return (value + 7) & ~7;
 	}
 
-	void MainRenderer::SetWindow(IUnknown * w, const sample::window_environment & envrionment)
+	void MainRenderer::SetWindow(::IUnknown * w, const sample::window_environment & envrionment)
 	{
 		auto width = align8(static_cast<uint32_t>(envrionment.m_back_buffer_size.Width));
 		auto height = align8(static_cast<uint32_t>(envrionment.m_back_buffer_size.Height));

@@ -3,9 +3,10 @@
 #include "main_renderer_interface.h"
 #include "window_environment.h"
 
-
 #include "device_resources.h"
 #include "sampling_renderer.h"
+#include "residency_manager.h"
+
 #include "free_camera.h"
 
 
@@ -23,12 +24,13 @@ namespace sample
 		void Run()  override;
 
 		void OnWindowSizeChanged(const sample::window_environment& envrionment)  override;
-		void SetWindow(IUnknown* w, const sample::window_environment& envrionment)  override;
+		void SetWindow(::IUnknown* w, const sample::window_environment& envrionment)  override;
 
 		private:
 
 		std::unique_ptr<sample::DeviceResources>    m_deviceResources;          //gpu, swapchain, queues, heaps for rtv
 		std::unique_ptr<sample::SamplingRenderer>   m_samplingRenderer;         //render targets for residency
+		std::unique_ptr<sample::ResidencyManager>	m_residencyManager;			//updates physical data
 
 		std::mutex                                  m_blockRendering;           //block render thread for the swap chain resizes
 
@@ -45,6 +47,9 @@ namespace sample
 
 		winrt::com_ptr <ID3D12Resource1>   			m_geometry_vertex_buffer;	//planet geometry
 		winrt::com_ptr <ID3D12Resource1>   			m_geometry_index_buffer;	//planet indices
+
+		winrt::com_ptr <ID3D12Resource1>			m_diffuse;					//diffuse.bin
+		winrt::com_ptr <ID3D12Resource1>			m_normal;					//normal.bin
 
 		//view concepts
 		D3D12_VERTEX_BUFFER_VIEW                    m_planet_vertex_view;       //vertices for render
