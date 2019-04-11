@@ -28,6 +28,8 @@ namespace sample
 
 		private:
 
+		void WaitForIdleGpu();
+
 		std::unique_ptr<sample::DeviceResources>    m_deviceResources;          //gpu, swapchain, queues, heaps for rtv
 		std::unique_ptr<sample::SamplingRenderer>   m_samplingRenderer;         //render targets for residency
 		std::unique_ptr<sample::ResidencyManager>	m_residencyManager;			//updates physical data

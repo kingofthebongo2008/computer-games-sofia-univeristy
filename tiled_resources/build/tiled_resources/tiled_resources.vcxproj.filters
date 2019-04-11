@@ -101,7 +101,6 @@
     <FxCompile Include="..\..\src\tiled_resources\shaders\default_graphics_signature.hlsl">
       <Filter>shaders\signature</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
     <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_renderer_vertex.hlsl">
       <Filter>shaders\vertex</Filter>
     </FxCompile>
@@ -131,5 +130,9 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="packages.config" />
+    <None Include="data1/diffuse.bin" />
+    <None Include="data1/geometry.ib.bin" />
+    <None Include="data1/geometry.vb.bin" />
+    <None Include="data1/normal.bin" />
   </ItemGroup>
 </Project>

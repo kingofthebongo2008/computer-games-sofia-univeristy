@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap mp">
-  <Identity Name="7EE5ADC0B-1A96-44BA-80F0-CAEF3EB4F0BC" Publisher="CN=SDyulgerov" Version="1.0.0.0" />
+  <Identity Name="7EE5ADC0B-1A96-44BA-80F0-CAEF3EB4F0BC" Publisher="CN=stefa" Version="1.0.0.0" />
   <mp:PhoneIdentity PhoneProductId="EE5ADC0B-1A96-44BA-80F0-CAEF3EB4F0BC" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
     <DisplayName>tiled_resources</DisplayName>

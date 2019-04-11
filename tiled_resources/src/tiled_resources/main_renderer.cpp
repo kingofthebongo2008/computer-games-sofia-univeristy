@@ -437,11 +437,10 @@ namespace sample
 				m_deviceResources->Queue()->ExecuteCommandLists(1, lists); //Execute what we have, submission of commands to the gpu
 			}
 
+
 			//Insert in the gpu a command after all submitted commands so far.
-			const uint64_t fence_value = m_fence_value[m_frame_index];
-			m_deviceResources->SignalFenceValue(fence_value);
-			m_deviceResources->WaitForFenceValue(fence_value); //block the cpu
-			m_fence_value[m_frame_index] = fence_value + 1;    //increase the fence
+			WaitForIdleGpu();
+
 		});
 
 		g.run([this, d]
@@ -540,7 +539,7 @@ namespace sample
 
 				//Constants are important and must match;
 				static_assert(sizeof(PassConstants) == 36 * 4);
-				commandList->SetGraphicsRoot32BitConstants(7, 36, &constants, 0);
+				commandList->SetGraphicsRoot32BitConstants(0, 36, &constants, 0);
 
 				//set the raster pipeline state as a whole, it was prebuilt before
 				commandList->SetPipelineState(m_sampling_renderer_state.get());
@@ -640,7 +639,7 @@ namespace sample
 
 				//Constants are important and must match;
 				static_assert(sizeof(PassConstants) == 36 * 4);
-				commandList->SetGraphicsRoot32BitConstants(7, 36, &constants, 0);
+				commandList->SetGraphicsRoot32BitConstants(0, 36, &constants, 0);
 
 				//set the raster pipeline state as a whole, it was prebuilt before
 				commandList->SetPipelineState(m_sampling_renderer_state.get());
@@ -708,13 +707,15 @@ namespace sample
 
 		commandList->Close();   //close the list
 
+		
+		
+
 		{
 			//form group of several command lists
 			ID3D12CommandList* lists[] = { commandList };
 			m_deviceResources->Queue()->ExecuteCommandLists(1, lists); //Execute what we have, submission of commands to the gpu
 		}
 
-		
 		const uint64_t fence_value = m_fence_value[m_frame_index];
 
 		{
@@ -730,6 +731,8 @@ namespace sample
 			m_deviceResources->WaitForFenceValue(m_fence_value[m_frame_index]);
 			m_fence_value[m_frame_index] = fence_value + 1;
 		}
+
+		//Sleep(15);
 
 		//Now we can readback the data from the previous frame
 		{
@@ -758,9 +761,11 @@ namespace sample
 
 	void MainRenderer::SetWindow(::IUnknown * w, const sample::window_environment & envrionment)
 	{
-		auto width = align8(static_cast<uint32_t>(envrionment.m_back_buffer_size.Width));
-		auto height = align8(static_cast<uint32_t>(envrionment.m_back_buffer_size.Height));
-		m_frame_index = m_deviceResources->CreateSwapChain(w, width, height);
+		auto width		= align8(static_cast<uint32_t>(envrionment.m_back_buffer_size.Width));
+		auto height		= align8(static_cast<uint32_t>(envrionment.m_back_buffer_size.Height));
+		m_frame_index	= m_deviceResources->CreateSwapChain(w, width, height);
+
+		WaitForIdleGpu();
 
 		//Create the sampling renderer
 		sample::ResizeSamplingRendererContext ctx = {};
@@ -795,11 +800,7 @@ namespace sample
 
 		//Now wait for the gpu to finish what it has from the main thread
 
-		//Insert in the gpu a command after all submitted commands so far.
-		const uint64_t fence_value = m_fence_value[m_frame_index];
-
-		m_deviceResources->SignalFenceValue(fence_value);
-		m_deviceResources->WaitForFenceValue(fence_value);
+		WaitForIdleGpu();
 
 		auto w = align8(static_cast<uint32_t>(envirionment.m_back_buffer_size.Width));
 		auto h = align8(static_cast<uint32_t>(envirionment.m_back_buffer_size.Height));
@@ -822,8 +823,17 @@ namespace sample
 			m_samplingRenderer->CreateSamplingRenderer(ctx);
 		}
 
-		//Prepare to unblock the rendering
-		m_fence_value[m_frame_index] = fence_value + 1;
+	}
+
+	void MainRenderer::WaitForIdleGpu()
+	{
+		//Insert in the gpu a command after all submitted commands so far.
+		const uint64_t fence_value = m_fence_value[m_frame_index];
+		m_deviceResources->SignalFenceValue(fence_value);
+		m_deviceResources->WaitForFenceValue(fence_value); //block the cpu
+		m_fence_value[m_frame_index] = fence_value + 1;    //increase the fence
+		m_fence_value[1 - m_frame_index] = fence_value + 1;
+
 	}
 }
 

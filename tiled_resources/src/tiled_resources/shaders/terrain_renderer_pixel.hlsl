@@ -2,10 +2,10 @@
 #include "default_samplers.hlsli"
 #include "pass_constants.hlsli"
 
-TextureCube<float3> ColorTexture	: register(t1);
-TextureCube<float>	ColorResidency	: register(t2);
-TextureCube<float2> NormalTexture	: register(t3);
-TextureCube<float>	NormalResidency : register(t4);
+TextureCube<float3> ColorTexture	: register(t0);
+TextureCube<float>	ColorResidency	: register(t1);
+TextureCube<float2> NormalTexture	: register(t2);
+TextureCube<float>	NormalResidency : register(t3);
 
 
 struct PS_IN

@@ -47,7 +47,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <PackageCertificateKeyFile>tiled_resources_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <PackageCertificateThumbprint>EECFE1B1B863CB75090249EB2E22D27D3C40172D</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>60A294088F0E8137D5CD796A8071AB4B58542F68</PackageCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>
@@ -205,7 +205,6 @@
       <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>
-
   <ItemGroup>
     <None Include="data1/diffuse.bin">
       <DeploymentContent>true</DeploymentContent>
@@ -220,7 +219,6 @@
       <DeploymentContent>true</DeploymentContent>
     </None>
   </ItemGroup>
-
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.190408.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190408.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
