@@ -335,11 +335,8 @@ namespace sample
 				m_deviceResources->Queue()->ExecuteCommandLists(1, lists); //Execute what we have, submission of commands to the gpu
 			}
 
-
 			//Insert in the gpu a command after all submitted commands so far.
-			WaitForIdleGpu();
-
-		});
+			WaitForIdleGpu();		});
 
 		g.run([this, d]
 		{
@@ -362,18 +359,15 @@ namespace sample
 
 		});
 
-		g.run([this, d]
-		{
-			//m_residencyManager	= std::make_unique<ResidencyManager>();
-			
-
-		});
-
 		//let the waiting thread do some work also
 		g.run_and_wait([this, d]
 		{
 			m_terrain_renderer_state = CreateTerrainRendererState(d, m_root_signature.get());
 		});
+
+
+		//Copy descriptors, since we have created all of them
+		d->CopyDescriptorsSimple(4, m_deviceResources->ShaderHeapGpu()->GetCPUDescriptorHandleForHeapStart(), m_deviceResources->ShaderHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	}
 
 	void MainRenderer::Run()
@@ -385,6 +379,18 @@ namespace sample
 		ID3D12GraphicsCommandList1* commandList = m_command_list[m_frame_index].get();
 		allocator->Reset();
 		commandList->Reset(allocator, nullptr);
+
+
+		{
+			//Set descriptor heaps;
+			ID3D12DescriptorHeap* heaps[] =
+			{
+				m_deviceResources->ShaderHeapGpu()
+			};
+
+			commandList->SetDescriptorHeaps(1, heaps);
+		}
+
 
 		//Do the main depth
 		{
