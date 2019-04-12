@@ -150,6 +150,22 @@ namespace sample
 			p->m_residencyShadow[face].resize(p->ResidencyWidth() * p->ResidencyHeight(), 0xFF);
 		}
 
+		/*
+		p->m_residencyShadow[0].clear();
+		p->m_residencyShadow[1].clear();
+		p->m_residencyShadow[2].clear();
+		p->m_residencyShadow[3].clear();
+		p->m_residencyShadow[4].clear();
+		p->m_residencyShadow[5].clear();
+
+		p->m_residencyShadow[0].resize(p->ResidencyWidth() * p->ResidencyHeight(), 0xFF);
+		p->m_residencyShadow[1].resize(p->ResidencyWidth() * p->ResidencyHeight(), 0x28 + 0x28 + 0x28 + 0x28);
+		p->m_residencyShadow[2].resize(p->ResidencyWidth() * p->ResidencyHeight(), 0x28 + 0x28 + 0x28);
+		p->m_residencyShadow[3].resize(p->ResidencyWidth() * p->ResidencyHeight(), 0x28 + 0x28);
+		p->m_residencyShadow[4].resize(p->ResidencyWidth() * p->ResidencyHeight(), 0x28);
+		p->m_residencyShadow[5].resize(p->ResidencyWidth() * p->ResidencyHeight(), 0x00);
+		*/
+
 		//create the small texture
 		p->m_residencyResource			= CreateResidency(d, p->ResidencyWidth(), p->ResidencyHeight());
 
