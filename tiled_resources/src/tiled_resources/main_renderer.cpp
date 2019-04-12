@@ -305,6 +305,7 @@ namespace sample
 	{
 		m_deviceResources = std::make_unique<sample::DeviceResources>();
 		m_samplingRenderer = std::make_unique<sample::SamplingRenderer>();
+		m_residencyManager = std::make_unique<ResidencyManager>(m_deviceResources->Device());
 
 		//if you have many threads that generate commands. 1 per thread per frame
 		{
@@ -445,8 +446,6 @@ namespace sample
 
 		g.run([this, d]
 		{
-			m_residencyManager	= std::make_unique<ResidencyManager>();
-			/*
 			{
 				m_diffuse = CreateDiffuseTexture(d);	//Create the reserved resource
 				m_diffuse->SetName(L"diffuse.bin");
@@ -464,7 +463,7 @@ namespace sample
 				m_normal_residency	= CreateResidency(d, managed->ResidencyWidth(), managed->ResidencyHeight());
 
 			}
-			*/
+			
 		});
 
 		g.run([this, d]

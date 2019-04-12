@@ -7,13 +7,46 @@
 
 #include "pch.h"
 #include "residency_manager.h"
-#include "assert.h"
+#include "error.h"
+#include "d3dx12.h"
 
 namespace sample
 {
-	ResidencyManager::ResidencyManager()
+	//prepare for creation
+	inline D3D12_RESOURCE_DESC DescribeBuffer(uint64_t elements, uint64_t elementSize = 1)
 	{
+		D3D12_RESOURCE_DESC desc = {};
+		desc.Alignment = 0;
+		desc.DepthOrArraySize = 1;
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+		desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		desc.Format = DXGI_FORMAT_UNKNOWN;
+		desc.Height = 1;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+		desc.MipLevels = 1;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Width = elements * elementSize;
+		return desc;
+	}
 
+	//
+	static winrt::com_ptr<ID3D12Resource1> CreateUploadResource(ID3D12Device1* device, uint32_t size)
+	{
+		D3D12_RESOURCE_DESC d		= DescribeBuffer(size);
+
+		winrt::com_ptr<ID3D12Resource1>     r;
+		D3D12_HEAP_PROPERTIES p = {};
+		p.Type = D3D12_HEAP_TYPE_UPLOAD;
+		D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_GENERIC_READ;
+
+		ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+		return r;
+	}
+
+	ResidencyManager::ResidencyManager(ID3D12Device1* d)
+	{
+		m_upload_heap = CreateUploadResource(d, 16 * 1024 * 1024);
 	}
 
 	ManagedTiledResource* ResidencyManager::MakeResource()

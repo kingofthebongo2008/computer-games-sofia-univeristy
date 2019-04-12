@@ -79,7 +79,7 @@ namespace sample
 
     public:
 
-        ResidencyManager();
+        ResidencyManager(ID3D12Device1* d);
         
 		//void CreateDeviceDependentResources();
 
@@ -117,6 +117,9 @@ namespace sample
 
         uint32_t m_reservedTiles;
 		uint32_t m_defaultTileIndex;
+
+		winrt::com_ptr<ID3D12Resource1> m_upload_heap;   //to upload new tiles to the gpu
+		winrt::com_ptr<ID3D12Heap>		m_physical_heap; //to backup the reserved resources;
     };
 
     static bool LoadPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
