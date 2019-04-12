@@ -108,6 +108,11 @@ namespace sample
 		resource->m_loader = std::make_unique<TileLoader>(filename, &resource->m_subresourceTilings);
 		return resource;
 	}
+	
+	void UpdateTiles(ID3D12CommandList* list, uint32_t frame_index)
+	{
+
+	}
 }
 /*
 #include "DirectXHelper.h"

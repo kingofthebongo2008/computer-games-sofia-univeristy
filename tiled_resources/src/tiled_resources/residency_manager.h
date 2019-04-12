@@ -90,27 +90,29 @@ namespace sample
         //void EnqueueSamples(const std::vector<DecodedSample>& samples, const DX::StepTimer& timer);
         //void ProcessQueues();
 
-    private:
+		void UpdateTiles( ID3D12CommandList* list, uint32_t frame_index );
+
+	private:
 
 		ManagedTiledResource* MakeResource();
 
         // Set of resources managed by this class.
-        std::vector<std::unique_ptr<ManagedTiledResource>> m_managedResources;
+        std::vector<std::unique_ptr<ManagedTiledResource>>	m_managedResources;
 
         // Tiled Resource tile pool.
         //Microsoft::WRL::ComPtr<ID3D11Buffer> m_tilePool;
 
         // Map of all tracked tiles.
-        std::map<TileKey, std::unique_ptr<TrackedTile> > m_trackedTiles;
+        std::map<TileKey, std::unique_ptr<TrackedTile> >	m_trackedTiles;
 
         // List of seen tiles ready for loading.
-        std::list<std::unique_ptr<TrackedTile>> m_seenTileList;
+        std::list<std::unique_ptr<TrackedTile>>				m_seenTileList;
 
         // List of loading and loaded tiles.
-        std::list<std::unique_ptr<TrackedTile>> m_loadingTileList;
+        std::list<std::unique_ptr<TrackedTile>>				m_loadingTileList;
 
         // List of mapped tiles.
-        std::list<std::unique_ptr<TrackedTile>> m_mappedTileList;
+        std::list<std::unique_ptr<TrackedTile>>				m_mappedTileList;
 
         volatile LONG m_activeTileLoadingOperations;
 
@@ -121,7 +123,7 @@ namespace sample
 		winrt::com_ptr<ID3D12Heap>		m_physical_heap;	//to backup the reserved resources;
     };
 
-    static bool LoadPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
+	static bool LoadPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
     {
         // Prefer more recently seen tiles.
         if (a->m_lastSeen > b->m_lastSeen) return true;
@@ -131,7 +133,7 @@ namespace sample
         return a->m_mipLevel > b->m_mipLevel;
     }
 
-    static bool MapPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
+	static bool MapPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
     {
         // Only loaded tiles can be mapped, so put those first.
         if (a->m_state == TileState::Loaded && b->m_state == TileState::Loading) return true;
@@ -145,7 +147,7 @@ namespace sample
         return a->m_mipLevel > b->m_mipLevel;
     }
 
-    static bool EvictPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
+	static bool EvictPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
     {
         // Evict older tiles first.
         if (a->m_lastSeen < b->m_lastSeen) return true;
