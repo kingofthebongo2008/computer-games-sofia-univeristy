@@ -104,7 +104,6 @@
     <FxCompile Include="..\..\src\tiled_resources\shaders\sampling_renderer_vertex.hlsl">
       <Filter>shaders\vertex</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\src\tiled_resources\shaders\triangle_vertex.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="tiled_resources_TemporaryKey.pfx" />
