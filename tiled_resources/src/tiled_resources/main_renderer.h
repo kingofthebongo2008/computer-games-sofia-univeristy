@@ -50,17 +50,11 @@ namespace sample
 		winrt::com_ptr <ID3D12Resource1>   			m_geometry_vertex_buffer;	//planet geometry
 		winrt::com_ptr <ID3D12Resource1>   			m_geometry_index_buffer;	//planet indices
 
-		winrt::com_ptr <ID3D12Resource1>			m_diffuse;					//diffuse.bin
-		winrt::com_ptr <ID3D12Resource1>			m_normal;					//normal.bin
+		uint32_t									m_diffuse_srv				= 0;	//pointers to the shader resource heap to be used in the shaders
+		uint32_t									m_normal_srv				= 1;	
 
-		winrt::com_ptr <ID3D12Resource1>			m_diffuse_residency;		//diffuse residency -> Texture which holds which mip level is resident
-		winrt::com_ptr <ID3D12Resource1>			m_normal_residency;			//normal  residency -> Texture which holds which mip level is resident
-
-		uint32_t									m_diffuse_srt			= 0;
-		uint32_t									m_normal_srt			= 1;
-
-		uint32_t									m_diffuse_residency_srt = 2;
-		uint32_t									m_normal_residency_srt	= 3;
+		uint32_t									m_diffuse_residency_srv		= 2;
+		uint32_t									m_normal_residency_srv		= 3;
 
 		//view concepts
 		D3D12_VERTEX_BUFFER_VIEW                    m_planet_vertex_view;       //vertices for render

@@ -190,124 +190,6 @@ namespace sample
 		return r;
 	}
 
-	//Cube map
-	inline D3D12_RESOURCE_DESC DescribeDiffuse()
-	{
-		D3D12_RESOURCE_DESC desc = {};
-		desc.Alignment = 0;
-		desc.DepthOrArraySize = 6;
-		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-		desc.Format = SampleSettings::TerrainAssets::Diffuse::Format;
-		desc.Height = SampleSettings::TerrainAssets::Diffuse::DimensionSize;
-		desc.Layout		= D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE;
-		desc.MipLevels	= SampleSettings::TerrainAssets::Diffuse::UnpackedMipCount;	
-		desc.SampleDesc.Count = 1;
-		desc.SampleDesc.Quality = 0;
-		desc.Width = SampleSettings::TerrainAssets::Diffuse::DimensionSize;
-		return desc;
-	}
-
-	static winrt::com_ptr<ID3D12Resource1 > CreateDiffuseTexture(ID3D12Device1* device)
-	{
-		D3D12_RESOURCE_DESC d = DescribeDiffuse();
-
-		winrt::com_ptr<ID3D12Resource1>     r;
-		D3D12_RESOURCE_STATES       state	= D3D12_RESOURCE_STATE_COPY_DEST;
-		sample::ThrowIfFailed(device->CreateReservedResource(&d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
-
-		return r;
-	}
-
-	inline D3D12_SHADER_RESOURCE_VIEW_DESC DescribeDiffuseView()
-	{
-		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		desc.Format					= SampleSettings::TerrainAssets::Diffuse::Format;
-		desc.ViewDimension			= D3D12_SRV_DIMENSION_TEXTURECUBE;
-		desc.TextureCube.MipLevels  = SampleSettings::TerrainAssets::Diffuse::UnpackedMipCount;
-		return desc;
-	}
-
-	static void CreateDiffuseShaderResourceView(ID3D12Device1* d, ID3D12Resource1* r, D3D12_CPU_DESCRIPTOR_HANDLE h)
-	{
-		D3D12_SHADER_RESOURCE_VIEW_DESC v = DescribeDiffuseView();
-		d->CreateShaderResourceView(r, &v, h);
-	}
-
-	inline D3D12_SHADER_RESOURCE_VIEW_DESC DescribeNormalView()
-	{
-		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
-		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		desc.Format = SampleSettings::TerrainAssets::Normal::Format;
-		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-		desc.TextureCube.MipLevels = SampleSettings::TerrainAssets::Normal::UnpackedMipCount;
-		return desc;
-	}
-
-	static void CreateNormalShaderResourceView(ID3D12Device1* d, ID3D12Resource1* r, D3D12_CPU_DESCRIPTOR_HANDLE h)
-	{
-		D3D12_SHADER_RESOURCE_VIEW_DESC v = DescribeDiffuseView();
-		d->CreateShaderResourceView(r, &v, h);
-	}
-
-	//Diffuse Residency
-	inline D3D12_RESOURCE_DESC DescribeResidency( uint32_t width, uint32_t height)
-	{
-		D3D12_RESOURCE_DESC desc = {};
-		desc.Alignment = 0;
-		desc.DepthOrArraySize	= 6;
-		desc.Dimension			= D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		desc.Flags				= D3D12_RESOURCE_FLAG_NONE;
-		desc.Format				= DXGI_FORMAT_R8_UNORM;
-		desc.Height				= height;
-		desc.Layout				= D3D12_TEXTURE_LAYOUT_UNKNOWN;
-		desc.MipLevels			= 1;
-		desc.SampleDesc.Count	= 1;
-		desc.SampleDesc.Quality = 0;
-		desc.Width				= width;
-		return desc;
-	}
-
-	static winrt::com_ptr<ID3D12Resource1> CreateResidency(ID3D12Device1* device, uint32_t width, uint32_t height)
-	{
-		D3D12_RESOURCE_DESC d = DescribeResidency(width, height);
-
-		winrt::com_ptr<ID3D12Resource1>     r;
-		D3D12_HEAP_PROPERTIES p = {};
-		p.Type = D3D12_HEAP_TYPE_DEFAULT;
-		D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_SOURCE;
-
-		ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
-		return r;
-	}
-
-	inline D3D12_RESOURCE_DESC DescribeNormal()
-	{
-		D3D12_RESOURCE_DESC desc = {};
-		desc.Alignment = 0;
-		desc.DepthOrArraySize = 6;
-		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-		desc.Flags = D3D12_RESOURCE_FLAG_NONE;
-		desc.Format = SampleSettings::TerrainAssets::Normal::Format;
-		desc.Height = SampleSettings::TerrainAssets::Normal::DimensionSize;
-		desc.Layout = D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE;
-		desc.MipLevels = SampleSettings::TerrainAssets::Normal::UnpackedMipCount;
-		desc.SampleDesc.Count = 1;
-		desc.SampleDesc.Quality = 0;
-		desc.Width = SampleSettings::TerrainAssets::Normal::DimensionSize;
-		return desc;
-	}
-
-	static winrt::com_ptr<ID3D12Resource1 > CreateNormalTexture(ID3D12Device1* device)
-	{
-		D3D12_RESOURCE_DESC d = DescribeNormal();
-		winrt::com_ptr<ID3D12Resource1>     r;
-		D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_DEST;
-		sample::ThrowIfFailed(device->CreateReservedResource(&d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
-		return r;
-	}
-
 	//Directly maps constants
 	struct PassConstants
 	{
@@ -461,24 +343,23 @@ namespace sample
 
 		g.run([this, d]
 		{
-			{
-				m_diffuse = CreateDiffuseTexture(d);	//Create the reserved resource
-				m_diffuse->SetName(L"diffuse.bin");
+				ResidencyManagerCreateContext ctx;
+				ctx.m_device			= d;
+				ctx.m_shader_heap		= m_deviceResources->ShaderHeap();
+				ctx.m_shader_heap_index = 0;
 
-				auto managed		= m_residencyManager->ManageTexture(d, m_diffuse.get(), L"data1\\diffuse.bin");
-				m_diffuse_residency = CreateResidency(d, managed->ResidencyWidth(), managed->ResidencyHeight());
-				CreateDiffuseShaderResourceView(d, m_diffuse.get(), CpuView( d, m_deviceResources->ShaderHeap()) + m_diffuse_srt);
-			}
+				ctx.m_diffuse			= L"data1\\diffuse.bin";
+				ctx.m_normal			= L"data1\\normal.bin";
 
-			{
-				m_normal = CreateNormalTexture(d);	//Create the reserved resource
-				m_normal->SetName(L"normal.bin");
+				ResidencyManagerCreateResult r = m_residencyManager->CreateResidencyManager(ctx);
 
-				auto managed		= m_residencyManager->ManageTexture(d, m_normal.get(), L"data1\\normal.bin");
-				m_normal_residency	= CreateResidency(d, managed->ResidencyWidth(), managed->ResidencyHeight());
-				CreateNormalShaderResourceView(d, m_normal.get(), CpuView(d, m_deviceResources->ShaderHeap()) + m_normal_srt);
-			}
-			
+				m_diffuse_srv			= r.m_diffuse_srv;
+				m_normal_srv			= r.m_normal_srv;
+
+				m_diffuse_residency_srv = r.m_diffuse_residency_srv;
+				m_normal_residency_srv	= r.m_normal_residency_srv;
+
+
 		});
 
 		g.run([this, d]

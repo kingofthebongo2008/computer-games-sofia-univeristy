@@ -11,26 +11,27 @@
 
 #include "tile_loader.h"
 
-
 namespace sample
 {
     // Data and metadata for a tiled resource layer.
     struct ManagedTiledResource
     {
-        ID3D12Resource1*									m_texture;
-        D3D12_RESOURCE_DESC									m_textureDesc;
-		D3D12_PACKED_MIP_INFO								m_packedMipDesc;
+        D3D12_RESOURCE_DESC									m_textureDescription;
+		D3D12_PACKED_MIP_INFO								m_packedMipDescription;
         D3D12_TILE_SHAPE									m_tileShape;
         std::vector<D3D12_SUBRESOURCE_TILING>				m_subresourceTilings;
-        std::unique_ptr<TileLoader>							m_loader;
-        std::vector<uint8_t>								m_residency[6];
-		winrt::com_ptr<ID3D12Resource1>						m_residencyTexture;
+        
+		std::unique_ptr<TileLoader>							m_loader;						//loader of binary data
+        std::vector<uint8_t>								m_residencyShadow[6];			//six cube faces, holding the mip level of every tile
 
-		uint32_t											m_totalTiles;
-		uint32_t											m_residencyTextureViewOffset;
+		uint32_t											m_totalTiles;					//total tile in the virtual resource
 
 		uint32_t ResidencyWidth()	const { return m_subresourceTilings[0].WidthInTiles;  }
 		uint32_t ResidencyHeight()	const { return m_subresourceTilings[0].HeightInTiles; }
+
+		winrt::com_ptr<ID3D12Resource1>						m_resource;						//reserved resource
+		winrt::com_ptr<ID3D12Resource1>						m_residencyResource;			//loaded mip level for every tile
+		winrt::com_ptr<ID3D12Resource1>						m_residencyResourceUpload[2];	//two heaps per frame, which are used to upload the 
     };
 
     // Unique identifier for a tile.
@@ -74,30 +75,41 @@ namespace sample
         TileState							m_state;
     };
 
+	struct ResidencyManagerCreateContext
+	{
+		ID3D12Device1* m_device;
+
+		ID3D12DescriptorHeap* m_shader_heap;
+		uint32_t              m_shader_heap_index;    //free slot
+
+		std::wstring		  m_diffuse;
+		std::wstring		  m_normal;
+	};
+
+	struct ResidencyManagerCreateResult
+	{
+		uint32_t m_diffuse_srv;
+		uint32_t m_diffuse_residency_srv;
+
+		uint32_t m_normal_srv;
+		uint32_t m_normal_residency_srv;
+	};
+
     class ResidencyManager
     {
-
-    public:
+		public:
 
         ResidencyManager(ID3D12Device1* d);
-        
-		//void CreateDeviceDependentResources();
-        //concurrency::task<void> CreateDeviceDependentResourcesAsync();
-        //void ReleaseDeviceDependentResources();
 
-		ManagedTiledResource* ManageTexture(ID3D12Device* d, ID3D12Resource1* texture, const std::wstring& filename);
-
-        //void EnqueueSamples(const std::vector<DecodedSample>& samples, const DX::StepTimer& timer);
-        //void ProcessQueues();
+		ResidencyManagerCreateResult CreateResidencyManager(const ResidencyManagerCreateContext& ctx);
 
 		void UpdateTiles( ID3D12CommandList* list, uint32_t frame_index );
 
 	private:
 
-		ManagedTiledResource* MakeResource();
+		std::unique_ptr<ManagedTiledResource>	m_resources[2];
 
         // Set of resources managed by this class.
-        std::vector<std::unique_ptr<ManagedTiledResource>>	m_managedResources;
 
         // Tiled Resource tile pool.
         //Microsoft::WRL::ComPtr<ID3D11Buffer> m_tilePool;

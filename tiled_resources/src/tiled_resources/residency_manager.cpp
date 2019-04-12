@@ -9,9 +9,63 @@
 #include "residency_manager.h"
 #include "error.h"
 #include "d3dx12.h"
+#include "sample_settings.h"
+#include "cpu_view.h"
 
 namespace sample
 {
+	static winrt::com_ptr<ID3D12Resource1 > CreateReservedResource(ID3D12Device1* device, uint32_t width, uint32_t height, DXGI_FORMAT f, uint32_t mipLevels)
+	{
+		D3D12_RESOURCE_DESC desc = {};
+		desc.Alignment = 0;
+		desc.DepthOrArraySize = 6;
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		desc.Format = f;
+		desc.Height = height;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE;
+		desc.MipLevels = mipLevels;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Width = width;
+
+		winrt::com_ptr<ID3D12Resource1>     r;
+		D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_DEST;
+		sample::ThrowIfFailed(device->CreateReservedResource(&desc, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+		return r;
+	}
+
+	//Diffuse Residency
+	inline D3D12_RESOURCE_DESC DescribeResidency(uint32_t width, uint32_t height)
+	{
+		D3D12_RESOURCE_DESC desc = {};
+		desc.Alignment = 0;
+		desc.DepthOrArraySize = 6;
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		desc.Format = DXGI_FORMAT_R8_UNORM;
+		desc.Height = height;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+		desc.MipLevels = 1;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Width = width;
+		return desc;
+	}
+
+	static winrt::com_ptr<ID3D12Resource1> CreateResidency(ID3D12Device1* device, uint32_t width, uint32_t height)
+	{
+		D3D12_RESOURCE_DESC d = DescribeResidency(width, height);
+
+		winrt::com_ptr<ID3D12Resource1>     r;
+		D3D12_HEAP_PROPERTIES p = {};
+		p.Type = D3D12_HEAP_TYPE_DEFAULT;
+		D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+		ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+		return r;
+	}
+
 	//prepare for creation
 	inline D3D12_RESOURCE_DESC DescribeBuffer(uint64_t elements, uint64_t elementSize = 1)
 	{
@@ -30,7 +84,6 @@ namespace sample
 		return desc;
 	}
 
-	//
 	static winrt::com_ptr<ID3D12Resource1> CreateUploadResource(ID3D12Device1* device, uint32_t size)
 	{
 		D3D12_RESOURCE_DESC d		= DescribeBuffer(size);
@@ -43,7 +96,7 @@ namespace sample
 		ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
 		return r;
 	}
-	
+
 	static D3D12_HEAP_DESC DescribeHeap(uint32_t size)
 	{
 		D3D12_HEAP_DESC d				  = {};
@@ -71,44 +124,111 @@ namespace sample
 	{
 		m_upload_heap[0]	= CreateUploadResource(d, 16 * 1024 * 1024);
 		m_upload_heap[1]	= CreateUploadResource(d, 16 * 1024 * 1024);
-
-		m_physical_heap     = CreatePhysicalHeap(d, 16 * 1024 * 1024);
+		m_physical_heap     = CreatePhysicalHeap(d,   32 * 1024 * 1024);
 	}
 
-	ManagedTiledResource* ResidencyManager::MakeResource()
+	std::unique_ptr<ManagedTiledResource> MakeManagedResource( ID3D12Device1* d, winrt::com_ptr<ID3D12Resource1> resource, const std::wstring& filename )
 	{
-		auto resource = std::make_unique<ManagedTiledResource>();
-		auto resourceNative = resource.get();
-		m_managedResources.emplace_back(std::move(resource));
-		return resourceNative;
+		std::unique_ptr<ManagedTiledResource> r = std::make_unique<ManagedTiledResource>();
+		ManagedTiledResource* p = r.get();
+
+		//Create the reserved resource
+		p->m_resource = resource;
+		p->m_textureDescription = p->m_resource->GetDesc();
+		uint32_t subresourceTilings = p->m_textureDescription.MipLevels * p->m_textureDescription.DepthOrArraySize;
+
+		//Fetch tiling information
+		p->m_subresourceTilings.resize(subresourceTilings);
+		d->GetResourceTiling(p->m_resource.get(), &p->m_totalTiles, &p->m_packedMipDescription, &p->m_tileShape, &subresourceTilings, 0, p->m_subresourceTilings.data());
+		p->m_loader = std::make_unique<TileLoader>(filename, &p->m_subresourceTilings);
+
+		//Update the shadow residency buffer, set it up to point to the last mip
+		//this will be updated from the streaming system
+		for (auto face = 0U; face < 6U; face++)
+		{
+			p->m_residencyShadow[face].clear();
+			p->m_residencyShadow[face].resize(p->ResidencyWidth() * p->ResidencyHeight(), 0xFF);
+		}
+
+		//create the small texture
+		p->m_residencyResource			= CreateResidency(d, p->ResidencyWidth(), p->ResidencyHeight());
+
+		//create the upload heaps for residency texture, so we can upload it every frame if needed
+		//one per frame, 
+		uint64_t size = GetRequiredIntermediateSize(p->m_residencyResource.get(), 0, 1);
+		p->m_residencyResourceUpload[0] = CreateUploadResource(d, size);
+		p->m_residencyResourceUpload[1] = CreateUploadResource(d, size);
+
+		return r;
 	}
 
-	ManagedTiledResource* ResidencyManager::ManageTexture(ID3D12Device* d, ID3D12Resource1* texture, const std::wstring& filename)
+	std::unique_ptr<ManagedTiledResource> MakeDiffuseResource(ID3D12Device1* d, const std::wstring& filename )
 	{
-		ManagedTiledResource* resource	= MakeResource();
-
-		resource->m_texture				= texture;
-		resource->m_textureDesc			= texture->GetDesc();
-		const auto& description			= resource->m_textureDesc;
-		uint32_t subresourceTilings		= description.MipLevels * description.DepthOrArraySize;
-
-		resource->m_subresourceTilings.resize(subresourceTilings);
-
-		d->GetResourceTiling(
-			texture,
-			&resource->m_totalTiles,
-			&resource->m_packedMipDesc,
-			&resource->m_tileShape,
-			&subresourceTilings,
-			0,
-			resource->m_subresourceTilings.data()
-		);
-
-		assert(subresourceTilings == description.MipLevels * description.DepthOrArraySize);
-		resource->m_loader = std::make_unique<TileLoader>(filename, &resource->m_subresourceTilings);
-		return resource;
+		using namespace SampleSettings::TerrainAssets;
+		winrt::com_ptr<ID3D12Resource1> diffuse =  CreateReservedResource(d, Diffuse::DimensionSize, Diffuse::DimensionSize, Diffuse::Format, Diffuse::UnpackedMipCount);
+		return MakeManagedResource(d, std::move(diffuse), filename);
 	}
-	
+
+	std::unique_ptr<ManagedTiledResource> MakeNormalResource(ID3D12Device1* d, const std::wstring& filename)
+	{
+		using namespace SampleSettings::TerrainAssets;
+		winrt::com_ptr<ID3D12Resource1> normal = CreateReservedResource(d, Normal::DimensionSize, Normal::DimensionSize, Normal::Format, Normal::UnpackedMipCount);
+		return MakeManagedResource(d, std::move(normal), filename);
+	}
+
+	static void CreateDiffuseShaderResourceView(ID3D12Device1* d, ID3D12Resource1* r, D3D12_CPU_DESCRIPTOR_HANDLE h)
+	{
+		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		desc.Format = SampleSettings::TerrainAssets::Diffuse::Format;
+		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+		desc.TextureCube.MipLevels = SampleSettings::TerrainAssets::Diffuse::UnpackedMipCount;
+		d->CreateShaderResourceView(r, &desc, h);
+	}
+
+	static void CreateNormalShaderResourceView(ID3D12Device1* d, ID3D12Resource1* r, D3D12_CPU_DESCRIPTOR_HANDLE h)
+	{
+		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		desc.Format = SampleSettings::TerrainAssets::Normal::Format;
+		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+		desc.TextureCube.MipLevels = SampleSettings::TerrainAssets::Normal::UnpackedMipCount;
+		d->CreateShaderResourceView(r, &desc, h);
+	}
+
+	static void CreateResidencyShaderResourceView(ID3D12Device1* d, ID3D12Resource1* r, D3D12_CPU_DESCRIPTOR_HANDLE h)
+	{
+		D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
+		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		desc.Format = DXGI_FORMAT_R8_UNORM;
+		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+		desc.TextureCube.MipLevels = 1;
+		d->CreateShaderResourceView(r, &desc, h);
+	}
+
+	ResidencyManagerCreateResult ResidencyManager::CreateResidencyManager(const ResidencyManagerCreateContext& ctx)
+	{
+		m_resources[0] = MakeDiffuseResource(ctx.m_device, ctx.m_diffuse);
+		m_resources[1] = MakeNormalResource(ctx.m_device, ctx.m_normal);
+
+		//Now setup the views
+		ResidencyManagerCreateResult r;
+
+		r.m_diffuse_srv				= ctx.m_shader_heap_index;
+		r.m_diffuse_residency_srv	= ctx.m_shader_heap_index+1;
+
+		r.m_normal_srv				= ctx.m_shader_heap_index + 2;
+		r.m_normal_residency_srv	= ctx.m_shader_heap_index + 3;
+
+		CreateDiffuseShaderResourceView(ctx.m_device, m_resources[0]->m_resource.get(), CpuView(ctx.m_device, ctx.m_shader_heap) + r.m_diffuse_srv);
+		CreateNormalShaderResourceView(ctx.m_device, m_resources[1]->m_resource.get(), CpuView(ctx.m_device, ctx.m_shader_heap) + r.m_normal_srv);
+
+		CreateResidencyShaderResourceView(ctx.m_device, m_resources[0]->m_residencyResource.get(), CpuView(ctx.m_device, ctx.m_shader_heap) + r.m_diffuse_residency_srv);
+		CreateResidencyShaderResourceView(ctx.m_device, m_resources[1]->m_residencyResource.get(), CpuView(ctx.m_device, ctx.m_shader_heap) + r.m_normal_residency_srv);
+
+		return r;
+	}
+
 	void UpdateTiles(ID3D12CommandList* list, uint32_t frame_index)
 	{
 
