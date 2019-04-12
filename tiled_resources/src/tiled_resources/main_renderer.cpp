@@ -355,8 +355,6 @@ namespace sample
 
 				m_diffuse_residency_srv = r.m_diffuse_residency_srv;
 				m_normal_residency_srv	= r.m_normal_residency_srv;
-
-
 		});
 
 		//let the waiting thread do some work also
@@ -365,9 +363,31 @@ namespace sample
 			m_terrain_renderer_state = CreateTerrainRendererState(d, m_root_signature.get());
 		});
 
-
 		//Copy descriptors, since we have created all of them
 		d->CopyDescriptorsSimple(4, m_deviceResources->ShaderHeapGpu()->GetCPUDescriptorHandleForHeapStart(), m_deviceResources->ShaderHeap()->GetCPUDescriptorHandleForHeapStart(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+		{
+			//Copy the resources to the gpu memory
+			//and prepare them for usage by the gpu
+			ID3D12CommandAllocator* allocator = m_command_allocator[m_frame_index].get();
+			ID3D12GraphicsCommandList1* commandList = m_command_list[m_frame_index].get();
+			allocator->Reset();
+			commandList->Reset(allocator, nullptr);
+
+			m_residencyManager->ResetInitialData(commandList, m_frame_index);
+
+			commandList->Close();
+
+			//Execute what we have so far
+			{
+				//form group of several command lists
+				ID3D12CommandList* lists[] = { commandList };
+				m_deviceResources->Queue()->ExecuteCommandLists(1, lists); //Execute what we have, submission of commands to the gpu
+			}
+
+			//Insert in the gpu a command after all submitted commands so far.
+			WaitForIdleGpu();		
+		}
 	}
 
 	void MainRenderer::Run()

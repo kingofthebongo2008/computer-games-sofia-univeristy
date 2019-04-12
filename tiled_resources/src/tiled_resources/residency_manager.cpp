@@ -155,7 +155,7 @@ namespace sample
 
 		//create the upload heaps for residency texture, so we can upload it every frame if needed
 		//one per frame, 
-		uint64_t size = GetRequiredIntermediateSize(p->m_residencyResource.get(), 0, 1);
+		uint64_t size = GetRequiredIntermediateSize(p->m_residencyResource.get(), 0, 6);
 		p->m_residencyResourceUpload[0] = CreateUploadResource(d, size);
 		p->m_residencyResourceUpload[1] = CreateUploadResource(d, size);
 
@@ -229,7 +229,54 @@ namespace sample
 		return r;
 	}
 
-	void UpdateTiles(ID3D12CommandList* list, uint32_t frame_index)
+	/*
+		int baseWidthInTiles = resource->subresourceTilings[0].WidthInTiles;
+		int baseHeightInTiles = resource->subresourceTilings[0].HeightInTiles;
+		int baseMaxTileDimension = max(baseWidthInTiles, baseHeightInTiles);
+		std::vector<byte> residencyData(baseMaxTileDimension * baseMaxTileDimension);
+		for (int face = 0; face < 6; face++)
+		{
+			for (int Y = 0; Y < baseMaxTileDimension; Y++)
+			{
+				int tileY = (Y * baseHeightInTiles) / baseMaxTileDimension;
+				for (int X = 0; X < baseMaxTileDimension; X++)
+				{
+					int tileX = (X * baseWidthInTiles) / baseMaxTileDimension;
+					residencyData[Y * baseMaxTileDimension + X] = resource->residency[face][tileY * baseWidthInTiles + tileX];
+				}
+			}
+			context->UpdateSubresource(
+				resource->residencyTexture.Get(),
+				face,
+				NULL,
+				residencyData.data(),
+				baseMaxTileDimension,
+				0
+				);
+		}
+	*/
+
+	void ResidencyManager::ResetInitialData(ID3D12GraphicsCommandList* list, uint32_t frame_index)
+	{
+		//Upload all residency resources, face by face
+
+		for ( auto i = 0U; i < 2; ++i)
+		{
+			auto r = m_resources[i].get();
+
+			D3D12_SUBRESOURCE_DATA data[6];
+			for (auto i = 0U; i < 6; ++i)
+			{
+				data[i].pData		= &r->m_residencyShadow[i][0];
+				data[i].RowPitch	= r->ResidencyWidth();
+				data[i].SlicePitch	= r->ResidencyHeight();
+			}
+
+			UpdateSubresources<6>(list, r->m_residencyResource.get(), r->m_residencyResourceUpload[frame_index].get(), 0, 0, 6, data);
+		}
+	}
+
+	void ResidencyManager::UpdateTiles(ID3D12GraphicsCommandList* list, uint32_t frame_index)
 	{
 
 	}

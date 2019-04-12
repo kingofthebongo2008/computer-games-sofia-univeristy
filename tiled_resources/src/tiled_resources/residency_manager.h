@@ -103,7 +103,8 @@ namespace sample
 
 		ResidencyManagerCreateResult CreateResidencyManager(const ResidencyManagerCreateContext& ctx);
 
-		void UpdateTiles( ID3D12CommandList* list, uint32_t frame_index );
+		void UpdateTiles(ID3D12GraphicsCommandList* list, uint32_t frame_index );
+		void ResetInitialData(ID3D12GraphicsCommandList* list, uint32_t frame_index);
 
 	private:
 
