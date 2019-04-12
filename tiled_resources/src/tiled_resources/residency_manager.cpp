@@ -60,7 +60,7 @@ namespace sample
 		winrt::com_ptr<ID3D12Resource1>     r;
 		D3D12_HEAP_PROPERTIES p = {};
 		p.Type = D3D12_HEAP_TYPE_DEFAULT;
-		D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_SOURCE;
+		D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_DEST;
 
 		ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
 		return r;
@@ -226,6 +226,12 @@ namespace sample
 		CreateResidencyShaderResourceView(ctx.m_device, m_resources[0]->m_residencyResource.get(), CpuView(ctx.m_device, ctx.m_shader_heap) + r.m_diffuse_residency_srv);
 		CreateResidencyShaderResourceView(ctx.m_device, m_resources[1]->m_residencyResource.get(), CpuView(ctx.m_device, ctx.m_shader_heap) + r.m_normal_residency_srv);
 
+		m_resources[0]->m_resource->SetName(L"diffuse.bin");
+		m_resources[1]->m_resource->SetName(L"normal.bin");
+
+		m_resources[0]->m_residencyResource->SetName(L"diffuseResidency.bin");
+		m_resources[1]->m_residencyResource->SetName(L"normalResidency.bin");
+
 		return r;
 	}
 
@@ -274,11 +280,52 @@ namespace sample
 
 			UpdateSubresources<6>(list, r->m_residencyResource.get(), r->m_residencyResourceUpload[frame_index].get(), 0, 0, 6, data);
 		}
+
+		//Transtion resources, make them ready for sampling
+		{
+			D3D12_RESOURCE_BARRIER barrier[4] = {};
+
+			for (auto i = 0U; i < 4; ++i)
+			{
+				barrier[i].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+				barrier[i].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+				barrier[i].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+				barrier[i].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+			}
+
+			barrier[0].Transition.pResource = m_resources[0]->m_resource.get();
+			barrier[1].Transition.pResource = m_resources[1]->m_resource.get();
+
+			barrier[2].Transition.pResource = m_resources[0]->m_residencyResource.get();
+			barrier[3].Transition.pResource = m_resources[1]->m_residencyResource.get();
+
+			list->ResourceBarrier(4, barrier);
+		}
 	}
 
 	void ResidencyManager::UpdateTiles(ID3D12GraphicsCommandList* list, uint32_t frame_index)
 	{
 
+	}
+
+	ID3D12Resource1* ResidencyManager::Diffuse()
+	{
+		return m_resources[0]->m_resource.get();
+	}
+
+	ID3D12Resource1* ResidencyManager::DiffuseResidency()
+	{
+		return m_resources[0]->m_residencyResource.get();
+	}
+
+	ID3D12Resource1* ResidencyManager::Normal()
+	{
+		return m_resources[1]->m_resource.get();
+	}
+
+	ID3D12Resource1* ResidencyManager::NormalResidency()
+	{
+		return m_resources[1]->m_residencyResource.get();
 	}
 }
 /*

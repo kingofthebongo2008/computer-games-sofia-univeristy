@@ -106,6 +106,12 @@ namespace sample
 		void UpdateTiles(ID3D12GraphicsCommandList* list, uint32_t frame_index );
 		void ResetInitialData(ID3D12GraphicsCommandList* list, uint32_t frame_index);
 
+		ID3D12Resource1* Diffuse();
+		ID3D12Resource1* DiffuseResidency();
+
+		ID3D12Resource1* Normal();
+		ID3D12Resource1* NormalResidency();
+
 	private:
 
 		std::unique_ptr<ManagedTiledResource>	m_resources[2];

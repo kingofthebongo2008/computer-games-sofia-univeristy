@@ -462,8 +462,11 @@ namespace sample
 				static_assert(sizeof(PassConstants) == 36 * 4);
 				commandList->SetGraphicsRoot32BitConstants(0, 36, &constants, 0);
 
+				//Tell the draw calls that they can use a table of 4 descriptors starting from here
+				commandList->SetGraphicsRootDescriptorTable(1, m_deviceResources->ShaderHeapGpu()->GetGPUDescriptorHandleForHeapStart());
+
 				//set the raster pipeline state as a whole, it was prebuilt before
-				commandList->SetPipelineState(m_sampling_renderer_state.get());
+				commandList->SetPipelineState(m_terrain_renderer_state.get());
 
 				uint32_t  w = m_deviceResources->SwapChainWidth();
 				uint32_t  h = m_deviceResources->SwapChainHeight();
