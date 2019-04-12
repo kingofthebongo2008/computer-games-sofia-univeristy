@@ -43,10 +43,36 @@ namespace sample
 		ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
 		return r;
 	}
+	
+	static D3D12_HEAP_DESC DescribeHeap(uint32_t size)
+	{
+		D3D12_HEAP_DESC d				  = {};
+		D3D12_HEAP_PROPERTIES p			  = {};
+		p.Type							  = D3D12_HEAP_TYPE_DEFAULT;
+
+		d.Flags							  = D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES;	//only textures here;
+		d.Properties					  = p;
+		d.SizeInBytes					  = size;
+
+		return d;
+	}
+
+	static winrt::com_ptr<ID3D12Heap> CreatePhysicalHeap(ID3D12Device1* device, uint32_t size)
+	{
+		D3D12_HEAP_DESC d = DescribeHeap(size);
+
+		winrt::com_ptr<ID3D12Heap>     r;
+
+		ThrowIfFailed(device->CreateHeap(&d, __uuidof(ID3D12Heap), r.put_void()));
+		return r;
+	}
 
 	ResidencyManager::ResidencyManager(ID3D12Device1* d)
 	{
-		m_upload_heap = CreateUploadResource(d, 16 * 1024 * 1024);
+		m_upload_heap[0]	= CreateUploadResource(d, 16 * 1024 * 1024);
+		m_upload_heap[1]	= CreateUploadResource(d, 16 * 1024 * 1024);
+
+		m_physical_heap     = CreatePhysicalHeap(d, 16 * 1024 * 1024);
 	}
 
 	ManagedTiledResource* ResidencyManager::MakeResource()
