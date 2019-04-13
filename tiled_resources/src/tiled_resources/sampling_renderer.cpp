@@ -231,39 +231,32 @@ namespace sample
 
         //allocate memory for the render target for sampling renderer
         m_sampling_render_target[0] = CreateRenderTargetResource1(d, m_sampling_width, m_sampling_height);
-        m_sampling_render_target[1] = CreateRenderTargetResource1(d, m_sampling_width, m_sampling_height);
 
         //allocate memory for the depth buffers in the swap chain
         m_sampling_depth[0] = CreateDepthResource1(d, m_sampling_width, m_sampling_height);
-        m_sampling_depth[1] = CreateDepthResource1(d, m_sampling_width, m_sampling_height);
 
 		//allocate memory that will be read on the cpu
 		m_sampling_staging[0] = CreateStagingResource1(d, m_sampling_render_target[0].get());
 		m_sampling_staging[1] = CreateStagingResource1(d, m_sampling_render_target[1].get());
 
         //set names so we can see them in pix
-        m_sampling_render_target[0]->SetName(L"Sampling Buffer 0");
-        m_sampling_render_target[1]->SetName(L"Sampling Buffer 1");
+        m_sampling_render_target[0]->SetName(L"Sampling Buffer");
+        m_sampling_depth[0]->SetName(L"Sampling Depth");
 
-        m_sampling_depth[0]->SetName(L"Sampling Depth 0");
-        m_sampling_depth[1]->SetName(L"Sampling Depth 1");
-
-        m_sampling_descriptors[0] = ctx.m_render_target_index;
-        m_sampling_descriptors[1] = ctx.m_render_target_index + 1;
+        m_sampling_descriptors[0]		= ctx.m_render_target_index;
+		m_sampling_depth_descriptors[0] = ctx.m_depth_index;
 
         m_render_target_descriptor_heap = CpuView(d, ctx.m_render_target_heap);
         m_depth_stencil_descriptor_heap = CpuView(d, ctx.m_depth_heap);
 
         //create render target views, that will be used for rendering
         CreateRenderTargetDescriptor(d, m_sampling_render_target[0].get(), m_render_target_descriptor_heap + m_sampling_descriptors[0]);
-        CreateRenderTargetDescriptor(d, m_sampling_render_target[1].get(), m_render_target_descriptor_heap + m_sampling_descriptors[1]);
 
         //create depth stencil view, that will be used for rendering
-        CreateDepthDescriptor(d, m_sampling_depth[0].get(), m_depth_stencil_descriptor_heap + m_sampling_descriptors[0]);
-        CreateDepthDescriptor(d, m_sampling_depth[1].get(), m_depth_stencil_descriptor_heap + m_sampling_descriptors[1]);
+        CreateDepthDescriptor(d, m_sampling_depth[0].get(), m_depth_stencil_descriptor_heap + m_sampling_depth_descriptors[0]);
 
         //how many descriptors we have allocated
-        return  { 2, 2 };
+        return  { 1, 1 };
     }
 
     ResizeSamplingRendererResult SamplingRenderer::ResizeBuffers(const ResizeSamplingRendererContext& ctx)
@@ -272,11 +265,9 @@ namespace sample
 
         //allocate memory for the render target
         m_sampling_render_target[0] = nullptr;
-        m_sampling_render_target[1] = nullptr;
 
         //allocate memory for the depth buffers
         m_sampling_depth[0] = nullptr;
-        m_sampling_depth[1] = nullptr;
 
         return CreateSamplingRenderer(ctx);
     }
@@ -293,17 +284,17 @@ namespace sample
 
     D3D12_CPU_DESCRIPTOR_HANDLE  SamplingRenderer::SamplingHandle(uint32_t index) const
     {
-        return m_render_target_descriptor_heap + m_sampling_descriptors[index];
+        return m_render_target_descriptor_heap + m_sampling_descriptors[0];
     }
 
     D3D12_CPU_DESCRIPTOR_HANDLE  SamplingRenderer::SamplingDepthHandle(uint32_t index) const
     {
-        return m_depth_stencil_descriptor_heap + m_sampling_descriptors[index];
+        return m_depth_stencil_descriptor_heap + m_sampling_depth_descriptors[0];
     }
 
 	ID3D12Resource1* SamplingRenderer::SamplingRenderTarget(uint32_t index) const
 	{
-		return m_sampling_render_target[index].get();
+		return m_sampling_render_target[0].get();
 	}
 
 	ID3D12Resource1* SamplingRenderer::SamplingStaging(uint32_t index) const

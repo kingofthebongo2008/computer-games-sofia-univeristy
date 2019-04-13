@@ -251,33 +251,6 @@ namespace sample
 		return r;
 	}
 
-	/*
-		int baseWidthInTiles = resource->subresourceTilings[0].WidthInTiles;
-		int baseHeightInTiles = resource->subresourceTilings[0].HeightInTiles;
-		int baseMaxTileDimension = max(baseWidthInTiles, baseHeightInTiles);
-		std::vector<byte> residencyData(baseMaxTileDimension * baseMaxTileDimension);
-		for (int face = 0; face < 6; face++)
-		{
-			for (int Y = 0; Y < baseMaxTileDimension; Y++)
-			{
-				int tileY = (Y * baseHeightInTiles) / baseMaxTileDimension;
-				for (int X = 0; X < baseMaxTileDimension; X++)
-				{
-					int tileX = (X * baseWidthInTiles) / baseMaxTileDimension;
-					residencyData[Y * baseMaxTileDimension + X] = resource->residency[face][tileY * baseWidthInTiles + tileX];
-				}
-			}
-			context->UpdateSubresource(
-				resource->residencyTexture.Get(),
-				face,
-				NULL,
-				residencyData.data(),
-				baseMaxTileDimension,
-				0
-				);
-		}
-	*/
-
 	void ResidencyManager::ResetInitialData(ID3D12GraphicsCommandList* list, uint32_t frame_index)
 	{
 		//Upload all residency resources, face by face

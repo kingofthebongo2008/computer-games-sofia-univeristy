@@ -697,7 +697,7 @@ namespace sample
 		ctx.m_device = m_deviceResources->Device();
 		ctx.m_width = width;
 		ctx.m_height = height;
-		ctx.m_depth_index = 2;
+		ctx.m_depth_index = 1;
 		ctx.m_render_target_index = 2;
 		ctx.m_depth_heap = m_deviceResources->DepthHeap();
 		ctx.m_render_target_heap = m_deviceResources->RenderTargetHeap();
@@ -740,7 +740,7 @@ namespace sample
 			ctx.m_device = m_deviceResources->Device();
 			ctx.m_width = w;
 			ctx.m_height = h;
-			ctx.m_depth_index = 2;
+			ctx.m_depth_index = 1;
 			ctx.m_render_target_index = 2;
 			ctx.m_depth_heap = m_deviceResources->DepthHeap();
 			ctx.m_render_target_heap = m_deviceResources->RenderTargetHeap();

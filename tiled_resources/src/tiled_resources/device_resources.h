@@ -49,7 +49,7 @@ namespace sample
 		winrt::com_ptr <ID3D12DescriptorHeap>   	m_shader_descriptor_heap_gpu;		 //descriptor heap for the shaders
 
         winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];
-        winrt::com_ptr<ID3D12Resource1>             m_swap_chain_depths[2];
+        winrt::com_ptr<ID3D12Resource1>             m_swap_chain_depths[1];
 
         uint64_t                                    m_swap_chain_descriptors[2];
         uint32_t									m_back_buffer_width = 0;

@@ -62,10 +62,11 @@ namespace sample
         DescriptorHeapCpuView                       m_render_target_descriptor_heap;
         DescriptorHeapCpuView                       m_depth_stencil_descriptor_heap;
 
-        winrt::com_ptr<ID3D12Resource1>             m_sampling_render_target[2];
-        winrt::com_ptr<ID3D12Resource1>             m_sampling_depth[2];
+        winrt::com_ptr<ID3D12Resource1>             m_sampling_render_target[1];
+        winrt::com_ptr<ID3D12Resource1>             m_sampling_depth[1];
 
-		uint64_t                                    m_sampling_descriptors[2] = {2,3};
+		uint64_t                                    m_sampling_descriptors[1] = {2};
+		uint64_t                                    m_sampling_depth_descriptors[1] = { 1 };
 
 		winrt::com_ptr<ID3D12Resource1>             m_sampling_staging[2];
 
