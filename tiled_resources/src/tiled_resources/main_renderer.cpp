@@ -374,7 +374,7 @@ namespace sample
 			allocator->Reset();
 			commandList->Reset(allocator, nullptr);
 
-			m_residencyManager->ResetInitialData(commandList, m_frame_index);
+			m_residencyManager->ResetInitialData(m_deviceResources->Queue(), commandList, m_frame_index);
 
 			commandList->Close();
 

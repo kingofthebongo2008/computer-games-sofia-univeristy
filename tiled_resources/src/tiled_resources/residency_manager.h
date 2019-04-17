@@ -103,8 +103,8 @@ namespace sample
 
 		ResidencyManagerCreateResult CreateResidencyManager(const ResidencyManagerCreateContext& ctx);
 
-		void UpdateTiles(ID3D12GraphicsCommandList* list, uint32_t frame_index );
-		void ResetInitialData(ID3D12GraphicsCommandList* list, uint32_t frame_index);
+		void UpdateTiles(ID3D12CommandQueue* queue, ID3D12GraphicsCommandList* list, uint32_t frame_index );
+		void ResetInitialData(ID3D12CommandQueue* queue, ID3D12GraphicsCommandList* list, uint32_t frame_index);
 
 		ID3D12Resource1* Diffuse();
 		ID3D12Resource1* DiffuseResidency();
@@ -140,6 +140,7 @@ namespace sample
 
 		winrt::com_ptr<ID3D12Resource1> m_upload_heap[2];   //to upload new tiles to the gpu, one per frame, must be able to have memory for all our uploads
 		winrt::com_ptr<ID3D12Heap>		m_physical_heap;	//to backup the reserved resources;
+		winrt::com_ptr<ID3D12Resource1> m_null_resource;
     };
 
 	static bool LoadPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)

@@ -34,7 +34,7 @@ namespace sample
         }
         namespace TileResidency
         {
-            static const unsigned int PoolSizeInTiles = 256;
+            static const unsigned int PoolSizeInTiles = 1024;
             static const unsigned int MaxSimultaneousFileLoadTasks = 10;
             static const unsigned int MaxTilesLoadedPerFrame = 100;
         }

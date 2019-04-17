@@ -14,7 +14,7 @@
 
 namespace sample
 {
-	static winrt::com_ptr<ID3D12Resource1 > CreateReservedResource(ID3D12Device1* device, uint32_t width, uint32_t height, DXGI_FORMAT f, uint32_t mipLevels)
+	static winrt::com_ptr<ID3D12Resource1 > CreateReservedTexture(ID3D12Device1* device, uint32_t width, uint32_t height, DXGI_FORMAT f, uint32_t mipLevels)
 	{
 		D3D12_RESOURCE_DESC desc = {};
 		desc.Alignment = 0;
@@ -28,6 +28,27 @@ namespace sample
 		desc.SampleDesc.Count = 1;
 		desc.SampleDesc.Quality = 0;
 		desc.Width = width;
+
+		winrt::com_ptr<ID3D12Resource1>     r;
+		D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_DEST;
+		sample::ThrowIfFailed(device->CreateReservedResource(&desc, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+		return r;
+	}
+
+	static winrt::com_ptr<ID3D12Resource1 > CreateReservedNullBuffer(ID3D12Device1* device )
+	{
+		D3D12_RESOURCE_DESC desc = {};
+		desc.Alignment = 0;
+		desc.DepthOrArraySize = 1;
+		desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+		desc.Format = DXGI_FORMAT_R8_UINT;
+		desc.Height = 256;
+		desc.Layout = D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE;
+		desc.MipLevels = 1;
+		desc.SampleDesc.Count = 1;
+		desc.SampleDesc.Quality = 0;
+		desc.Width = 256;
 
 		winrt::com_ptr<ID3D12Resource1>     r;
 		D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_DEST;
@@ -122,9 +143,13 @@ namespace sample
 
 	ResidencyManager::ResidencyManager(ID3D12Device1* d)
 	{
-		m_upload_heap[0]	= CreateUploadResource(d, 16 * 1024 * 1024);
-		m_upload_heap[1]	= CreateUploadResource(d, 16 * 1024 * 1024);
-		m_physical_heap     = CreatePhysicalHeap(d,   32 * 1024 * 1024);
+		using namespace SampleSettings;
+
+		m_upload_heap[0]	= CreateUploadResource(d, TileResidency::PoolSizeInTiles * TileSizeInBytes);
+		m_upload_heap[1]	= CreateUploadResource(d, TileResidency::PoolSizeInTiles * TileSizeInBytes);
+		m_physical_heap		= CreatePhysicalHeap(d, TileResidency::PoolSizeInTiles * TileSizeInBytes );
+
+		m_null_resource		= CreateReservedNullBuffer(d);
 	}
 
 	std::unique_ptr<ManagedTiledResource> MakeManagedResource( ID3D12Device1* d, winrt::com_ptr<ID3D12Resource1> resource, const std::wstring& filename )
@@ -171,7 +196,9 @@ namespace sample
 
 		//create the upload heaps for residency texture, so we can upload it every frame if needed
 		//one per frame, 
-		uint64_t size = GetRequiredIntermediateSize(p->m_residencyResource.get(), 0, 6);
+
+		uint64_t size					= GetRequiredIntermediateSize(p->m_residencyResource.get(), 0, 6);
+		
 		p->m_residencyResourceUpload[0] = CreateUploadResource(d, size);
 		p->m_residencyResourceUpload[1] = CreateUploadResource(d, size);
 
@@ -181,14 +208,14 @@ namespace sample
 	std::unique_ptr<ManagedTiledResource> MakeDiffuseResource(ID3D12Device1* d, const std::wstring& filename )
 	{
 		using namespace SampleSettings::TerrainAssets;
-		winrt::com_ptr<ID3D12Resource1> diffuse =  CreateReservedResource(d, Diffuse::DimensionSize, Diffuse::DimensionSize, Diffuse::Format, Diffuse::UnpackedMipCount);
+		winrt::com_ptr<ID3D12Resource1> diffuse =  CreateReservedTexture(d, Diffuse::DimensionSize, Diffuse::DimensionSize, Diffuse::Format, Diffuse::UnpackedMipCount);
 		return MakeManagedResource(d, std::move(diffuse), filename);
 	}
 
 	std::unique_ptr<ManagedTiledResource> MakeNormalResource(ID3D12Device1* d, const std::wstring& filename)
 	{
 		using namespace SampleSettings::TerrainAssets;
-		winrt::com_ptr<ID3D12Resource1> normal = CreateReservedResource(d, Normal::DimensionSize, Normal::DimensionSize, Normal::Format, Normal::UnpackedMipCount);
+		winrt::com_ptr<ID3D12Resource1> normal = CreateReservedTexture(d, Normal::DimensionSize, Normal::DimensionSize, Normal::Format, Normal::UnpackedMipCount);
 		return MakeManagedResource(d, std::move(normal), filename);
 	}
 
@@ -251,7 +278,7 @@ namespace sample
 		return r;
 	}
 
-	void ResidencyManager::ResetInitialData(ID3D12GraphicsCommandList* list, uint32_t frame_index)
+	void ResidencyManager::ResetInitialData(ID3D12CommandQueue* queue, ID3D12GraphicsCommandList* list, uint32_t frame_index)
 	{
 		//Upload all residency resources, face by face
 
@@ -270,14 +297,35 @@ namespace sample
 			UpdateSubresources<6>(list, r->m_residencyResource.get(), r->m_residencyResourceUpload[frame_index].get(), 0, 0, 6, data);
 		}
 
+
+
+		//Update the null resource
+		{
+			auto r = m_null_resource.get();
+
+			std::vector<uint8_t> buffer(SampleSettings::TileSizeInBytes, 0xAA);
+
+			D3D12_SUBRESOURCE_DATA data[1] =
+			{
+				{
+					&buffer[0],
+					256,
+					SampleSettings::TileSizeInBytes
+				}
+			};
+
+			UpdateSubresources<1>(list, r, m_upload_heap[frame_index].get(), 0, 0, 1, data);
+		}
+
+
 		//Transtion resources, make them ready for sampling
 		{
-			D3D12_RESOURCE_BARRIER barrier[4] = {};
+			D3D12_RESOURCE_BARRIER barrier[5] = {};
 
-			for (auto i = 0U; i < 4; ++i)
+			for (auto i = 0U; i < 5; ++i)
 			{
 				barrier[i].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-				barrier[i].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+				barrier[i].Transition.StateAfter  = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 				barrier[i].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
 				barrier[i].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 			}
@@ -288,11 +336,35 @@ namespace sample
 			barrier[2].Transition.pResource = m_resources[0]->m_residencyResource.get();
 			barrier[3].Transition.pResource = m_resources[1]->m_residencyResource.get();
 
+			barrier[4].Transition.pResource = m_null_resource.get();
+
 			list->ResourceBarrier(4, barrier);
 		}
+
+		for (auto i = 0U; i < 2; ++i)
+		{
+			auto r = m_resources[i]->m_resource;
+
+			D3D12_TILE_RANGE_FLAGS flags[] = { D3D12_TILE_RANGE_FLAG_REUSE_SINGLE_TILE };
+			uint32_t		       heap_offset[] = { 0 };
+			uint32_t			   tile_counts[] = { 1 };
+			queue->UpdateTileMappings(r.get(), 1, nullptr, nullptr, m_physical_heap.get(), 1, &flags[0], &heap_offset[0], nullptr, D3D12_TILE_MAPPING_FLAG_NONE);
+		}
+
+		//Map null tile to the same heap
+		{
+			auto r = m_null_resource.get();
+
+			D3D12_TILE_RANGE_FLAGS flags[] = { D3D12_TILE_RANGE_FLAG_REUSE_SINGLE_TILE };
+			uint32_t		       heap_offset[] = { 0 };
+			uint32_t			   tile_counts[] = { 1 };
+			queue->UpdateTileMappings(r, 1, nullptr, nullptr, m_physical_heap.get(), 1, &flags[0], &heap_offset[0], nullptr, D3D12_TILE_MAPPING_FLAG_NONE);
+		}
+
+
 	}
 
-	void ResidencyManager::UpdateTiles(ID3D12GraphicsCommandList* list, uint32_t frame_index)
+	void ResidencyManager::UpdateTiles(ID3D12CommandQueue* queue, ID3D12GraphicsCommandList* list, uint32_t frame_index)
 	{
 
 	}
@@ -370,7 +442,7 @@ void ResidencyManager::CreateDeviceDependentResources()
     };
     D3D11_BUFFER_DESC vertexBufferDesc;
     ZeroMemory(&vertexBufferDesc, sizeof(vertexBufferDesc));
-    vertexBufferDesc.ByteWidth = sizeof(vertexBufferData);
+    vertexBufferDesc.ByteWidth = sizeof(vertexBufferData)9;
     vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
     vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     D3D11_SUBRESOURCE_DATA vertexBufferInitialData = {vertexBufferData, 0, 0};
