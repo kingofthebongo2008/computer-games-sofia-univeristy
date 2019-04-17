@@ -336,8 +336,10 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     state.SampleDesc.Count			= 1;
     state.BlendState				= CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 
-    state.DepthStencilState.DepthEnable = FALSE;
+    state.DepthStencilState.DepthEnable = TRUE;
     state.DepthStencilState.StencilEnable = FALSE;
+	state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
 
     state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
     state.PS = { &g_triangle_pixel[0], sizeof(g_triangle_pixel) };
@@ -346,6 +348,37 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
 
     ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
     return r;
+}
+
+//create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
+//It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
+static winrt::com_ptr< ID3D12PipelineState>	 CreateTriangleDepthPipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
+{
+		static
+#include <triangle_vertex.h>
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+	state.pRootSignature = root;
+	state.SampleMask = UINT_MAX;
+	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+
+	state.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+	state.RasterizerState.FrontCounterClockwise = TRUE;
+
+	state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	state.SampleDesc.Count = 1;
+	state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+
+	state.DepthStencilState.DepthEnable = TRUE;
+	state.DepthStencilState.StencilEnable = FALSE;
+	state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+
+	state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
+	winrt::com_ptr<ID3D12PipelineState> r;
+
+	ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
+	return r;
 }
 
 
