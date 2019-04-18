@@ -135,7 +135,7 @@ namespace sample
         // List of mapped tiles.
         std::list<TrackedTile*>								m_mappedTileList;
 
-        volatile LONG m_activeTileLoadingOperations;
+		std::atomic<uint32_t>								m_active_tile_loading_operations;
 
         uint32_t m_reservedTiles;
 		uint32_t m_defaultTileIndex;
@@ -147,7 +147,7 @@ namespace sample
 		void ProcessSamples(const std::vector<DecodedSample>& samples, uint32_t frame_number);
     };
 
-	static bool LoadPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
+	static bool LoadPredicate(const TrackedTile* a, const TrackedTile* b)
     {
         // Prefer more recently seen tiles.
         if (a->m_lastSeen > b->m_lastSeen) return true;
@@ -157,7 +157,7 @@ namespace sample
         return a->m_mipLevel > b->m_mipLevel;
     }
 
-	static bool MapPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
+	static bool MapPredicate(const TrackedTile* a, const TrackedTile* b)
     {
         // Only loaded tiles can be mapped, so put those first.
         if (a->m_state == TileState::Loaded && b->m_state == TileState::Loading) return true;
@@ -171,7 +171,7 @@ namespace sample
         return a->m_mipLevel > b->m_mipLevel;
     }
 
-	static bool EvictPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
+	static bool EvictPredicate(const TrackedTile* a, const TrackedTile* b)
     {
         // Evict older tiles first.
         if (a->m_lastSeen < b->m_lastSeen) return true;
