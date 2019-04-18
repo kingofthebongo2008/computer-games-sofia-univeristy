@@ -137,8 +137,8 @@ namespace sample
 
 		std::atomic<uint32_t>								m_active_tile_loading_operations;
 
-        uint32_t m_reservedTiles;
-		uint32_t m_defaultTileIndex;
+        uint32_t m_reservedTiles = 1;
+		uint32_t m_defaultTileIndex = 0;
 
 		winrt::com_ptr<ID3D12Resource1> m_upload_heap[2];   //to upload new tiles to the gpu, one per frame, must be able to have memory for all our uploads
 		winrt::com_ptr<ID3D12Heap>		m_physical_heap;	//to backup the reserved resources;

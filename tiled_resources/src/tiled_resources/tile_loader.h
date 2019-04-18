@@ -38,6 +38,7 @@ namespace sample
 		std::wstring							 m_filename;
 		std::vector<D3D12_SUBRESOURCE_TILING>*	 m_tilingInfo = nullptr;
 		IAsyncOperation<IRandomAccessStream>	 m_openStream;
+		IRandomAccessStream						 m_openStreamData;
 		
         std::vector<size_t>						 m_subresourceTileOffsets;
 		uint32_t								 m_subresourcesPerFaceInResource = 0;

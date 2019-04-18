@@ -501,7 +501,7 @@ namespace sample
 		{
 			std::vector<D3D12_TILED_RESOURCE_COORDINATE> m_coordinates;
 
-			std::vector<uint32_t>						 m_rangeFlags;
+			std::vector<D3D12_TILE_RANGE_FLAGS>			 m_rangeFlags;
 			std::vector<uint32_t>						 m_physicalOffsets;
 
 			// For convenience, the tracked tile mapping is also saved.
@@ -587,9 +587,10 @@ namespace sample
 				m_trackedTiles.erase(tileKey);
 			}
 
+
 			// Add the new mapping to the argument list.
 			coalescedMapArguments[tileToMap->m_managedResource->m_resource.get()].m_coordinates.push_back(tileToMap->m_coordinate);
-			coalescedMapArguments[tileToMap->m_managedResource->m_resource.get()].m_rangeFlags.push_back(0);
+			coalescedMapArguments[tileToMap->m_managedResource->m_resource.get()].m_rangeFlags.push_back(D3D12_TILE_RANGE_FLAG_NONE);
 			coalescedMapArguments[tileToMap->m_managedResource->m_resource.get()].m_physicalOffsets.push_back(physicalTileOffset);
 			tileToMap->m_physicalTileOffset = physicalTileOffset;
 			tileToMap->m_state = TileState::Mapped;
@@ -610,6 +611,59 @@ namespace sample
 			}
 
 			m_mappedTileList.push_back(tileToMap);
+		}
+
+		// Use a single call to update all tile mappings.
+		for (auto&& perResourceArguments : coalescedMapArguments)
+		{
+			std::vector<uint32_t> rangeCounts(perResourceArguments.second.m_rangeFlags.size(), 1);
+			D3D12_TILE_REGION_SIZE size = {};
+			
+			size.NumTiles = 1;
+			std::vector<D3D12_TILE_REGION_SIZE> sizes(perResourceArguments.second.m_rangeFlags.size(), size);
+
+			//queue->UpdateTileMappings(r.get(), 1, nullptr, nullptr, m_physical_heap.get(), 1, &flags[0], &heap_offset[0], nullptr, D3D12_TILE_MAPPING_FLAG_NONE);
+			/*
+
+			HRESULT UpdateTileMappings(
+				ID3D11Resource* pTiledResource,
+				UINT                                  NumTiledResourceRegions,
+				const D3D11_TILED_RESOURCE_COORDINATE* pTiledResourceRegionStartCoordinates,
+				const D3D11_TILE_REGION_SIZE* pTiledResourceRegionSizes,
+				ID3D11Buffer* pTilePool,
+				UINT                                  NumRanges,
+				const UINT* pRangeFlags,
+				const UINT* pTilePoolStartOffsets,
+				const UINT* pRangeTileCounts,
+				UINT                                  Flags
+			);
+
+			void UpdateTileMappings(
+				ID3D12Resource* pResource,
+				UINT                                  NumResourceRegions,
+				const D3D12_TILED_RESOURCE_COORDINATE* pResourceRegionStartCoordinates,
+				const D3D12_TILE_REGION_SIZE* pResourceRegionSizes,
+				ID3D12Heap* pHeap,
+				UINT                                  NumRanges,
+				const D3D12_TILE_RANGE_FLAGS* pRangeFlags,
+				const UINT* pHeapRangeStartOffsets,
+				const UINT* pRangeTileCounts,
+				D3D12_TILE_MAPPING_FLAGS              Flags
+			);
+			*/
+			
+			queue->UpdateTileMappings(
+				perResourceArguments.first,
+				(uint32_t)perResourceArguments.second.m_coordinates.size(),
+				perResourceArguments.second.m_coordinates.data(),
+				sizes.data(),
+				m_physical_heap.get(),
+				(uint32_t)perResourceArguments.second.m_rangeFlags.size(),
+				perResourceArguments.second.m_rangeFlags.data(),
+				perResourceArguments.second.m_physicalOffsets.data(),
+				rangeCounts.data(),
+				D3D12_TILE_MAPPING_FLAG_NONE
+			);
 		}
 	}
 }

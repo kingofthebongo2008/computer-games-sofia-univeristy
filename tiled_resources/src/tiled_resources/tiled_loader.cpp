@@ -31,12 +31,14 @@ namespace sample
 		, m_subresourcesPerFaceInResource( 0 )
 		, m_subresourcesPerFaceInFile ( 0 )
 	{
-		m_openStream = OpenStreamPrivate(m_filename, m_tilingInfo);
+//		m_openStream = OpenStreamPrivate(m_filename, m_tilingInfo);
+
+		m_openStreamData = OpenStreamPrivate(m_filename, m_tilingInfo).get();
 	}
 
 	IAsyncOperation< IRandomAccessStream >	 TileLoader::OpenStreamPrivate(const std::wstring& s, std::vector<D3D12_SUBRESOURCE_TILING>* tilingInfo )
 	{
-		auto stream = co_await OpenStreamAsync(s);
+		auto&& stream = co_await OpenStreamAsync(s);
 
 		m_subresourcesPerFaceInResource				= static_cast<uint32_t>(tilingInfo->size() / 6 );
 		uint32_t tilesForSingleFaceMostDetailedMip	= tilingInfo->at(1).StartTileIndexInOverallResource;
@@ -60,16 +62,17 @@ namespace sample
 			}
 		}
 
-		return stream;
+		co_return stream;
 	}
 
-	task<std::vector<byte>> TileLoader::LoadTileAsync(D3D12_TILED_RESOURCE_COORDINATE coordinate)
+	task<std::vector<byte>> TileLoader::LoadTileAsync(D3D12_TILED_RESOURCE_COORDINATE _coordinate)
 	{
-		uint32_t subresourceInFile = (coordinate.Subresource / m_subresourcesPerFaceInResource ) * m_subresourcesPerFaceInFile + coordinate.Subresource % m_subresourcesPerFaceInResource;
-		size_t fileOffset		   = (m_subresourceTileOffsets[subresourceInFile] + (coordinate.Y * m_tilingInfo->at(coordinate.Subresource).WidthInTiles + coordinate.X) ) * SampleSettings::TileSizeInBytes;
+		auto   localCoordinate = _coordinate;
+		uint32_t subresourceInFile = (localCoordinate.Subresource / m_subresourcesPerFaceInResource ) * m_subresourcesPerFaceInFile + localCoordinate.Subresource % m_subresourcesPerFaceInResource;
+		size_t fileOffset		   = (m_subresourceTileOffsets[subresourceInFile] + (localCoordinate.Y * m_tilingInfo->at(localCoordinate.Subresource).WidthInTiles + localCoordinate.X) ) * SampleSettings::TileSizeInBytes;
 
 		auto offset		= fileOffset;
-		auto stream		= co_await m_openStream;
+		auto stream		= m_openStreamData;
 		auto reader		= DataReader(stream.GetInputStreamAt(offset));
 		auto bytesRead	= co_await reader.LoadAsync(SampleSettings::TileSizeInBytes);
 
