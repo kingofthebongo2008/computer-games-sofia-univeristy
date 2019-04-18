@@ -622,36 +622,6 @@ namespace sample
 			size.NumTiles = 1;
 			std::vector<D3D12_TILE_REGION_SIZE> sizes(perResourceArguments.second.m_rangeFlags.size(), size);
 
-			//queue->UpdateTileMappings(r.get(), 1, nullptr, nullptr, m_physical_heap.get(), 1, &flags[0], &heap_offset[0], nullptr, D3D12_TILE_MAPPING_FLAG_NONE);
-			/*
-
-			HRESULT UpdateTileMappings(
-				ID3D11Resource* pTiledResource,
-				UINT                                  NumTiledResourceRegions,
-				const D3D11_TILED_RESOURCE_COORDINATE* pTiledResourceRegionStartCoordinates,
-				const D3D11_TILE_REGION_SIZE* pTiledResourceRegionSizes,
-				ID3D11Buffer* pTilePool,
-				UINT                                  NumRanges,
-				const UINT* pRangeFlags,
-				const UINT* pTilePoolStartOffsets,
-				const UINT* pRangeTileCounts,
-				UINT                                  Flags
-			);
-
-			void UpdateTileMappings(
-				ID3D12Resource* pResource,
-				UINT                                  NumResourceRegions,
-				const D3D12_TILED_RESOURCE_COORDINATE* pResourceRegionStartCoordinates,
-				const D3D12_TILE_REGION_SIZE* pResourceRegionSizes,
-				ID3D12Heap* pHeap,
-				UINT                                  NumRanges,
-				const D3D12_TILE_RANGE_FLAGS* pRangeFlags,
-				const UINT* pHeapRangeStartOffsets,
-				const UINT* pRangeTileCounts,
-				D3D12_TILE_MAPPING_FLAGS              Flags
-			);
-			*/
-			
 			queue->UpdateTileMappings(
 				perResourceArguments.first,
 				(uint32_t)perResourceArguments.second.m_coordinates.size(),
@@ -664,6 +634,36 @@ namespace sample
 				rangeCounts.data(),
 				D3D12_TILE_MAPPING_FLAG_NONE
 			);
+		}
+
+		// Update residency textures with the new residency data.
+		for (auto&& r : m_resources)
+		{
+			int baseWidthInTiles	 = r->m_subresourceTilings[0].WidthInTiles;
+			int baseHeightInTiles	 = r->m_subresourceTilings[0].HeightInTiles;
+			int baseMaxTileDimension = std::max(baseWidthInTiles, baseHeightInTiles);
+			std::vector<byte> residencyData(baseMaxTileDimension * baseMaxTileDimension);
+
+			for (int face = 0; face < 6; face++)
+			{
+				for (int Y = 0; Y < baseMaxTileDimension; Y++)
+				{
+					int tileY = (Y * baseHeightInTiles) / baseMaxTileDimension;
+					for (int X = 0; X < baseMaxTileDimension; X++)
+					{
+						int tileX = (X * baseWidthInTiles) / baseMaxTileDimension;
+						residencyData[Y * baseMaxTileDimension + X] = r->m_residencyShadow[face][tileY * baseWidthInTiles + tileX];
+					}
+				}
+
+				//Update face by face
+				D3D12_SUBRESOURCE_DATA data[1];
+				data[0].pData		= &residencyData[0];
+				data[0].RowPitch	= baseMaxTileDimension;
+				data[0].SlicePitch	= baseMaxTileDimension; // 0
+
+				UpdateSubresources<1>(list, r->m_residencyResource.get(), r->m_residencyResourceUpload[frame_index].get(), 0, face, 1, data);
+			}
 		}
 	}
 }
