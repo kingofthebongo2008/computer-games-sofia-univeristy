@@ -1,6 +1,6 @@
 #pragma once
 #include "cpu_view.h"
-
+#include "samples.h"
 
 //Responsible for residency management.
 //Which parts of the resources get upoaded
@@ -21,6 +21,8 @@ namespace sample
         uint32_t              m_width;
         uint32_t              m_height;
     };
+
+
     
     struct ResizeSamplingRendererResult
     {
@@ -57,6 +59,8 @@ namespace sample
 
 		void										CollectSamples(uint32_t index, CollectParameters values);
 
+		const std::vector< DecodedSample >&			Samples() const;
+
         private:
 
         DescriptorHeapCpuView                       m_render_target_descriptor_heap;
@@ -72,6 +76,8 @@ namespace sample
 
         uint32_t									m_sampling_width = 0;
         uint32_t									m_sampling_height = 0;
+
+		std::vector<DecodedSample>					m_samples;
     };
 }
 

@@ -297,8 +297,6 @@ namespace sample
 			UpdateSubresources<6>(list, r->m_residencyResource.get(), r->m_residencyResourceUpload[frame_index].get(), 0, 0, 6, data);
 		}
 
-
-
 		//Update the null resource
 		{
 			auto r = m_null_resource.get();
@@ -316,7 +314,6 @@ namespace sample
 
 			UpdateSubresources<1>(list, r, m_upload_heap[frame_index].get(), 0, 0, 1, data);
 		}
-
 
 		//Transtion resources, make them ready for sampling
 		{
@@ -360,13 +357,77 @@ namespace sample
 			uint32_t			   tile_counts[] = { 1 };
 			queue->UpdateTileMappings(r, 1, nullptr, nullptr, m_physical_heap.get(), 1, &flags[0], &heap_offset[0], nullptr, D3D12_TILE_MAPPING_FLAG_NONE);
 		}
-
-
 	}
 
-	void ResidencyManager::UpdateTiles(ID3D12CommandQueue* queue, ID3D12GraphicsCommandList* list, uint32_t frame_index)
+	void ResidencyManager::ProcessSamples(const std::vector<DecodedSample>& samples, uint32_t frame_number)
 	{
+		if (!samples.empty())
+		{
+			for (auto&& sample : samples)
+			{
+				// Interpret each sample in the context of each managed resource.
+				for (auto&& resource : m_resources)
+				{
 
+					// Samples are encoded assuming a maximally-sized (15-MIP) texture, so offset the
+					// sampled value by the difference between actual MIPs and maximum MIPs.
+					// Also, due to low-detail MIPs not being part of the MIP chain, we clamp the actual
+					// MIP to guarantee it always hits at least one level represented in the tiled resource.
+					int16_t				mips = static_cast<int16_t>(resource->m_textureDescription.MipLevels);
+					int16_t actualMip = std::max<int16_t>(0, std::min<int16_t>(mips - 1, sample.mip));
+
+					// Loop over sampled MIP through the least detailed MIP.
+					for (auto mip = actualMip; mip < mips; ++mip)
+					{
+						// Calculate the tile coordinate.
+						TileKey tileKey = {};
+						tileKey.m_resource = resource->m_resource.get();
+
+						uint32_t subResource = mip + sample.face * mips;
+
+						const auto& tilings = resource->m_subresourceTilings[subResource];
+						tileKey.m_coordinate.Subresource = subResource;
+
+						float tileX = std::max<float>(tilings.WidthInTiles * sample.u, 0.0f);
+						tileX = std::min<float>(tilings.WidthInTiles - 1.0f, tileX);
+
+						tileKey.m_coordinate.X = static_cast<uint32_t>(tileX);
+						float tileY = std::max<float>(tilings.HeightInTiles * sample.v, 0.0f);
+
+						tileY = std::min<float>(tilings.HeightInTiles - 1.0f, tileY);
+						tileKey.m_coordinate.Y = static_cast<uint32_t>(tileY);
+
+						// See if the tile is already being tracked.
+						auto tileIterator = m_trackedTiles.find(tileKey);
+						if (tileIterator == m_trackedTiles.end())
+						{
+							// Tile is not being tracked currently, so enqueue it for load.
+							std::unique_ptr<TrackedTile> tile(new TrackedTile);
+							tile->m_managedResource = resource.get();
+							tile->m_coordinate = tileKey.m_coordinate;
+							tile->m_lastSeen = frame_number;
+							tile->m_state = TileState::Seen;
+							tile->m_mipLevel = mip;
+							tile->m_face = sample.face;
+
+							m_seenTileList.push_back(tile.get());
+							m_trackedTiles[tileKey] = std::move(tile);
+
+						}
+						else
+						{
+							// If tile is already tracked, simply update the last-seen value.
+							tileIterator->second->m_lastSeen = frame_number;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void ResidencyManager::UpdateTiles(ID3D12CommandQueue* queue, ID3D12GraphicsCommandList* list, uint32_t frame_index, uint32_t frame_number, const std::vector<DecodedSample>& samples)
+	{
+		ProcessSamples(samples, frame_number);
 	}
 
 	ID3D12Resource1* ResidencyManager::Diffuse()

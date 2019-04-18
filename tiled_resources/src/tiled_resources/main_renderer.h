@@ -41,6 +41,7 @@ namespace sample
 
 		uint32_t                                    m_frame_index	    = 0;
 		uint64_t									m_fence_value[2]    = { 1, 1 };
+		uint64_t									m_frame_number		= 0;	//count frames
 
 		//Rendering
 		winrt::com_ptr< ID3D12RootSignature>		m_root_signature;
