@@ -411,6 +411,11 @@ namespace sample
 			commandList->SetDescriptorHeaps(1, heaps);
 		}
 
+		//Process samples from the previous frame
+		{
+			m_residencyManager->UpdateTiles(m_deviceResources->Queue(), commandList, m_frame_index, m_frame_number++, m_samplingRenderer->Samples());
+
+		}
 
 		//Do the main depth
 		{
@@ -630,9 +635,6 @@ namespace sample
 		}
 
 		commandList->Close();   //close the list
-
-		
-		
 
 		{
 			//form group of several command lists

@@ -9,24 +9,6 @@ namespace sample
 {
     namespace
     {
-		//Mipmap faces
-		//face = 0 +X
-		//face = 1 -X
-		//face = 2 +Y
-		//face = 3 -Y
-		//face = 5 +Z
-		//face = 6 -Z
-		
-
-		// A decoded sample from a sampling render pass.
-		struct DecodedSample
-		{
-			float u;
-			float v;
-			short mip;
-			short face;
-		};
-
 		DecodedSample DecodeSample(unsigned int encodedSample)
 		{
 			//Separate the bytes
@@ -219,6 +201,7 @@ namespace sample
 
     SamplingRenderer::SamplingRenderer()
     {
+
     }
 
   
@@ -302,6 +285,11 @@ namespace sample
 		return m_sampling_staging[index].get();
 	}
 
+	const std::vector<DecodedSample>& SamplingRenderer::Samples() const
+	{
+		return m_samples;
+	}
+
 	void SamplingRenderer::CollectSamples( uint32_t index, CollectParameters values)
 	{
 		std::vector<uint8_t> v;
@@ -332,5 +320,7 @@ namespace sample
 				}
 			}
 		}
+
+		m_samples = std::move(samples);
 	}
 }

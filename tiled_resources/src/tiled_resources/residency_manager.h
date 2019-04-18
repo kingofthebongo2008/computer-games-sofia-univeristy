@@ -10,6 +10,7 @@
 #include <d3d12.h>
 
 #include "tile_loader.h"
+#include "samples.h"
 
 namespace sample
 {
@@ -60,19 +61,20 @@ namespace sample
         Seen,
         Loading,
         Loaded,
-        Mapped
+        Mapped,
+		NotDefined
     };
 
     struct TrackedTile
     {
-        ManagedTiledResource*				m_managedResource;
-        D3D12_TILED_RESOURCE_COORDINATE		m_coordinate;
-        uint16_t							m_mipLevel;
-        uint16_t							m_face;
-        uint32_t							m_physicalTileOffset;
-        unsigned int						m_lastSeen;
+        ManagedTiledResource*				m_managedResource = nullptr;
+		D3D12_TILED_RESOURCE_COORDINATE		m_coordinate = {};
+        uint16_t							m_mipLevel = 0;
+        uint16_t							m_face = 0;
+		uint32_t							m_physicalTileOffset = 0;
+        uint32_t							m_lastSeen = 0;
         std::vector<uint8_t>				m_tileData;
-        TileState							m_state;
+        TileState							m_state = TileState::NotDefined;
     };
 
 	struct ResidencyManagerCreateContext
@@ -103,7 +105,7 @@ namespace sample
 
 		ResidencyManagerCreateResult CreateResidencyManager(const ResidencyManagerCreateContext& ctx);
 
-		void UpdateTiles(ID3D12CommandQueue* queue, ID3D12GraphicsCommandList* list, uint32_t frame_index );
+		void UpdateTiles(ID3D12CommandQueue* queue, ID3D12GraphicsCommandList* list, uint32_t frame_index, uint32_t frame_number, const std::vector<DecodedSample>& samples);
 		void ResetInitialData(ID3D12CommandQueue* queue, ID3D12GraphicsCommandList* list, uint32_t frame_index);
 
 		ID3D12Resource1* Diffuse();
@@ -125,15 +127,15 @@ namespace sample
         std::map<TileKey, std::unique_ptr<TrackedTile> >	m_trackedTiles;
 
         // List of seen tiles ready for loading.
-        std::list<std::unique_ptr<TrackedTile>>				m_seenTileList;
+        std::list<TrackedTile*>								m_seenTileList;
 
         // List of loading and loaded tiles.
-        std::list<std::unique_ptr<TrackedTile>>				m_loadingTileList;
+        std::list<TrackedTile*>								m_loadingTileList;
 
         // List of mapped tiles.
-        std::list<std::unique_ptr<TrackedTile>>				m_mappedTileList;
+        std::list<TrackedTile*>								m_mappedTileList;
 
-        volatile LONG m_activeTileLoadingOperations;
+		std::atomic<uint32_t>								m_active_tile_loading_operations;
 
         uint32_t m_reservedTiles;
 		uint32_t m_defaultTileIndex;
@@ -141,9 +143,11 @@ namespace sample
 		winrt::com_ptr<ID3D12Resource1> m_upload_heap[2];   //to upload new tiles to the gpu, one per frame, must be able to have memory for all our uploads
 		winrt::com_ptr<ID3D12Heap>		m_physical_heap;	//to backup the reserved resources;
 		winrt::com_ptr<ID3D12Resource1> m_null_resource;
+
+		void ProcessSamples(const std::vector<DecodedSample>& samples, uint32_t frame_number);
     };
 
-	static bool LoadPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
+	static bool LoadPredicate(const TrackedTile* a, const TrackedTile* b)
     {
         // Prefer more recently seen tiles.
         if (a->m_lastSeen > b->m_lastSeen) return true;
@@ -153,7 +157,7 @@ namespace sample
         return a->m_mipLevel > b->m_mipLevel;
     }
 
-	static bool MapPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
+	static bool MapPredicate(const TrackedTile* a, const TrackedTile* b)
     {
         // Only loaded tiles can be mapped, so put those first.
         if (a->m_state == TileState::Loaded && b->m_state == TileState::Loading) return true;
@@ -167,7 +171,7 @@ namespace sample
         return a->m_mipLevel > b->m_mipLevel;
     }
 
-	static bool EvictPredicate(const std::unique_ptr<TrackedTile>& a, const std::unique_ptr<TrackedTile>& b)
+	static bool EvictPredicate(const TrackedTile* a, const TrackedTile* b)
     {
         // Evict older tiles first.
         if (a->m_lastSeen < b->m_lastSeen) return true;
