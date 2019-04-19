@@ -194,7 +194,8 @@ namespace sample
 		*/
 
 		//create the small texture
-		p->m_residencyResource = CreateResidency(d, p->ResidencyWidth(), p->ResidencyHeight());
+		uint32_t dimension = std::max(p->ResidencyWidth(), p->ResidencyHeight());
+		p->m_residencyResource = CreateResidency(d,  dimension, dimension);
 
 		//create the upload heaps for residency texture, so we can upload it every frame if needed
 		//one per frame, 
@@ -287,13 +288,14 @@ namespace sample
 		for (auto i = 0U; i < 2; ++i)
 		{
 			auto r = m_resources[i].get();
+			uint32_t dimension = std::max(r->ResidencyWidth(), r->ResidencyHeight());
 
 			D3D12_SUBRESOURCE_DATA data[6];
 			for (auto i = 0U; i < 6; ++i)
 			{
 				data[i].pData = &r->m_residencyShadow[i][0];
-				data[i].RowPitch = r->ResidencyWidth();
-				data[i].SlicePitch = r->ResidencyHeight();
+				data[i].RowPitch = dimension;
+				data[i].SlicePitch = dimension;
 			}
 
 			UpdateSubresources<6>(list, r->m_residencyResource.get(), r->m_residencyResourceUpload[frame_index].get(), 0, 0, 6, data);
@@ -508,7 +510,16 @@ namespace sample
 			std::list<TrackedTile*>						 m_tilesToMap;
 		};
 
-		std::map<ID3D12Resource1*, TileMappingUpdateArguments> coalescedMapArguments;
+		// Loop over the loading / loaded tile list for mapping candidates.
+		struct TileUpdateArguments
+		{
+			std::vector<D3D12_TILED_RESOURCE_COORDINATE> m_coordinates;
+			// For convenience, the tracked tile mapping is also saved.
+			std::vector<TrackedTile*>					 m_tilesToUpdate;
+		};
+
+		std::map<ID3D12Resource1*, TileMappingUpdateArguments>  coalescedMapArguments;
+		std::map<ID3D12Resource1*, TileUpdateArguments>			coalescedUpdateTileArguments;
 
 		for (auto i = 0; i < SampleSettings::TileResidency::MaxTilesLoadedPerFrame; i++)
 		{
@@ -596,6 +607,10 @@ namespace sample
 			tileToMap->m_state = TileState::Mapped;
 			coalescedMapArguments[tileToMap->m_managedResource->m_resource.get()].m_tilesToMap.push_back(tileToMap);
 
+			// Add the new mapping to upload to the gpu
+			coalescedUpdateTileArguments[tileToMap->m_managedResource->m_resource.get()].m_coordinates.push_back(tileToMap->m_coordinate);
+			coalescedUpdateTileArguments[tileToMap->m_managedResource->m_resource.get()].m_tilesToUpdate.push_back(tileToMap);
+
 			// Update the residency map to add this level of detail.
 			int baseTilesCoveredWidth = tileToMap->m_managedResource->m_subresourceTilings[0].WidthInTiles / tileToMap->m_managedResource->m_subresourceTilings[tileToMap->m_coordinate.Subresource].WidthInTiles;
 			int baseTilesCoveredHeight = tileToMap->m_managedResource->m_subresourceTilings[0].HeightInTiles / tileToMap->m_managedResource->m_subresourceTilings[tileToMap->m_coordinate.Subresource].HeightInTiles;
@@ -636,33 +651,184 @@ namespace sample
 			);
 		}
 
-		// Update residency textures with the new residency data.
-		for (auto&& r : m_resources)
-		{
-			int baseWidthInTiles	 = r->m_subresourceTilings[0].WidthInTiles;
-			int baseHeightInTiles	 = r->m_subresourceTilings[0].HeightInTiles;
-			int baseMaxTileDimension = std::max(baseWidthInTiles, baseHeightInTiles);
-			std::vector<byte> residencyData(baseMaxTileDimension * baseMaxTileDimension);
 
-			for (int face = 0; face < 6; face++)
+		//Update residency textures
+		{
+
+			//Do transitions
+			//Transtion resources, make them ready for sampling
 			{
-				for (int Y = 0; Y < baseMaxTileDimension; Y++)
+				D3D12_RESOURCE_BARRIER barrier[2] = {};
+
+				for (auto i = 0U; i < 2; ++i)
 				{
-					int tileY = (Y * baseHeightInTiles) / baseMaxTileDimension;
-					for (int X = 0; X < baseMaxTileDimension; X++)
-					{
-						int tileX = (X * baseWidthInTiles) / baseMaxTileDimension;
-						residencyData[Y * baseMaxTileDimension + X] = r->m_residencyShadow[face][tileY * baseWidthInTiles + tileX];
-					}
+					barrier[i].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					barrier[i].Transition.StateBefore	= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+					barrier[i].Transition.StateAfter	= D3D12_RESOURCE_STATE_COPY_DEST;
+					barrier[i].Transition.Subresource	= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 				}
 
-				//Update face by face
-				D3D12_SUBRESOURCE_DATA data[1];
-				data[0].pData		= &residencyData[0];
-				data[0].RowPitch	= baseMaxTileDimension;
-				data[0].SlicePitch	= baseMaxTileDimension; // 0
+				barrier[0].Transition.pResource = m_resources[0]->m_residencyResource.get();
+				barrier[1].Transition.pResource = m_resources[1]->m_residencyResource.get();
+				list->ResourceBarrier(2, barrier);
+			}
 
-				UpdateSubresources<1>(list, r->m_residencyResource.get(), r->m_residencyResourceUpload[frame_index].get(), 0, face, 1, data);
+
+			// Update residency textures with the new residency data.
+			for (auto&& r : m_resources)
+			{
+				int baseWidthInTiles = r->m_subresourceTilings[0].WidthInTiles;
+				int baseHeightInTiles = r->m_subresourceTilings[0].HeightInTiles;
+				int baseMaxTileDimension = std::max(baseWidthInTiles, baseHeightInTiles);
+				std::vector<byte> residencyData(baseMaxTileDimension * baseMaxTileDimension);
+
+				for (int face = 0; face < 6; face++)
+				{
+					for (int Y = 0; Y < baseMaxTileDimension; Y++)
+					{
+						int tileY = (Y * baseHeightInTiles) / baseMaxTileDimension;
+						for (int X = 0; X < baseMaxTileDimension; X++)
+						{
+							int tileX = (X * baseWidthInTiles) / baseMaxTileDimension;
+							residencyData[Y * baseMaxTileDimension + X] = r->m_residencyShadow[face][tileY * baseWidthInTiles + tileX];
+						}
+					}
+
+					//Update face by face
+					D3D12_SUBRESOURCE_DATA data[1];
+					data[0].pData = &residencyData[0];
+					data[0].RowPitch = baseMaxTileDimension;
+					data[0].SlicePitch = baseMaxTileDimension; // 0
+
+					UpdateSubresources<1>(list, r->m_residencyResource.get(), r->m_residencyResourceUpload[frame_index].get(), 0, face, 1, data);
+				}
+			}
+
+			//Transition resources, make them ready for sampling
+			{
+				D3D12_RESOURCE_BARRIER barrier[2] = {};
+
+				for (auto i = 0U; i < 2; ++i)
+				{
+					barrier[i].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					barrier[i].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+					barrier[i].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+					barrier[i].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+				}
+
+				barrier[0].Transition.pResource = m_resources[0]->m_residencyResource.get();
+				barrier[1].Transition.pResource = m_resources[1]->m_residencyResource.get();
+
+				list->ResourceBarrier(2, barrier);
+			}
+		}
+
+
+		//Update Tiles
+		{
+
+			uint32_t totalTilesToCopy = 0;
+			// First copy data to the upload heap
+			for (auto&& perResourceArguments : coalescedUpdateTileArguments)
+			{
+				totalTilesToCopy += perResourceArguments.second.m_coordinates.size();
+			}
+
+			if (totalTilesToCopy > 0)
+
+			{
+				//Transition resources, make them ready for writing
+				{
+					D3D12_RESOURCE_BARRIER barrier[2] = {};
+
+					for (auto i = 0U; i < 2; ++i)
+					{
+						barrier[i].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+						barrier[i].Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+						barrier[i].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+						barrier[i].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+					}
+
+					barrier[0].Transition.pResource = m_resources[0]->m_resource.get();
+					barrier[1].Transition.pResource = m_resources[1]->m_resource.get();
+
+					list->ResourceBarrier(2, barrier);
+				}
+
+
+				{
+					uint64_t			uploadHeapOffset = 0;
+					ID3D12Resource1* heap = m_upload_heap[frame_index].get();
+
+
+					D3D12_RANGE range = { uploadHeapOffset,  uploadHeapOffset + SampleSettings::TileSizeInBytes * totalTilesToCopy };
+					uint8_t* heapData = nullptr;
+
+					m_upload_heap[frame_index]->Map(0, &range, reinterpret_cast<void**>(&heapData));
+
+					// Lay linear tiles one after the other in the heap offset
+					for (auto&& perResourceArguments : coalescedUpdateTileArguments)
+					{
+						auto r = perResourceArguments.first;
+
+						for (size_t i = 0; i < perResourceArguments.second.m_coordinates.size(); i++)
+						{
+							TrackedTile* trackedTile = perResourceArguments.second.m_tilesToUpdate[i];
+
+							std::memcpy(heapData + uploadHeapOffset, &trackedTile->m_tileData[0], SampleSettings::TileSizeInBytes);
+							uploadHeapOffset += SampleSettings::TileSizeInBytes;
+						}
+					}
+					m_upload_heap[frame_index]->Unmap(0, &range);
+
+
+					uploadHeapOffset = 0;
+					// Finally, copy the contents of the tiles mapped this frame.
+					for (auto perResourceArguments : coalescedUpdateTileArguments)
+					{
+						auto r = perResourceArguments.first;
+
+						for (size_t i = 0; i < perResourceArguments.second.m_coordinates.size(); i++)
+						{
+							D3D12_TILE_REGION_SIZE regionSize = { 1, FALSE, 0,0,0 };
+							D3D12_TILED_RESOURCE_COORDINATE coordinate = perResourceArguments.second.m_coordinates[i];
+
+							list->CopyTiles(r, &coordinate, &regionSize, heap, uploadHeapOffset, D3D12_TILE_COPY_FLAG_LINEAR_BUFFER_TO_SWIZZLED_TILED_RESOURCE);
+							uploadHeapOffset += SampleSettings::TileSizeInBytes;
+						}
+					}
+
+					// Cleanup tile data
+					for (auto perResourceArguments : coalescedUpdateTileArguments)
+					{
+						auto r = perResourceArguments.first;
+
+						for (size_t i = 0; i < perResourceArguments.second.m_coordinates.size(); i++)
+						{
+							TrackedTile* trackedTile = perResourceArguments.second.m_tilesToUpdate[i];
+							trackedTile->m_tileData.resize(0);
+						}
+					}
+
+
+					//Transition resources, make them ready for sampling
+					{
+						D3D12_RESOURCE_BARRIER barrier[2] = {};
+
+						for (auto i = 0U; i < 2; ++i)
+						{
+							barrier[i].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+							barrier[i].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+							barrier[i].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+							barrier[i].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+						}
+
+						barrier[0].Transition.pResource = m_resources[0]->m_resource.get();
+						barrier[1].Transition.pResource = m_resources[1]->m_resource.get();
+
+						list->ResourceBarrier(2, barrier);
+					}
+				}
 			}
 		}
 	}
