@@ -506,7 +506,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             }
 
             //get the pointer to the gpu memory
-            D3D12_CPU_DESCRIPTOR_HANDLE back_buffer = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_swap_chain_descriptors[m_frame_index];
+            D3D12_CPU_DESCRIPTOR_HANDLE back_buffer  = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_swap_chain_descriptors[m_frame_index];
+			D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get())   + m_depth_descriptor[0];
 
             //Transition resources for writing. flush caches
             {
@@ -522,7 +523,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
             //Mark the resources in the rasterizer output
             {
-                commandList->OMSetRenderTargets(1, &back_buffer, TRUE, nullptr);
+                commandList->OMSetRenderTargets(1, &back_buffer, TRUE, &depth_buffer);
             }
 
             //do the clear, fill the memory with a value
@@ -531,14 +532,15 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
             }
 
+			{
+				commandList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+			}
+
 
             {
                 //set the type of the parameters that we will use in the shader
                 commandList->SetGraphicsRootSignature(m_graphics_signature.get());
 
-                //set the raster pipeline state as a whole, it was prebuilt before
-                commandList->SetPipelineState(m_triangle_state.get());
-                
                 //set the scissor test separately (which parts of the view port will survive)
                 {
                     D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
@@ -562,6 +564,18 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                 }
 
+
+				//Draw first to clear the depth buffer
+				//set the raster pipeline state as a whole, it was prebuilt before
+				commandList->SetPipelineState(m_triangle_state_depth_prepass.get());
+				//draw the triangle
+				commandList->DrawInstanced(3, 1, 0, 0);
+
+
+
+				//Now draw on top
+				//set the raster pipeline state as a whole, it was prebuilt before
+				commandList->SetPipelineState(m_triangle_state.get());
                 //draw the triangle
                 commandList->DrawInstanced(3, 1, 0, 0);
             }
@@ -630,11 +644,14 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_swap_chain_buffers[0]->SetName(L"Buffer 0");
         m_swap_chain_buffers[1]->SetName(L"Buffer 1");
 
+		
+
         //create render target views, that will be used for rendering
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
 
 		m_depth_buffer		= CreateDepthResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+		m_depth_buffer->SetName(L"Depth Buffer");
 
 		CreateDepthWriteDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0);
 		CreateDepthReadDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 1);
@@ -675,24 +692,32 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_fence_value = m_fence_value + 1;
         m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
 
-        //Now recreate the swap chain with the new dimensions, we must have back buffer as the window size
-        m_back_buffer_width		= static_cast<UINT>(a.Size().Width);
-        m_back_buffer_height	= static_cast<UINT>(a.Size().Height);
+		m_back_buffer_width = static_cast<UINT>(w.Bounds().Width);
+		m_back_buffer_height = static_cast<UINT>(w.Bounds().Height);
 
-        //allocate memory for the swap chain again
-        m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
-        m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
+		//allocate memory for the view
+		m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
+		m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
 
-        //set names so we can see them in pix
-        m_swap_chain_buffers[0]->SetName(L"Buffer 0");
-        m_swap_chain_buffers[1]->SetName(L"Buffer 1");
+		m_swap_chain_buffers[0]->SetName(L"Buffer 0");
+		m_swap_chain_buffers[1]->SetName(L"Buffer 1");
 
-        //create render target views, that will be used for rendering
-        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
-        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
+		//create render target views, that will be used for rendering
+		CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
+		CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
 
-        m_swap_chain_descriptors[0] = 0;
-        m_swap_chain_descriptors[1] = 1;
+		m_depth_buffer = CreateDepthResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+		m_depth_buffer->SetName(L"Depth Buffer");
+
+		CreateDepthWriteDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0);
+		CreateDepthReadDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 1);
+
+		m_depth_descriptor[0] = 0;
+		m_depth_descriptor[1] = 1;
+
+		//Where are located the descriptors
+		m_swap_chain_descriptors[0] = 0;
+		m_swap_chain_descriptors[1] = 1;
     }
 
     bool m_window_running = true;
