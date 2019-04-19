@@ -2,6 +2,7 @@
 #include <cstdint>
 
 #include "d3dx12.h"
+#include "cpu_view.h"
 
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
@@ -36,33 +37,6 @@ namespace sample
     }
 }
 
-//Helper class that assists us using the descriptors
-struct DescriptorHeapCpuView
-{
-    DescriptorHeapCpuView( D3D12_CPU_DESCRIPTOR_HANDLE  base, uint64_t offset) : m_base(base), m_offset(offset)
-    {
-
-    }
-
-    D3D12_CPU_DESCRIPTOR_HANDLE operator () ( size_t index) const
-    {
-        return { m_base.ptr + index * m_offset };
-    }
-
-    D3D12_CPU_DESCRIPTOR_HANDLE operator + (size_t index) const
-    {
-        return { m_base.ptr + index * m_offset };
-    }
-
-    D3D12_CPU_DESCRIPTOR_HANDLE m_base      = {};
-    uint64_t                    m_offset;
-};
-
-DescriptorHeapCpuView CpuView( ID3D12Device* d, ID3D12DescriptorHeap* heap )
-{
-    D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
-    return DescriptorHeapCpuView(heap->GetCPUDescriptorHandleForHeapStart(), d->GetDescriptorHandleIncrementSize(desc.Type));
-}
 
 struct exception : public std::exception
 {
@@ -483,6 +457,25 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTriangleDepthPipelineState(ID
 }
 
 
+//create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
+//It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
+static winrt::com_ptr< ID3D12PipelineState>	 CreateGaussianBlurPipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
+{
+	static
+#include <gaussian_blur.h>
+
+		D3D12_COMPUTE_PIPELINE_STATE_DESC state = {};
+	state.pRootSignature = root;
+
+	state.CS = { &g_gaussian_blur[0], sizeof(g_gaussian_blur) };
+
+	winrt::com_ptr<ID3D12PipelineState> r;
+
+	ThrowIfFailed(device->CreateComputePipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
+	return r;
+}
+
+
 class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFrameworkViewSource>
 {
     public:
@@ -539,6 +532,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_compute_signature				= CreateComputeRootSignature(m_device.get());
 		m_triangle_state				= CreateTrianglePipelineState(m_device.get(), m_graphics_signature.get());
 		m_triangle_state_depth_prepass	= CreateTriangleDepthPipelineState(m_device.get(), m_graphics_signature.get());
+		m_gaussian_blur					= CreateGaussianBlurPipelineState(m_device.get(), m_compute_signature.get());
 	}
 
 	void SetWindow(const CoreWindow& w)
@@ -594,8 +588,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_lighting_descriptor[1] = 3;
 
 		m_lighting_descriptor_uav[0] = 0;
-		m_lighting_descriptor_uav[0] = 1;
+		m_lighting_descriptor_uav[1] = 1;
 		//Copy
+
+		m_device->CopyDescriptorsSimple(2, CpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + m_lighting_descriptor_uav[0], CpuView(m_device.get(), m_descriptorHeapShader.get()) + m_lighting_descriptor_uav[0], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 	}
 
@@ -660,6 +656,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     {
         while (m_window_running)
         {
+			using namespace sample;
             CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 
             std::lock_guard lock(m_blockRendering);
@@ -673,8 +670,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
             // Set Descriptor heaps
             {
-                //ID3D12DescriptorHeap* heaps[] = { m_descriptorHeap.get()};
-                //commandList->SetDescriptorHeaps(1, heaps);
+                ID3D12DescriptorHeap* heaps[] = { m_descriptorHeapShaderGpu.get()};
+                commandList->SetDescriptorHeaps(1, heaps);
             }
 
             //get the pointer to the gpu memory
@@ -750,12 +747,31 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 commandList->DrawInstanced(3, 1, 0, 0);
             }
 
+			//Now postprocessing
+			{
+				D3D12_RESOURCE_BARRIER barrier[1] = {};
+
+				barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+				barrier[0].Transition.pResource = m_lighting_buffer[m_frame_index].get();
+				barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+				barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+				barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+				commandList->ResourceBarrier(1, &barrier[0]);
+
+				//set the type of the parameters that we will use in the shader
+				commandList->SetComputeRootSignature(m_compute_signature.get());
+				commandList->SetComputeRootDescriptorTable(1, GpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + m_lighting_descriptor_uav[m_frame_index]);
+				commandList->SetPipelineState(m_gaussian_blur.get());
+				commandList->Dispatch(1, 1, 1);
+
+			}
+
 			{
 				D3D12_RESOURCE_BARRIER barrier[2] = {};
 
 				barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 				barrier[0].Transition.pResource = m_lighting_buffer[m_frame_index].get();
-				barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+				barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 				barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
 				barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 

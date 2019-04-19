@@ -46,7 +46,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <PackageCertificateKeyFile>hello_triangle_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <PackageCertificateThumbprint>8EF544AC792E51B2E5F426F141E3180B7D0F8109</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>40F0C07174366027435ACAC2C3B0F63D9287DEB3</PackageCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)$(Platform)\$(Configuration)\$(MSBuildProjectName)\</OutDir>
@@ -81,6 +81,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\hello_triangle\cpu_view.h" />
     <ClInclude Include="..\..\src\hello_triangle\pch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -129,7 +130,7 @@
       <VariableName>g_%(Filename)</VariableName>
       <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput />
-       <ShaderType>RootSignature</ShaderType>
+      <ShaderType>RootSignature</ShaderType>
       <EntryPointName>MyRS1</EntryPointName>
       <ShaderModel>rootsig_1.1</ShaderModel>
     </FxCompile>

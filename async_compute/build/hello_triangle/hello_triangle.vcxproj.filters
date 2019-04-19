@@ -18,6 +18,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\hello_triangle\pch.h" />
+    <ClInclude Include="..\..\src\hello_triangle\cpu_view.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png">
