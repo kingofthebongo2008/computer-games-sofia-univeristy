@@ -247,6 +247,53 @@ static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource1(ID3D12Device1* d
     return r;
 }
 
+static winrt::com_ptr<ID3D12Resource1> CreateDepthResource(ID3D12Device1* device, uint32_t width, uint32_t height)
+{
+	D3D12_RESOURCE_DESC d = {};
+	d.Alignment = 0;
+	d.DepthOrArraySize = 1;
+	d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	d.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+	d.Format = DXGI_FORMAT_D32_FLOAT;
+	d.Height = height;
+	d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	d.MipLevels = 1;
+	d.SampleDesc.Count = 1;
+	d.SampleDesc.Quality = 0;
+	d.Width = width;
+
+	winrt::com_ptr<ID3D12Resource1>     r;
+	D3D12_HEAP_PROPERTIES p = {};
+	p.Type = D3D12_HEAP_TYPE_DEFAULT;
+	D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+
+	D3D12_CLEAR_VALUE v = {};
+	v.DepthStencil.Depth = 1.0f;
+	v.Format = DXGI_FORMAT_D32_FLOAT;
+
+	ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
+	return r;
+}
+
+//Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
+static void CreateDepthWriteDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+	D3D12_DEPTH_STENCIL_VIEW_DESC d = {};
+	d.ViewDimension					= D3D12_DSV_DIMENSION_TEXTURE2D;
+	d.Format						= DXGI_FORMAT_D32_FLOAT;       //how we will view the resource during rendering
+	device->CreateDepthStencilView(resource, &d, handle);
+}
+
+static void CreateDepthReadDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+	D3D12_DEPTH_STENCIL_VIEW_DESC d = {};
+	d.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	d.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH;
+	d.Format = DXGI_FORMAT_D32_FLOAT;				//how we will view the resource during rendering
+	device->CreateDepthStencilView(resource, &d, handle);
+}
+
+
 //Get the buffer for the swap chain, this is the end result for the window
 static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* device, IDXGISwapChain* chain, uint32_t buffer)
 {
@@ -312,33 +359,46 @@ static winrt::com_ptr< ID3D12RootSignature>	 CreateRootSignature(ID3D12Device1* 
     return r;
 }
 
+D3D12_GRAPHICS_PIPELINE_STATE_DESC CreateTriangleDescription()
+{
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+	state.SampleMask = UINT_MAX;
+	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+
+	state.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+	state.RasterizerState.FrontCounterClockwise = TRUE;
+
+	state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	state.NumRenderTargets = 1;
+	state.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
+	state.SampleDesc.Count = 1;
+	state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	state.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+
+	state.DepthStencilState.DepthEnable = FALSE;
+	state.DepthStencilState.StencilEnable = FALSE;
+	state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
+	return state;
+}
+
 //create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
 //It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
 static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
 {
-    static
-    #include <triangle_pixel.h>
+	static
+#include <triangle_pixel.h>
 
-    static
-    #include <triangle_vertex.h>
+		static
+#include <triangle_vertex.h>
 
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = CreateTriangleDescription();
     state.pRootSignature			= root;
-    state.SampleMask				= UINT_MAX;
-    state.RasterizerState			= CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-
-    state.RasterizerState.CullMode	= D3D12_CULL_MODE_BACK;
-    state.RasterizerState.FrontCounterClockwise = TRUE;
-
-    state.PrimitiveTopologyType		= D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     state.NumRenderTargets			= 1;
     state.RTVFormats[0]				= DXGI_FORMAT_B8G8R8A8_UNORM;
-    state.SampleDesc.Count			= 1;
-    state.BlendState				= CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 
     state.DepthStencilState.DepthEnable = TRUE;
-    state.DepthStencilState.StencilEnable = FALSE;
-	state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+	state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 	state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
 
     state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
@@ -357,24 +417,16 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTriangleDepthPipelineState(ID
 		static
 #include <triangle_vertex.h>
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = CreateTriangleDescription();
 	state.pRootSignature = root;
-	state.SampleMask = UINT_MAX;
-	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 
-	state.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
-	state.RasterizerState.FrontCounterClockwise = TRUE;
-
-	state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	state.SampleDesc.Count = 1;
-	state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-
-	state.DepthStencilState.DepthEnable = TRUE;
-	state.DepthStencilState.StencilEnable = FALSE;
-	state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-	state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
+	state.DepthStencilState.DepthEnable		= TRUE;
+	state.DepthStencilState.StencilEnable	= FALSE;
+	state.DepthStencilState.DepthWriteMask	= D3D12_DEPTH_WRITE_MASK_ALL;
+	state.DepthStencilState.DepthFunc		= D3D12_COMPARISON_FUNC_LESS;
 
 	state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
+	
 	winrt::com_ptr<ID3D12PipelineState> r;
 
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
@@ -555,8 +607,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
     void Load(winrt::hstring h)
     {
-        m_graphics_signature = CreateRootSignature(m_device.get());
-        m_triangle_state = CreateTrianglePipelineState(m_device.get(), m_graphics_signature.get());
+        m_graphics_signature			= CreateRootSignature(m_device.get());
+        m_triangle_state				= CreateTrianglePipelineState(m_device.get(), m_graphics_signature.get());
+		m_triangle_state_depth_prepass	= CreateTriangleDepthPipelineState(m_device.get(), m_graphics_signature.get());
     }
 
     void SetWindow(const CoreWindow& w)
@@ -580,6 +633,14 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         //create render target views, that will be used for rendering
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
         CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
+
+		m_depth_buffer		= CreateDepthResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+
+		CreateDepthWriteDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0);
+		CreateDepthReadDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 1);
+
+		m_depth_descriptor[0] = 0;
+		m_depth_descriptor[1] = 1;
 
         //Where are located the descriptors
         m_swap_chain_descriptors[0] = 0;
@@ -658,8 +719,12 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     std::mutex                                  m_blockRendering;				//block render thread for the swap chain resizes
 
 	winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];		//back buffer resources
-    uint64_t                                    m_swap_chain_descriptors[2];
+	uint64_t                                    m_swap_chain_descriptors[2];
+	winrt::com_ptr<ID3D12Resource1>				m_depth_buffer;
+	uint64_t									m_depth_descriptor[2];
+
 	winrt::com_ptr<ID3D12Resource1>             m_lighting_buffer[2];			//lighting buffers ( ComputeGraphicsLatency + 1 )
+	uint64_t                                    m_lighting_buffer_descriptors[2];
 
 	winrt::com_ptr<ID3D12Resource1>             m_depth;						//depth buffer
 
