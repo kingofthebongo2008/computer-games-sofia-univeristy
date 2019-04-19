@@ -61,6 +61,8 @@ namespace sample
 		state.pRootSignature = root;
 		state.SampleMask = UINT_MAX;
 		state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+		state.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+		state.RasterizerState.FrontCounterClockwise = FALSE;
 
 		state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		state.NumRenderTargets = 1;
@@ -108,16 +110,19 @@ namespace sample
 		state.SampleMask = UINT_MAX;
 		state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 
-		state.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-		state.RasterizerState.FrontCounterClockwise = TRUE;
+		state.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+		state.RasterizerState.FrontCounterClockwise = FALSE;
 
 		state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 		state.NumRenderTargets = 1;
 		state.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
 		state.SampleDesc.Count = 1;
 		state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+		state.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
-		state.DepthStencilState.DepthEnable = FALSE;
+		state.DepthStencilState.DepthEnable = TRUE;
+		state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+		state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS;
 		state.DepthStencilState.StencilEnable = FALSE;
 
 		//Describe the format of the vertices. In the gpu they are going to be unpacked into the registers
