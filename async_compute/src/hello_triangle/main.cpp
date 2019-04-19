@@ -122,7 +122,7 @@ static winrt::com_ptr<IDXGISwapChain3> CreateSwapChain(const CoreWindow& w, ID3D
     return r.as< IDXGISwapChain3>();
 }
 
-static winrt::com_ptr <ID3D12Fence> CreateFence(ID3D12Device1* device, uint64_t initialValue = 1)
+static winrt::com_ptr <ID3D12Fence> CreateFence(ID3D12Device1* device, uint64_t initialValue = 0)
 {
     winrt::com_ptr<ID3D12Fence> r;
     ThrowIfFailed(device->CreateFence(initialValue, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), r.put_void()));
@@ -267,7 +267,7 @@ static winrt::com_ptr<ID3D12Resource1> CreateLightingResource(ID3D12Device1* dev
 	winrt::com_ptr<ID3D12Resource1>     r;
 	D3D12_HEAP_PROPERTIES p = {};
 	p.Type = D3D12_HEAP_TYPE_DEFAULT;
-	D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_SOURCE;
+	D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 
 	D3D12_CLEAR_VALUE v = {};
 	v.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -501,11 +501,21 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_descriptorHeapShaderGpu	= CreateDescriptorHeapShaderGpu(m_device.get());
 
         //if you have many threads that generate commands. 1 per thread per frame
-        m_graphics_allocator[0]		= CreateGraphicsAllocator(m_device.get());
-        m_graphics_allocator[1]		= CreateGraphicsAllocator(m_device.get());
+        m_graphics_allocator[0][0]	= CreateGraphicsAllocator(m_device.get());
+		m_graphics_allocator[0][1]  = CreateGraphicsAllocator(m_device.get());
+		m_graphics_allocator[0][2]  = CreateGraphicsAllocator(m_device.get());
 
-        m_graphics_list[0]			= CreateGraphicsList(m_device.get(), m_graphics_allocator[0].get());
-		m_graphics_list[1]			= CreateGraphicsList(m_device.get(), m_graphics_allocator[1].get());
+        m_graphics_allocator[1][0]	= CreateGraphicsAllocator(m_device.get());
+		m_graphics_allocator[1][1]  = CreateGraphicsAllocator(m_device.get());
+		m_graphics_allocator[1][2]  = CreateGraphicsAllocator(m_device.get());
+
+        m_graphics_list[0][0]		= CreateGraphicsList(m_device.get(), m_graphics_allocator[0][0].get());
+		m_graphics_list[0][1]		= CreateGraphicsList(m_device.get(), m_graphics_allocator[0][1].get());
+		m_graphics_list[0][2]		= CreateGraphicsList(m_device.get(), m_graphics_allocator[0][2].get());
+
+		m_graphics_list[1][0]		= CreateGraphicsList(m_device.get(), m_graphics_allocator[1][0].get());
+		m_graphics_list[1][1]		= CreateGraphicsList(m_device.get(), m_graphics_allocator[1][1].get());
+		m_graphics_list[1][2]		= CreateGraphicsList(m_device.get(), m_graphics_allocator[1][2].get());
 
 		m_compute_allocator[0]		= CreateComputeAllocator(m_device.get());
 		m_compute_allocator[1]		= CreateComputeAllocator(m_device.get());
@@ -541,7 +551,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_size_changed = w.SizeChanged(winrt::auto_revoke, { this, &ViewProvider::OnWindowSizeChanged });
 
 		m_swap_chain = CreateSwapChain(w, m_graphics_queue.get());
-		m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+		m_graphics_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
 
 		m_back_buffer_width = static_cast<UINT>(w.Bounds().Width);
 		m_back_buffer_height = static_cast<UINT>(w.Bounds().Height);
@@ -621,7 +631,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 		//Prepare to unblock the rendering
 		m_fence_value = m_fence_value + 1;
-		m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+		m_graphics_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
 
 		m_back_buffer_width = static_cast<UINT>(w.Bounds().Width);
 		m_back_buffer_height = static_cast<UINT>(w.Bounds().Height);
@@ -654,188 +664,264 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
     void Run()
     {
+		m_swap_chain->Present(0,0);
+
         while (m_window_running)
         {
 			using namespace sample;
             CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 
             std::lock_guard lock(m_blockRendering);
-  
 
-            //reset the command generators for this frame if they have data, which was already used by the gpu
-            ID3D12CommandAllocator*     allocator       = m_graphics_allocator[m_frame_index].get();
-            ID3D12GraphicsCommandList1* commandList     = m_graphics_list[m_frame_index].get();
-            allocator->Reset();
-            commandList->Reset(allocator, nullptr);
+			uint32_t graphics_frame_index	= m_graphics_frame_index;
+			uint32_t compute_frame_index	= 1 - m_graphics_frame_index;
 
-            // Set Descriptor heaps
+			{
+				ID3D12CommandAllocator* computeAllocator = m_compute_allocator[graphics_frame_index].get();
+				computeAllocator->Reset();
+				ID3D12GraphicsCommandList1* computeList = m_compute_list[graphics_frame_index].get();
+				computeList->Reset(computeAllocator, nullptr);
+			}
+
+			for (auto i = 0; i < 3; ++i)
+			{
+				ID3D12CommandAllocator* graphicsAllocator = m_graphics_allocator[graphics_frame_index][i].get();
+				ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][i].get();
+				graphicsAllocator->Reset();
+				graphicsList->Reset(graphicsAllocator, nullptr);
+			}
+
+			//Compute queue
             {
+				ID3D12GraphicsCommandList1* computeList = m_compute_list[graphics_frame_index].get();
+				// Set Descriptor heaps	
                 ID3D12DescriptorHeap* heaps[] = { m_descriptorHeapShaderGpu.get()};
-                commandList->SetDescriptorHeaps(1, heaps);
+				computeList->SetDescriptorHeaps(1, heaps);
+
+				//Now do post processing
+				{
+					//set the type of the parameters that we will use in the shader
+					computeList->SetComputeRootSignature(m_compute_signature.get());
+					computeList->SetComputeRootDescriptorTable(1, GpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + m_lighting_descriptor_uav[compute_frame_index]);
+					computeList->SetPipelineState(m_gaussian_blur.get());
+					computeList->Dispatch(1, 1, 1);
+				}
+
+				computeList->Close();
             }
 
-            //get the pointer to the gpu memory
-            D3D12_CPU_DESCRIPTOR_HANDLE back_buffer  = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_lighting_descriptor[m_frame_index];
-			D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get())   + m_depth_descriptor[0];
-
-            //Transition resources for writing. flush caches
-            {
-                D3D12_RESOURCE_BARRIER barrier = {};
-
-                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                barrier.Transition.pResource = m_lighting_buffer[m_frame_index].get();
-				barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
-                barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
-                barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-                commandList->ResourceBarrier(1, &barrier);
-            }
-
-            //Mark the resources in the rasterizer output
-            {
-                commandList->OMSetRenderTargets(1, &back_buffer, TRUE, &depth_buffer);
-            }
-
-            //do the clear, fill the memory with a value
-            {
-                FLOAT c[4] = { 0.0f, 0.f,0.f,0.f };
-                commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
-            }
-
+			//Graphics Queue, Depth Prepass
 			{
-				commandList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+				ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][0].get();
+
+				//Depth prepass for frame N
+				//get the pointer to the gpu memory
+				D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get()) + m_depth_descriptor[0];
+				{
+					graphicsList->OMSetRenderTargets(0, 0, TRUE, &depth_buffer);
+					graphicsList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+					//set the type of the parameters that we will use in the shader
+					graphicsList->SetGraphicsRootSignature(m_graphics_signature.get());
+
+					//set the scissor test separately (which parts of the view port will survive)
+					{
+						D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
+						graphicsList->RSSetScissorRects(1, &r);
+					}
+
+					//set the viewport. 
+					{
+						D3D12_VIEWPORT v;
+						v.TopLeftX = 0;
+						v.TopLeftY = 0;
+						v.MinDepth = 0.0f;
+						v.MaxDepth = 1.0f;
+						v.Width = static_cast<float>(m_back_buffer_width);
+						v.Height = static_cast<float>(m_back_buffer_height);
+						graphicsList->RSSetViewports(1, &v);
+					}
+
+					//set the types of the triangles we will use
+					{
+						graphicsList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					}
+
+
+					//Draw first to clear the depth buffer
+					//set the raster pipeline state as a whole, it was prebuilt before
+					graphicsList->SetPipelineState(m_triangle_state_depth_prepass.get());
+					//draw the triangle
+					graphicsList->DrawInstanced(3, 1, 0, 0);
+				}
+
+				graphicsList->Close();
 			}
 
-
-            {
-                //set the type of the parameters that we will use in the shader
-                commandList->SetGraphicsRootSignature(m_graphics_signature.get());
-
-                //set the scissor test separately (which parts of the view port will survive)
-                {
-                    D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
-                    commandList->RSSetScissorRects(1, &r);
-                }
-
-                //set the viewport. 
-                {
-                    D3D12_VIEWPORT v;
-                    v.TopLeftX = 0;
-                    v.TopLeftY = 0;
-                    v.MinDepth = 0.0f;
-                    v.MaxDepth = 1.0f;
-                    v.Width = static_cast<float>(m_back_buffer_width);
-                    v.Height = static_cast<float>(m_back_buffer_height);
-                    commandList->RSSetViewports(1, &v);
-                }
-
-                //set the types of the triangles we will use
-                {
-                    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-                }
-
-
-				//Draw first to clear the depth buffer
-				//set the raster pipeline state as a whole, it was prebuilt before
-				commandList->SetPipelineState(m_triangle_state_depth_prepass.get());
-				//draw the triangle
-				commandList->DrawInstanced(3, 1, 0, 0);
-
-				//Now draw on top
-				//set the raster pipeline state as a whole, it was prebuilt before
-				commandList->SetPipelineState(m_triangle_state.get());
-                //draw the triangle
-                commandList->DrawInstanced(3, 1, 0, 0);
-            }
-
-			//Now postprocessing
+			//Graphics Queue, Color Pass
 			{
-				D3D12_RESOURCE_BARRIER barrier[1] = {};
+				ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][1].get();
+			
+				{
+					D3D12_RESOURCE_BARRIER barrier[1] = {};
 
-				barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-				barrier[0].Transition.pResource = m_lighting_buffer[m_frame_index].get();
-				barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-				barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-				barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-				commandList->ResourceBarrier(1, &barrier[0]);
+					barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					barrier[0].Transition.pResource = m_lighting_buffer[graphics_frame_index].get();
+					barrier[0].Transition.StateAfter	= D3D12_RESOURCE_STATE_RENDER_TARGET;
+					barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+					barrier[0].Transition.Subresource	= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+					graphicsList->ResourceBarrier(1, &barrier[0]);
+				}
 
-				//set the type of the parameters that we will use in the shader
-				commandList->SetComputeRootSignature(m_compute_signature.get());
-				commandList->SetComputeRootDescriptorTable(1, GpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + m_lighting_descriptor_uav[m_frame_index]);
-				commandList->SetPipelineState(m_gaussian_blur.get());
-				commandList->Dispatch(1, 1, 1);
 
+				//Depth prepass for frame N
+				//get the pointer to the gpu memory
+				D3D12_CPU_DESCRIPTOR_HANDLE back_buffer = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_lighting_descriptor[graphics_frame_index];
+				D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get()) + m_depth_descriptor[0];
+				{
+					graphicsList->OMSetRenderTargets(1, &back_buffer, TRUE, &depth_buffer);
+					FLOAT c[4] = { 0.0f, 0.f,0.f,0.f };
+					graphicsList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
+
+					//set the type of the parameters that we will use in the shader
+					graphicsList->SetGraphicsRootSignature(m_graphics_signature.get());
+
+					//set the scissor test separately (which parts of the view port will survive)
+					{
+						D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
+						graphicsList->RSSetScissorRects(1, &r);
+					}
+
+					//set the viewport. 
+					{
+						D3D12_VIEWPORT v;
+						v.TopLeftX = 0;
+						v.TopLeftY = 0;
+						v.MinDepth = 0.0f;
+						v.MaxDepth = 1.0f;
+						v.Width = static_cast<float>(m_back_buffer_width);
+						v.Height = static_cast<float>(m_back_buffer_height);
+						graphicsList->RSSetViewports(1, &v);
+					}
+
+					graphicsList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					graphicsList->SetPipelineState(m_triangle_state.get());
+					graphicsList->DrawInstanced(3, 1, 0, 0);
+				}
+
+				{
+					D3D12_RESOURCE_BARRIER barrier[1] = {};
+
+					barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					barrier[0].Transition.pResource = m_lighting_buffer[graphics_frame_index].get();
+					barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+					barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+					barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+					graphicsList->ResourceBarrier(1, &barrier[0]);
+				}
+
+				graphicsList->Close();
 			}
 
+			//Graphics queue, present to the backbuffer
 			{
-				D3D12_RESOURCE_BARRIER barrier[2] = {};
+				ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][2].get();
 
-				barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-				barrier[0].Transition.pResource = m_lighting_buffer[m_frame_index].get();
-				barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-				barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-				barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+				{
+					D3D12_RESOURCE_BARRIER barrier[2] = {};
 
-				barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-				barrier[1].Transition.pResource = m_swap_chain_buffers[m_frame_index].get();
-				barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-				barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-				barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+					barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					barrier[0].Transition.pResource = m_lighting_buffer[compute_frame_index].get();
+					barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+					barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+					barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-				commandList->ResourceBarrier(2, &barrier[0]);
-			}
+					barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					barrier[1].Transition.pResource = m_swap_chain_buffers[compute_frame_index].get();
+					barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+					barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+					barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-			{
+					graphicsList->ResourceBarrier(2, &barrier[0]);
+				}
+
 				D3D12_TEXTURE_COPY_LOCATION s = {};
 
-				s.pResource = m_lighting_buffer[m_frame_index].get();
+				s.pResource = m_lighting_buffer[compute_frame_index].get();
 				s.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 				s.SubresourceIndex = 0;
 
 				D3D12_TEXTURE_COPY_LOCATION d = {};
 
-				d.pResource = m_swap_chain_buffers[m_frame_index].get();
+				d.pResource = m_swap_chain_buffers[compute_frame_index].get();
 				d.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
 				d.SubresourceIndex = 0;
-				
-				commandList->CopyTextureRegion(&d, 0, 0, 0, &s, nullptr);
+
+				graphicsList->CopyTextureRegion(&d, 0, 0, 0, &s, nullptr);
+
+				{
+					D3D12_RESOURCE_BARRIER barrier[2] = {};
+
+					barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					barrier[0].Transition.pResource = m_lighting_buffer[compute_frame_index].get();
+					barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+					barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+					barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+					barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					barrier[1].Transition.pResource	= m_swap_chain_buffers[compute_frame_index].get();
+					barrier[1].Transition.StateAfter	= D3D12_RESOURCE_STATE_PRESENT;
+					barrier[1].Transition.StateBefore	= D3D12_RESOURCE_STATE_COPY_DEST;
+					barrier[1].Transition.Subresource	= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+					graphicsList->ResourceBarrier(2, &barrier[0]);
+				}
+
+				graphicsList->Close();
 			}
 
+			//Wait for the graphics, execute the compute work load
+			m_compute_queue->Wait(m_graphics_fence.get(), m_frame_number - 1);
+			{
+				ID3D12GraphicsCommandList1* computeList = m_compute_list[graphics_frame_index].get();
+				ID3D12CommandList* lists[] = { computeList };
+				m_compute_queue->ExecuteCommandLists(1, lists);
+			}
+			ThrowIfFailed(m_compute_queue->Signal(m_compute_fence.get(), m_frame_number - 1));
 
-            //Transition resources for presenting, flush the gpu caches
-            {
-                D3D12_RESOURCE_BARRIER barrier = {};
+			//execute depth prepass
+			{
+				ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][0].get() };
+				m_graphics_queue->ExecuteCommandLists(1, lists);
+			}
 
-                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                barrier.Transition.pResource = m_swap_chain_buffers[m_frame_index].get();
-                barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-                barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-                barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-                commandList->ResourceBarrier(1, &barrier);
-            }
-            
-            commandList->Close();   //close the list
+			//wait for the compute work of the previous frame
+			m_graphics_queue->Wait(m_compute_fence.get(), m_frame_number - 1);
+			
+			{
+				ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][2].get() };
+				m_graphics_queue->ExecuteCommandLists(1, lists);
+			}
 
-            {
-                //form group of several command lists
-                ID3D12CommandList* lists[] = { commandList };
-                m_graphics_queue->ExecuteCommandLists(1, lists); //Execute what we have, submission of commands to the gpu
-            }   
+			m_swap_chain->Present(1, 0);    //present the swap chain
 
-            m_swap_chain->Present(1, 0);    //present the swap chain
+			//Execute color pass this frame
+			{
+				ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][1].get() };
+				m_graphics_queue->ExecuteCommandLists(1, lists);
+			}
 
-            //Tell the gpu to signal the cpu after it finishes executing the commands that we have just submitted
-            ThrowIfFailed(m_graphics_queue->Signal(m_graphics_fence.get(), m_fence_value));
+			ThrowIfFailed(m_graphics_queue->Signal(m_graphics_fence.get(), m_frame_number));
 
-            //Now block the cpu until the gpu completes the previous frame
-            if (m_graphics_fence->GetCompletedValue() < m_fence_value)
-            {
-                ThrowIfFailed(m_graphics_fence->SetEventOnCompletion(m_fence_value, m_graphics_event));
-                WaitForSingleObject(m_graphics_event, INFINITE);
-            }
+			//Now block the cpu until the gpu if it gets too far
+			if (m_graphics_fence->GetCompletedValue() < m_frame_number - 1)
+			{
+				ThrowIfFailed(m_graphics_fence->SetEventOnCompletion(m_frame_number - 1, m_graphics_event));
+				WaitForSingleObject(m_graphics_event, INFINITE);
+			}
 
-            //prepare for the next frame
-            m_fence_value = m_fence_value + 1;
-            m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+			m_frame_number = m_frame_number + 1;
+			m_graphics_frame_index = 1 - m_graphics_frame_index;
         }
     }
 
@@ -876,15 +962,17 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     uint32_t									m_back_buffer_width = 0;
     uint32_t									m_back_buffer_height = 0;
 
-	winrt::com_ptr <ID3D12CommandAllocator>   	m_graphics_allocator[2];		//one per frame
+	winrt::com_ptr <ID3D12CommandAllocator>   	m_graphics_allocator[2][3];		//one per frame
 	winrt::com_ptr <ID3D12CommandAllocator>   	m_compute_allocator[2];			//one per frame
-    winrt::com_ptr <ID3D12GraphicsCommandList1> m_graphics_list[2];				//one per frame 
+    winrt::com_ptr <ID3D12GraphicsCommandList1> m_graphics_list[2][3];			//three per frame 
 	winrt::com_ptr <ID3D12GraphicsCommandList1>	m_compute_list[2];				//one per frame 
 
-	uint64_t                                    m_frame_index	= 0;
-    uint64_t									m_fence_value	= 1;
-    HANDLE										m_graphics_event = {};
-	HANDLE										m_compute_event = {};
+	uint64_t									m_frame_number			= 1;
+	uint64_t                                    m_graphics_frame_index	= 0;
+
+    uint64_t									m_fence_value			= 0;
+    HANDLE										m_graphics_event		= {};
+	HANDLE										m_compute_event			= {};
 
 	//Signatures
     winrt::com_ptr< ID3D12RootSignature>		m_compute_signature;
