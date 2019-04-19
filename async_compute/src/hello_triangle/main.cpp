@@ -160,7 +160,7 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapTargets(ID3D12D
     winrt::com_ptr<ID3D12DescriptorHeap> r;
     D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-    d.NumDescriptors = 2;
+    d.NumDescriptors = 4;
     d.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
     return r;
@@ -274,6 +274,36 @@ static winrt::com_ptr<ID3D12Resource1> CreateDepthResource(ID3D12Device1* device
 	ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
 	return r;
 }
+
+static winrt::com_ptr<ID3D12Resource1> CreateLightingResource(ID3D12Device1* device, uint32_t width, uint32_t height)
+{
+	D3D12_RESOURCE_DESC d = {};
+	d.Alignment = 0;
+	d.DepthOrArraySize = 1;
+	d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	d.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	d.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	d.Height = height;
+	d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+	d.MipLevels = 1;
+	d.SampleDesc.Count = 1;
+	d.SampleDesc.Quality = 0;
+	d.Width = width;
+
+	winrt::com_ptr<ID3D12Resource1>     r;
+	D3D12_HEAP_PROPERTIES p = {};
+	p.Type = D3D12_HEAP_TYPE_DEFAULT;
+	D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+	D3D12_CLEAR_VALUE v = {};
+	v.Color[0] = 1.0f;
+	v.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+
+	ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
+	return r;
+}
+
+
 
 //Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
 static void CreateDepthWriteDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
@@ -484,6 +514,123 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
     }
 
+	void Load(winrt::hstring h)
+	{
+		m_graphics_signature = CreateRootSignature(m_device.get());
+		m_triangle_state = CreateTrianglePipelineState(m_device.get(), m_graphics_signature.get());
+		m_triangle_state_depth_prepass = CreateTriangleDepthPipelineState(m_device.get(), m_graphics_signature.get());
+	}
+
+	void SetWindow(const CoreWindow& w)
+	{
+		m_closed = w.Closed(winrt::auto_revoke, { this, &ViewProvider::OnWindowClosed });
+		m_size_changed = w.SizeChanged(winrt::auto_revoke, { this, &ViewProvider::OnWindowSizeChanged });
+
+		m_swap_chain = CreateSwapChain(w, m_graphics_queue.get());
+		m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+
+		m_back_buffer_width = static_cast<UINT>(w.Bounds().Width);
+		m_back_buffer_height = static_cast<UINT>(w.Bounds().Height);
+
+		//allocate memory for the view
+		m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
+		m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
+
+		m_swap_chain_buffers[0]->SetName(L"Buffer 0");
+		m_swap_chain_buffers[1]->SetName(L"Buffer 1");
+
+		//Where are located the descriptors
+		m_swap_chain_descriptor[0] = 0;
+		m_swap_chain_descriptor[1] = 1;
+
+		//create render target views, that will be used for rendering
+		CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
+		CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
+
+		m_depth_buffer = CreateDepthResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+		m_depth_buffer->SetName(L"Depth Buffer");
+
+		CreateDepthWriteDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0);
+		CreateDepthReadDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 1);
+
+		m_depth_descriptor[0] = 0;
+		m_depth_descriptor[1] = 1;
+
+		//create render target views, that will be used for rendering
+		m_lighting_buffer[0] = CreateLightingResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+		m_lighting_buffer[1] = CreateLightingResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+
+		m_lighting_buffer[0]->SetName(L"Lighting Buffer 0");
+		m_lighting_buffer[1]->SetName(L"Lighting Buffer 1");
+
+		//create render target views, that will be used for rendering
+		CreateSwapChainDescriptor(m_device.get(), m_lighting_buffer[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 2);
+		CreateSwapChainDescriptor(m_device.get(), m_lighting_buffer[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 3);
+
+		m_lighting_descriptor[0] = 2;
+		m_lighting_descriptor[1] = 3;
+
+		//Copy
+
+	}
+
+	void OnWindowClosed(const CoreWindow & w, const CoreWindowEventArgs & a)
+	{
+		m_window_running = false;
+	}
+
+	void OnActivated(const CoreApplicationView&, const IActivatedEventArgs&)
+	{
+		CoreWindow::GetForCurrentThread().Activate();
+	}
+
+	void OnWindowSizeChanged(const CoreWindow & w, const WindowSizeChangedEventArgs & a)
+	{
+		//wait for the render thread to finish and block it so we can submit a command
+		std::lock_guard lock(m_blockRendering);
+
+		//Now wait for the gpu to finish what it has from the main thread
+
+		//Insert in the gpu a command after all submitted commands so far.
+		ThrowIfFailed(m_graphics_queue->Signal(m_graphics_fence.get(), m_fence_value));
+
+		//Wait for the gpu to notify us back that it had passed. Now it is idle
+		ThrowIfFailed(m_graphics_fence->SetEventOnCompletion(m_fence_value, m_graphics_event));
+		WaitForSingleObject(m_graphics_event, INFINITE);
+
+		//Prepare to unblock the rendering
+		m_fence_value = m_fence_value + 1;
+		m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+
+		m_back_buffer_width = static_cast<UINT>(w.Bounds().Width);
+		m_back_buffer_height = static_cast<UINT>(w.Bounds().Height);
+
+		//allocate memory for the view
+		m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
+		m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
+
+		m_swap_chain_buffers[0]->SetName(L"Buffer 0");
+		m_swap_chain_buffers[1]->SetName(L"Buffer 1");
+
+		//create render target views, that will be used for rendering
+		CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
+		CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
+
+		//Where are located the descriptors
+		m_swap_chain_descriptor[0] = 0;
+		m_swap_chain_descriptor[1] = 1;
+
+		m_depth_buffer = CreateDepthResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+		m_depth_buffer->SetName(L"Depth Buffer");
+
+		CreateDepthWriteDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0);
+		CreateDepthReadDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 1);
+
+		m_depth_descriptor[0] = 0;
+		m_depth_descriptor[1] = 1;
+
+	}
+
     void Run()
     {
         while (m_window_running)
@@ -506,7 +653,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             }
 
             //get the pointer to the gpu memory
-            D3D12_CPU_DESCRIPTOR_HANDLE back_buffer  = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_swap_chain_descriptors[m_frame_index];
+            D3D12_CPU_DESCRIPTOR_HANDLE back_buffer  = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_swap_chain_descriptor[m_frame_index];
 			D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get())   + m_depth_descriptor[0];
 
             //Transition resources for writing. flush caches
@@ -571,8 +718,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 				//draw the triangle
 				commandList->DrawInstanced(3, 1, 0, 0);
 
-
-
 				//Now draw on top
 				//set the raster pipeline state as a whole, it was prebuilt before
 				commandList->SetPipelineState(m_triangle_state.get());
@@ -619,107 +764,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         }
     }
 
-    void Load(winrt::hstring h)
-    {
-        m_graphics_signature			= CreateRootSignature(m_device.get());
-        m_triangle_state				= CreateTrianglePipelineState(m_device.get(), m_graphics_signature.get());
-		m_triangle_state_depth_prepass	= CreateTriangleDepthPipelineState(m_device.get(), m_graphics_signature.get());
-    }
-
-    void SetWindow(const CoreWindow& w)
-    {
-        m_closed			    = w.Closed(winrt::auto_revoke, { this, &ViewProvider::OnWindowClosed });
-        m_size_changed		    = w.SizeChanged(winrt::auto_revoke, { this, &ViewProvider::OnWindowSizeChanged });
-
-        m_swap_chain		    = CreateSwapChain(w, m_graphics_queue.get());
-        m_frame_index           = m_swap_chain->GetCurrentBackBufferIndex();
-
-        m_back_buffer_width     = static_cast<UINT>(w.Bounds().Width);
-        m_back_buffer_height    = static_cast<UINT>(w.Bounds().Height);
-
-        //allocate memory for the view
-        m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
-        m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
-
-        m_swap_chain_buffers[0]->SetName(L"Buffer 0");
-        m_swap_chain_buffers[1]->SetName(L"Buffer 1");
-
-		
-
-        //create render target views, that will be used for rendering
-        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
-        CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
-
-		m_depth_buffer		= CreateDepthResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
-		m_depth_buffer->SetName(L"Depth Buffer");
-
-		CreateDepthWriteDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0);
-		CreateDepthReadDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 1);
-
-		m_depth_descriptor[0] = 0;
-		m_depth_descriptor[1] = 1;
-
-        //Where are located the descriptors
-        m_swap_chain_descriptors[0] = 0;
-        m_swap_chain_descriptors[1] = 1;
-    }
-
-    void OnWindowClosed(const CoreWindow&w, const CoreWindowEventArgs& a)
-    {
-        m_window_running = false;
-    }
-
-    void OnActivated(const CoreApplicationView&, const IActivatedEventArgs&)
-    {
-        CoreWindow::GetForCurrentThread().Activate();
-    }
-
-    void OnWindowSizeChanged(const CoreWindow& w, const WindowSizeChangedEventArgs& a)
-    {
-        //wait for the render thread to finish and block it so we can submit a command
-        std::lock_guard lock(m_blockRendering);
-
-        //Now wait for the gpu to finish what it has from the main thread
-
-        //Insert in the gpu a command after all submitted commands so far.
-        ThrowIfFailed(m_graphics_queue->Signal(m_graphics_fence.get(), m_fence_value));
-
-        //Wait for the gpu to notify us back that it had passed. Now it is idle
-        ThrowIfFailed(m_graphics_fence->SetEventOnCompletion(m_fence_value, m_graphics_event));
-        WaitForSingleObject(m_graphics_event, INFINITE);
-
-        //Prepare to unblock the rendering
-        m_fence_value = m_fence_value + 1;
-        m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
-
-		m_back_buffer_width = static_cast<UINT>(w.Bounds().Width);
-		m_back_buffer_height = static_cast<UINT>(w.Bounds().Height);
-
-		//allocate memory for the view
-		m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
-		m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
-
-		m_swap_chain_buffers[0]->SetName(L"Buffer 0");
-		m_swap_chain_buffers[1]->SetName(L"Buffer 1");
-
-		//create render target views, that will be used for rendering
-		CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
-		CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
-
-		m_depth_buffer = CreateDepthResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
-		m_depth_buffer->SetName(L"Depth Buffer");
-
-		CreateDepthWriteDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0);
-		CreateDepthReadDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 1);
-
-		m_depth_descriptor[0] = 0;
-		m_depth_descriptor[1] = 1;
-
-		//Where are located the descriptors
-		m_swap_chain_descriptors[0] = 0;
-		m_swap_chain_descriptors[1] = 1;
-    }
-
     bool m_window_running = true;
 
     CoreWindow::Closed_revoker					m_closed;
@@ -744,12 +788,12 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     std::mutex                                  m_blockRendering;				//block render thread for the swap chain resizes
 
 	winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];		//back buffer resources
-	uint64_t                                    m_swap_chain_descriptors[2];
+	uint64_t                                    m_swap_chain_descriptor[2];
 	winrt::com_ptr<ID3D12Resource1>				m_depth_buffer;
 	uint64_t									m_depth_descriptor[2];
 
 	winrt::com_ptr<ID3D12Resource1>             m_lighting_buffer[2];			//lighting buffers ( ComputeGraphicsLatency + 1 )
-	uint64_t                                    m_lighting_buffer_descriptors[2];
+	uint64_t                                    m_lighting_descriptor[2];
 
 	winrt::com_ptr<ID3D12Resource1>             m_depth;						//depth buffer
 
