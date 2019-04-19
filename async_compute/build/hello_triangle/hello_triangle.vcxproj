@@ -104,6 +104,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="..\..\src\hello_triangle\shaders\gaussian_blur.hlsl">
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderType>Compute</ShaderType>
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
     <FxCompile Include="..\..\src\hello_triangle\shaders\triangle_pixel.hlsl">
       <VariableName>g_%(Filename)</VariableName>
       <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
@@ -113,28 +120,30 @@
     </FxCompile>
     <FxCompile Include="..\..\src\hello_triangle\shaders\triangle_vertex.hlsl">
       <ShaderType>Vertex</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
       <VariableName>g_%(Filename)</VariableName>
       <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput />
       <ShaderModel>5.1</ShaderModel>
     </FxCompile>
     <FxCompile Include="..\..\src\hello_triangle\shaders\default_graphics_signature.hlsl">
-      <ShaderType>Vertex</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
       <VariableName>g_%(Filename)</VariableName>
       <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput />
-      <ShaderModel>5.1</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">RootSignature</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">rootsig_1.1</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">RootSignature</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">rootsig_1.1</ShaderModel>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MyRS1</EntryPointName>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MyRS1</EntryPointName>
+       <ShaderType>RootSignature</ShaderType>
+      <EntryPointName>MyRS1</EntryPointName>
+      <ShaderModel>rootsig_1.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\hello_triangle\shaders\default_compute_signature.hlsl">
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderModel>rootsig_1.1</ShaderModel>
+      <ShaderType>RootSignature</ShaderType>
+      <EntryPointName>MyRS2</EntryPointName>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\..\src\hello_triangle\shaders\default_signature.hlsli" />
     <None Include="hello_triangle_TemporaryKey.pfx" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

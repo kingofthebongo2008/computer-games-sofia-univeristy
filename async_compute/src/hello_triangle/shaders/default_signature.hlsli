@@ -21,14 +21,7 @@
 
 #define MyRS2 "RootFlags( 0 ), " \
               "CBV(b0, space = 0), " \
-              "SRV(t0), " \
-              "UAV(u0), " \
-              "DescriptorTable( CBV(b1, numDescriptors = 5))," \
-              "DescriptorTable( UAV(u1, numDescriptors = 2))," \
-              "DescriptorTable( SRV(t1, numDescriptors = 8))," \
-              "DescriptorTable( SRV(t9, numDescriptors = 2) ), " \
-              "RootConstants(num32BitConstants=1, b9), " \
-              "DescriptorTable( UAV(u3), UAV(u4), UAV(u5)), " \
+              "DescriptorTable( UAV(u0, numDescriptors = 1))," \
               "StaticSampler(s0)," \
               "StaticSampler(s1)," \
               "StaticSampler(s2, addressU = TEXTURE_ADDRESS_CLAMP,  addressV = TEXTURE_ADDRESS_CLAMP, addressW = TEXTURE_ADDRESS_CLAMP, filter = FILTER_MIN_MAG_MIP_POINT )," \

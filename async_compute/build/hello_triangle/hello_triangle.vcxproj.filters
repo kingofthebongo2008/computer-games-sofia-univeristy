@@ -55,8 +55,17 @@
     <FxCompile Include="..\..\src\hello_triangle\shaders\default_graphics_signature.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\src\hello_triangle\shaders\gaussian_blur.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\hello_triangle\shaders\default_compute_signature.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="hello_triangle_TemporaryKey.pfx" />
+    <None Include="..\..\src\hello_triangle\shaders\default_signature.hlsli">
+      <Filter>shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

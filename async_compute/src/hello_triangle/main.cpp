@@ -378,7 +378,7 @@ static winrt::com_ptr <ID3D12GraphicsCommandList1> CreateComputeList(ID3D12Devic
 }
 
 //create an object which represents what types of external data the shaders will use. You can imagine f(int x, float y); Root Signature is that we have two parameters on locations 0 and 1 types int and float
-static winrt::com_ptr< ID3D12RootSignature>	 CreateRootSignature(ID3D12Device1* device)
+static winrt::com_ptr< ID3D12RootSignature>	 CreateGraphicsRootSignature(ID3D12Device1* device)
 {
     static 
     #include <default_graphics_signature.h>
@@ -386,6 +386,17 @@ static winrt::com_ptr< ID3D12RootSignature>	 CreateRootSignature(ID3D12Device1* 
     winrt::com_ptr<ID3D12RootSignature> r;
     ThrowIfFailed(device->CreateRootSignature( 0, &g_default_graphics_signature[0], sizeof(g_default_graphics_signature), __uuidof(ID3D12RootSignature), r.put_void()));
     return r;
+}
+
+//create an object which represents what types of external data the shaders will use. You can imagine f(int x, float y); Root Signature is that we have two parameters on locations 0 and 1 types int and float
+static winrt::com_ptr< ID3D12RootSignature>	 CreateComputeRootSignature(ID3D12Device1* device)
+{
+	static
+	#include <default_compute_signature.h>
+
+	winrt::com_ptr<ID3D12RootSignature> r;
+	ThrowIfFailed(device->CreateRootSignature(0, &g_default_compute_signature[0], sizeof(g_default_compute_signature), __uuidof(ID3D12RootSignature), r.put_void()));
+	return r;
 }
 
 D3D12_GRAPHICS_PIPELINE_STATE_DESC CreateTriangleDescription()
@@ -515,9 +526,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 	void Load(winrt::hstring h)
 	{
-		m_graphics_signature = CreateRootSignature(m_device.get());
-		m_triangle_state = CreateTrianglePipelineState(m_device.get(), m_graphics_signature.get());
-		m_triangle_state_depth_prepass = CreateTriangleDepthPipelineState(m_device.get(), m_graphics_signature.get());
+		m_graphics_signature			= CreateGraphicsRootSignature(m_device.get());
+		m_compute_signature				= CreateComputeRootSignature(m_device.get());
+		m_triangle_state				= CreateTrianglePipelineState(m_device.get(), m_graphics_signature.get());
+		m_triangle_state_depth_prepass	= CreateTriangleDepthPipelineState(m_device.get(), m_graphics_signature.get());
 	}
 
 	void SetWindow(const CoreWindow& w)
