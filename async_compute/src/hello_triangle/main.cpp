@@ -333,7 +333,7 @@ static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* de
 }
 
 //Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
-static void CreateSwapChainDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle )
+static void CreateRenderTargetDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle )
 {
     D3D12_RENDER_TARGET_VIEW_DESC d = {};
     d.ViewDimension                 = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -555,8 +555,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_swap_chain_descriptor[1] = 1;
 
 		//create render target views, that will be used for rendering
-		CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
-		CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
+		CreateRenderTargetDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
+		CreateRenderTargetDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
 
 		m_depth_buffer = CreateDepthResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
 		m_depth_buffer->SetName(L"Depth Buffer");
@@ -575,8 +575,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_lighting_buffer[1]->SetName(L"Lighting Buffer 1");
 
 		//create render target views, that will be used for rendering
-		CreateSwapChainDescriptor(m_device.get(), m_lighting_buffer[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 2);
-		CreateSwapChainDescriptor(m_device.get(), m_lighting_buffer[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 3);
+		CreateRenderTargetDescriptor(m_device.get(), m_lighting_buffer[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 2);
+		CreateRenderTargetDescriptor(m_device.get(), m_lighting_buffer[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 3);
 
 		m_lighting_descriptor[0] = 2;
 		m_lighting_descriptor[1] = 3;
@@ -624,8 +624,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_swap_chain_buffers[1]->SetName(L"Buffer 1");
 
 		//create render target views, that will be used for rendering
-		CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
-		CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
+		CreateRenderTargetDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
+		CreateRenderTargetDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
 
 		//Where are located the descriptors
 		m_swap_chain_descriptor[0] = 0;
