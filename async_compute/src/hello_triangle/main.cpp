@@ -341,6 +341,15 @@ static void CreateRenderTargetDescriptor(ID3D12Device1* device, ID3D12Resource1*
     device->CreateRenderTargetView(resource, &d, handle);
 }
 
+//Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
+static void CreateUnorderedAccessViewDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+	D3D12_UNORDERED_ACCESS_VIEW_DESC d = {};
+	d.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+	d.Format = DXGI_FORMAT_B8G8R8A8_UNORM;       //how we will view the resource during rendering
+	device->CreateUnorderedAccessView(resource, nullptr, &d, handle);
+}
+
 //Create the memory manager for the gpu commands
 static winrt::com_ptr <ID3D12CommandAllocator> CreateGraphicsAllocator(ID3D12Device1* device)
 {
@@ -578,9 +587,14 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		CreateRenderTargetDescriptor(m_device.get(), m_lighting_buffer[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 2);
 		CreateRenderTargetDescriptor(m_device.get(), m_lighting_buffer[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 3);
 
+		CreateUnorderedAccessViewDescriptor(m_device.get(), m_lighting_buffer[0].get(), CpuView(m_device.get(), m_descriptorHeapShader.get()) + 0);
+		CreateUnorderedAccessViewDescriptor(m_device.get(), m_lighting_buffer[1].get(), CpuView(m_device.get(), m_descriptorHeapShader.get()) + 1);
+
 		m_lighting_descriptor[0] = 2;
 		m_lighting_descriptor[1] = 3;
 
+		m_lighting_descriptor_uav[0] = 0;
+		m_lighting_descriptor_uav[0] = 1;
 		//Copy
 
 	}
@@ -839,6 +853,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 	winrt::com_ptr<ID3D12Resource1>             m_lighting_buffer[2];			//lighting buffers ( ComputeGraphicsLatency + 1 )
 	uint64_t                                    m_lighting_descriptor[2];
+	uint64_t                                    m_lighting_descriptor_uav[2];
 
 	winrt::com_ptr<ID3D12Resource1>             m_depth;						//depth buffer
 
