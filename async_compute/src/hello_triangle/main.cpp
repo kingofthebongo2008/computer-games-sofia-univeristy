@@ -293,10 +293,9 @@ static winrt::com_ptr<ID3D12Resource1> CreateLightingResource(ID3D12Device1* dev
 	winrt::com_ptr<ID3D12Resource1>     r;
 	D3D12_HEAP_PROPERTIES p = {};
 	p.Type = D3D12_HEAP_TYPE_DEFAULT;
-	D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
 	D3D12_CLEAR_VALUE v = {};
-	v.Color[0] = 1.0f;
 	v.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 
 	ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
@@ -653,7 +652,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             }
 
             //get the pointer to the gpu memory
-            D3D12_CPU_DESCRIPTOR_HANDLE back_buffer  = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_swap_chain_descriptor[m_frame_index];
+            D3D12_CPU_DESCRIPTOR_HANDLE back_buffer  = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_lighting_descriptor[m_frame_index];
 			D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get())   + m_depth_descriptor[0];
 
             //Transition resources for writing. flush caches
@@ -661,8 +660,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 D3D12_RESOURCE_BARRIER barrier = {};
 
                 barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                barrier.Transition.pResource = m_swap_chain_buffers[m_frame_index].get();
-                barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+                barrier.Transition.pResource = m_lighting_buffer[m_frame_index].get();
+				barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
                 barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
                 barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
                 commandList->ResourceBarrier(1, &barrier);
@@ -724,7 +723,41 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 //draw the triangle
                 commandList->DrawInstanced(3, 1, 0, 0);
             }
-            
+
+			{
+				D3D12_RESOURCE_BARRIER barrier[2] = {};
+
+				barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+				barrier[0].Transition.pResource = m_lighting_buffer[m_frame_index].get();
+				barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+				barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+				barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+				barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+				barrier[1].Transition.pResource = m_swap_chain_buffers[m_frame_index].get();
+				barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+				barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+				barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+				commandList->ResourceBarrier(2, &barrier[0]);
+			}
+
+			{
+				D3D12_TEXTURE_COPY_LOCATION s = {};
+
+				s.pResource = m_lighting_buffer[m_frame_index].get();
+				s.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+				s.SubresourceIndex = 0;
+
+				D3D12_TEXTURE_COPY_LOCATION d = {};
+
+				d.pResource = m_swap_chain_buffers[m_frame_index].get();
+				d.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+				d.SubresourceIndex = 0;
+				
+				commandList->CopyTextureRegion(&d, 0, 0, 0, &s, nullptr);
+			}
+
 
             //Transition resources for presenting, flush the gpu caches
             {
@@ -733,7 +766,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
                 barrier.Transition.pResource = m_swap_chain_buffers[m_frame_index].get();
                 barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-                barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
                 barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
                 commandList->ResourceBarrier(1, &barrier);
             }
