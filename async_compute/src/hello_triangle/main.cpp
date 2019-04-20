@@ -3,6 +3,7 @@
 
 #include "d3dx12.h"
 #include "cpu_view.h"
+#include <pix3.h>
 
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
@@ -659,22 +660,21 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 		m_depth_descriptor[0] = 0;
 		m_depth_descriptor[1] = 1;
-
 	}
 
     void Run()
     {
 		m_swap_chain->Present(0,0);
 
-        while (m_window_running)
-        {
+		while (m_window_running)
+		{
 			using namespace sample;
-            CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
+			CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 
-            std::lock_guard lock(m_blockRendering);
+			std::lock_guard lock(m_blockRendering);
 
-			uint32_t graphics_frame_index	= m_graphics_frame_index;
-			uint32_t compute_frame_index	= 1 - m_graphics_frame_index;
+			uint32_t graphics_frame_index = m_graphics_frame_index;
+			uint32_t compute_frame_index = 1 - m_graphics_frame_index;
 
 			{
 				ID3D12CommandAllocator* computeAllocator = m_compute_allocator[graphics_frame_index].get();
@@ -692,10 +692,12 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 			}
 
 			//Compute queue
-            {
+			{
+
 				ID3D12GraphicsCommandList1* computeList = m_compute_list[graphics_frame_index].get();
+				PIXBeginEvent(computeList, 0, L"PostProcess");
 				// Set Descriptor heaps	
-                ID3D12DescriptorHeap* heaps[] = { m_descriptorHeapShaderGpu.get()};
+				ID3D12DescriptorHeap* heaps[] = { m_descriptorHeapShaderGpu.get() };
 				computeList->SetDescriptorHeaps(1, heaps);
 
 				//Now do post processing
@@ -707,13 +709,15 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 					computeList->Dispatch(1, 1, 1);
 				}
 
+				PIXEndEvent(computeList);
 				computeList->Close();
-            }
+				
+			}
 
 			//Graphics Queue, Depth Prepass
 			{
 				ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][0].get();
-
+				PIXBeginEvent(graphicsList, 0, "Depth Prepass");
 				//Depth prepass for frame N
 				//get the pointer to the gpu memory
 				D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get()) + m_depth_descriptor[0];
@@ -755,21 +759,26 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 					graphicsList->DrawInstanced(3, 1, 0, 0);
 				}
 
+				PIXEndEvent(graphicsList);
+
 				graphicsList->Close();
+				
 			}
 
 			//Graphics Queue, Color Pass
 			{
 				ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][1].get();
-			
+
+				PIXBeginEvent(graphicsList, 0, "Heavy Load Pass");
+
 				{
 					D3D12_RESOURCE_BARRIER barrier[1] = {};
 
 					barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 					barrier[0].Transition.pResource = m_lighting_buffer[graphics_frame_index].get();
-					barrier[0].Transition.StateAfter	= D3D12_RESOURCE_STATE_RENDER_TARGET;
+					barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
 					barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-					barrier[0].Transition.Subresource	= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+					barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 					graphicsList->ResourceBarrier(1, &barrier[0]);
 				}
 
@@ -821,12 +830,17 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 					graphicsList->ResourceBarrier(1, &barrier[0]);
 				}
 
+				PIXEndEvent(graphicsList);
+
 				graphicsList->Close();
+			
 			}
 
 			//Graphics queue, present to the backbuffer
 			{
 				ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][2].get();
+
+				//PIXBeginEvent(graphicsList, 0, "Present Frame");
 
 				{
 					D3D12_RESOURCE_BARRIER barrier[2] = {};
@@ -870,54 +884,66 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 					barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
 					barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-					barrier[1].Transition.pResource	= m_swap_chain_buffers[compute_frame_index].get();
-					barrier[1].Transition.StateAfter	= D3D12_RESOURCE_STATE_PRESENT;
-					barrier[1].Transition.StateBefore	= D3D12_RESOURCE_STATE_COPY_DEST;
-					barrier[1].Transition.Subresource	= D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+					barrier[1].Transition.pResource = m_swap_chain_buffers[compute_frame_index].get();
+					barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+					barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+					barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 					graphicsList->ResourceBarrier(2, &barrier[0]);
 				}
 
 				graphicsList->Close();
+
+				//PIXEndEvent(graphicsList);
 			}
 
-			//Wait for the graphics, execute the compute work load
-			m_compute_queue->Wait(m_graphics_fence.get(), m_frame_number - 1);
 			{
-				ID3D12GraphicsCommandList1* computeList = m_compute_list[graphics_frame_index].get();
-				ID3D12CommandList* lists[] = { computeList };
-				m_compute_queue->ExecuteCommandLists(1, lists);
-			}
-			ThrowIfFailed(m_compute_queue->Signal(m_compute_fence.get(), m_frame_number - 1));
-
-			//execute depth prepass
-			{
-				ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][0].get() };
-				m_graphics_queue->ExecuteCommandLists(1, lists);
+				//Wait for the graphics, execute the compute work load
+				m_compute_queue->Wait(m_graphics_fence.get(), m_frame_number - 1);
+				{
+					ID3D12GraphicsCommandList1* computeList = m_compute_list[graphics_frame_index].get();
+					ID3D12CommandList* lists[] = { computeList };
+					m_compute_queue->ExecuteCommandLists(1, lists);
+				}
+				ThrowIfFailed(m_compute_queue->Signal(m_compute_fence.get(), m_frame_number - 1));
 			}
 
-			//wait for the compute work of the previous frame
-			m_graphics_queue->Wait(m_compute_fence.get(), m_frame_number - 1);
-			
 			{
-				ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][2].get() };
-				m_graphics_queue->ExecuteCommandLists(1, lists);
+				//execute depth prepass
+				{
+					ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][0].get() };
+					m_graphics_queue->ExecuteCommandLists(1, lists);
+				}
+			}
+
+			{
+				//wait for the compute work of the previous frame
+				m_graphics_queue->Wait(m_compute_fence.get(), m_frame_number - 1);
+
+				{
+					ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][2].get() };
+					m_graphics_queue->ExecuteCommandLists(1, lists);
+				}
 			}
 
 			m_swap_chain->Present(1, 0);    //present the swap chain
 
-			//Execute color pass this frame
 			{
-				ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][1].get() };
-				m_graphics_queue->ExecuteCommandLists(1, lists);
+				//Execute color pass this frame
+				{
+					ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][1].get() };
+					m_graphics_queue->ExecuteCommandLists(1, lists);
+				}
+
+				ThrowIfFailed(m_graphics_queue->Signal(m_graphics_fence.get(), m_frame_number));
 			}
 
-			ThrowIfFailed(m_graphics_queue->Signal(m_graphics_fence.get(), m_frame_number));
-
-			//Now block the cpu until the gpu if it gets too far
-			if (m_graphics_fence->GetCompletedValue() < m_frame_number - 1)
 			{
-				ThrowIfFailed(m_graphics_fence->SetEventOnCompletion(m_frame_number - 1, m_graphics_event));
-				WaitForSingleObject(m_graphics_event, INFINITE);
+				//Now block the cpu until the gpu if it gets too far
+				if (m_graphics_fence->GetCompletedValue() < m_frame_number - 1)
+				{
+					ThrowIfFailed(m_graphics_fence->SetEventOnCompletion(m_frame_number - 1, m_graphics_event));
+					WaitForSingleObject(m_graphics_event, INFINITE);
+				}
 			}
 
 			m_frame_number = m_frame_number + 1;

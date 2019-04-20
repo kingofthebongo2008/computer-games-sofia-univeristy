@@ -68,5 +68,6 @@
     <None Include="..\..\src\hello_triangle\shaders\default_signature.hlsli">
       <Filter>shaders</Filter>
     </None>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
