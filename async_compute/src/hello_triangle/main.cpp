@@ -920,22 +920,19 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 				m_graphics_queue->Wait(m_compute_fence.get(), m_frame_number - 1);
 
 				{
-					ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][2].get() };
-					m_graphics_queue->ExecuteCommandLists(1, lists);
-				}
-			}
+					ID3D12CommandList* lists[] = { 
+					
+						m_graphics_list[graphics_frame_index][2].get(),
+						m_graphics_list[graphics_frame_index][1].get()
+					};
 
-			m_swap_chain->Present(1, 0);    //present the swap chain
-
-			{
-				//Execute color pass this frame
-				{
-					ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][1].get() };
-					m_graphics_queue->ExecuteCommandLists(1, lists);
+					m_graphics_queue->ExecuteCommandLists(2, lists);
 				}
 
 				ThrowIfFailed(m_graphics_queue->Signal(m_graphics_fence.get(), m_frame_number));
 			}
+
+			m_swap_chain->Present(1, 0);    //present the swap chain
 
 			{
 				//Now block the cpu until the gpu if it gets too far
