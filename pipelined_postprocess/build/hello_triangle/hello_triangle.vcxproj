@@ -99,6 +99,8 @@
     <Image Include="assets\wide_310x150_logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\hello_triangle\build_window_environment.cpp" />
+    <ClCompile Include="..\..\src\hello_triangle\window_environment.cpp" />
     <ClCompile Include="..\..\src\hello_triangle\main.cpp" />
     <ClCompile Include="..\..\src\hello_triangle\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
