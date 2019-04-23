@@ -4,6 +4,7 @@
 #include "d3dx12.h"
 #include "cpu_view.h"
 #include <pix3.h>
+#include "build_window_environment.h"
 
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
@@ -92,15 +93,15 @@ static winrt::com_ptr<ID3D12CommandQueue> CreateGraphicsQueue(ID3D12Device* d )
 
 static winrt::com_ptr<ID3D12CommandQueue> CreateComputeQueue(ID3D12Device* d)
 {
-	winrt::com_ptr<ID3D12CommandQueue> r;
-	D3D12_COMMAND_QUEUE_DESC q = {};
+    winrt::com_ptr<ID3D12CommandQueue> r;
+    D3D12_COMMAND_QUEUE_DESC q = {};
 
-	q.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE; //submit copy, raster, compute payloads
-	ThrowIfFailed(d->CreateCommandQueue(&q, __uuidof(ID3D12CommandQueue), r.put_void()));
-	return r;
+    q.Type = D3D12_COMMAND_LIST_TYPE_COMPUTE; //submit copy, raster, compute payloads
+    ThrowIfFailed(d->CreateCommandQueue(&q, __uuidof(ID3D12CommandQueue), r.put_void()));
+    return r;
 }
 
-static winrt::com_ptr<IDXGISwapChain3> CreateSwapChain(const CoreWindow& w, ID3D12CommandQueue* d)
+static winrt::com_ptr<IDXGISwapChain3> CreateSwapChain(const CoreWindow& w, ID3D12CommandQueue* d, uint32_t width, uint32_t height)
 {
     winrt::com_ptr<IDXGIFactory2> f;
     winrt::com_ptr<IDXGISwapChain1> r;
@@ -109,15 +110,15 @@ static winrt::com_ptr<IDXGISwapChain3> CreateSwapChain(const CoreWindow& w, ID3D
 
     DXGI_SWAP_CHAIN_DESC1 desc = {};
 
-    desc.BufferCount	= 2;
-    desc.Format			= DXGI_FORMAT_B8G8R8A8_UNORM;
-    desc.Width			= static_cast<UINT>(w.Bounds().Width);
-    desc.Height			= static_cast<UINT>(w.Bounds().Height);
+    desc.BufferCount    = 2;
+    desc.Format         = DXGI_FORMAT_B8G8R8A8_UNORM;
+	desc.Width			= width;
+    desc.Height         = height;
     desc.SampleDesc.Count = 1;
-    desc.SwapEffect		= DXGI_SWAP_EFFECT_FLIP_DISCARD;
-    desc.BufferUsage	= DXGI_USAGE_RENDER_TARGET_OUTPUT;
-    desc.AlphaMode		= DXGI_ALPHA_MODE_IGNORE;
-    desc.Scaling		= DXGI_SCALING_NONE;
+    desc.SwapEffect     = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    desc.BufferUsage    = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    desc.AlphaMode      = DXGI_ALPHA_MODE_IGNORE;
+    desc.Scaling        = DXGI_SCALING_NONE;
 
     ThrowIfFailed(f->CreateSwapChainForCoreWindow(d, sample::copy_to_abi<IUnknown>(w).get(), &desc, nullptr, r.put()));
     return r.as< IDXGISwapChain3>();
@@ -143,36 +144,36 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapTargets(ID3D12D
 
 static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapDepth(ID3D12Device1* device)
 {
-	winrt::com_ptr<ID3D12DescriptorHeap> r;
-	D3D12_DESCRIPTOR_HEAP_DESC d = {};
+    winrt::com_ptr<ID3D12DescriptorHeap> r;
+    D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-	d.NumDescriptors = 2;
-	d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-	device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
-	return r;
+    d.NumDescriptors = 2;
+    d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+    device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
+    return r;
 }
 
 static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapShader(ID3D12Device1* device)
 {
-	winrt::com_ptr<ID3D12DescriptorHeap> r;
-	D3D12_DESCRIPTOR_HEAP_DESC d = {};
+    winrt::com_ptr<ID3D12DescriptorHeap> r;
+    D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-	d.NumDescriptors = 2;
-	d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
-	return r;
+    d.NumDescriptors = 2;
+    d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
+    return r;
 }
 
 static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapShaderGpu(ID3D12Device1* device)
 {
-	winrt::com_ptr<ID3D12DescriptorHeap> r;
-	D3D12_DESCRIPTOR_HEAP_DESC d = {};
+    winrt::com_ptr<ID3D12DescriptorHeap> r;
+    D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-	d.NumDescriptors = 2;
-	d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	d.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
-	return r;
+    d.NumDescriptors = 2;
+    d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    d.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
+    return r;
 }
 
 
@@ -224,57 +225,57 @@ static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource1(ID3D12Device1* d
 
 static winrt::com_ptr<ID3D12Resource1> CreateDepthResource(ID3D12Device1* device, uint32_t width, uint32_t height)
 {
-	D3D12_RESOURCE_DESC d = {};
-	d.Alignment = 0;
-	d.DepthOrArraySize = 1;
-	d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	d.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-	d.Format = DXGI_FORMAT_D32_FLOAT;
-	d.Height = height;
-	d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	d.MipLevels = 1;
-	d.SampleDesc.Count = 1;
-	d.SampleDesc.Quality = 0;
-	d.Width = width;
+    D3D12_RESOURCE_DESC d = {};
+    d.Alignment = 0;
+    d.DepthOrArraySize = 1;
+    d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    d.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    d.Format = DXGI_FORMAT_D32_FLOAT;
+    d.Height = height;
+    d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    d.MipLevels = 1;
+    d.SampleDesc.Count = 1;
+    d.SampleDesc.Quality = 0;
+    d.Width = width;
 
-	winrt::com_ptr<ID3D12Resource1>     r;
-	D3D12_HEAP_PROPERTIES p = {};
-	p.Type = D3D12_HEAP_TYPE_DEFAULT;
-	D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+    winrt::com_ptr<ID3D12Resource1>     r;
+    D3D12_HEAP_PROPERTIES p = {};
+    p.Type = D3D12_HEAP_TYPE_DEFAULT;
+    D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 
-	D3D12_CLEAR_VALUE v = {};
-	v.DepthStencil.Depth = 1.0f;
-	v.Format = DXGI_FORMAT_D32_FLOAT;
+    D3D12_CLEAR_VALUE v = {};
+    v.DepthStencil.Depth = 1.0f;
+    v.Format = DXGI_FORMAT_D32_FLOAT;
 
-	ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
-	return r;
+    ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
+    return r;
 }
 
 static winrt::com_ptr<ID3D12Resource1> CreateLightingResource(ID3D12Device1* device, uint32_t width, uint32_t height)
 {
-	D3D12_RESOURCE_DESC d = {};
-	d.Alignment = 0;
-	d.DepthOrArraySize = 1;
-	d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-	d.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-	d.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-	d.Height = height;
-	d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	d.MipLevels = 1;
-	d.SampleDesc.Count = 1;
-	d.SampleDesc.Quality = 0;
-	d.Width = width;
+    D3D12_RESOURCE_DESC d = {};
+    d.Alignment = 0;
+    d.DepthOrArraySize = 1;
+    d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    d.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    d.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    d.Height = height;
+    d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    d.MipLevels = 1;
+    d.SampleDesc.Count = 1;
+    d.SampleDesc.Quality = 0;
+    d.Width = width;
 
-	winrt::com_ptr<ID3D12Resource1>     r;
-	D3D12_HEAP_PROPERTIES p = {};
-	p.Type = D3D12_HEAP_TYPE_DEFAULT;
-	D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+    winrt::com_ptr<ID3D12Resource1>     r;
+    D3D12_HEAP_PROPERTIES p = {};
+    p.Type = D3D12_HEAP_TYPE_DEFAULT;
+    D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 
-	D3D12_CLEAR_VALUE v = {};
-	v.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    D3D12_CLEAR_VALUE v = {};
+    v.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 
-	ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
-	return r;
+    ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
+    return r;
 }
 
 
@@ -282,19 +283,19 @@ static winrt::com_ptr<ID3D12Resource1> CreateLightingResource(ID3D12Device1* dev
 //Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
 static void CreateDepthWriteDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
-	D3D12_DEPTH_STENCIL_VIEW_DESC d = {};
-	d.ViewDimension					= D3D12_DSV_DIMENSION_TEXTURE2D;
-	d.Format						= DXGI_FORMAT_D32_FLOAT;       //how we will view the resource during rendering
-	device->CreateDepthStencilView(resource, &d, handle);
+    D3D12_DEPTH_STENCIL_VIEW_DESC d = {};
+    d.ViewDimension                 = D3D12_DSV_DIMENSION_TEXTURE2D;
+    d.Format                        = DXGI_FORMAT_D32_FLOAT;       //how we will view the resource during rendering
+    device->CreateDepthStencilView(resource, &d, handle);
 }
 
 static void CreateDepthReadDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
-	D3D12_DEPTH_STENCIL_VIEW_DESC d = {};
-	d.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-	d.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH;
-	d.Format = DXGI_FORMAT_D32_FLOAT;				//how we will view the resource during rendering
-	device->CreateDepthStencilView(resource, &d, handle);
+    D3D12_DEPTH_STENCIL_VIEW_DESC d = {};
+    d.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    d.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH;
+    d.Format = DXGI_FORMAT_D32_FLOAT;               //how we will view the resource during rendering
+    device->CreateDepthStencilView(resource, &d, handle);
 }
 
 
@@ -319,26 +320,28 @@ static void CreateRenderTargetDescriptor(ID3D12Device1* device, ID3D12Resource1*
 //Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
 static void CreateUnorderedAccessViewDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
-	D3D12_UNORDERED_ACCESS_VIEW_DESC d = {};
-	d.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-	d.Format = DXGI_FORMAT_B8G8R8A8_UNORM;       //how we will view the resource during rendering
-	device->CreateUnorderedAccessView(resource, nullptr, &d, handle);
+    D3D12_UNORDERED_ACCESS_VIEW_DESC d = {};
+    d.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+    d.Format = DXGI_FORMAT_B8G8R8A8_UNORM;       //how we will view the resource during rendering
+    device->CreateUnorderedAccessView(resource, nullptr, &d, handle);
 }
 
 //Create the memory manager for the gpu commands
-static winrt::com_ptr <ID3D12CommandAllocator> CreateGraphicsAllocator(ID3D12Device1* device)
+static winrt::com_ptr <ID3D12CommandAllocator> CreateGraphicsAllocator(ID3D12Device1* device, const wchar_t* name)
 {
     winrt::com_ptr<ID3D12CommandAllocator> r;
     ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), r.put_void()));
+	r->SetName(name);
     return r;
 }
 
 //Create the memory manager for the gpu commands
-static winrt::com_ptr <ID3D12CommandAllocator> CreateComputeAllocator(ID3D12Device1* device)
+static winrt::com_ptr <ID3D12CommandAllocator> CreateComputeAllocator(ID3D12Device1* device, const wchar_t* name)
 {
-	winrt::com_ptr<ID3D12CommandAllocator> r;
-	ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, __uuidof(ID3D12CommandAllocator), r.put_void()));
-	return r;
+    winrt::com_ptr<ID3D12CommandAllocator> r;
+    ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_COMPUTE, __uuidof(ID3D12CommandAllocator), r.put_void()));
+	r->SetName(name);
+    return r;
 }
 
 //create an object that will record commands
@@ -354,15 +357,15 @@ static winrt::com_ptr <ID3D12GraphicsCommandList1> CreateGraphicsList(ID3D12Devi
 //create an object that will record commands
 static winrt::com_ptr <ID3D12GraphicsCommandList1> CreateComputeList(ID3D12Device1* device, ID3D12CommandAllocator* a)
 {
-	winrt::com_ptr<ID3D12GraphicsCommandList1> r;
-	ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, a, nullptr, __uuidof(ID3D12GraphicsCommandList1), r.put_void()));
+    winrt::com_ptr<ID3D12GraphicsCommandList1> r;
+    ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_COMPUTE, a, nullptr, __uuidof(ID3D12GraphicsCommandList1), r.put_void()));
 
-	r->Close();
-	return r;
+    r->Close();
+    return r;
 }
 
 //create an object which represents what types of external data the shaders will use. You can imagine f(int x, float y); Root Signature is that we have two parameters on locations 0 and 1 types int and float
-static winrt::com_ptr< ID3D12RootSignature>	 CreateGraphicsRootSignature(ID3D12Device1* device)
+static winrt::com_ptr< ID3D12RootSignature>  CreateGraphicsRootSignature(ID3D12Device1* device)
 {
     static 
     #include <default_graphics_signature.h>
@@ -373,57 +376,57 @@ static winrt::com_ptr< ID3D12RootSignature>	 CreateGraphicsRootSignature(ID3D12D
 }
 
 //create an object which represents what types of external data the shaders will use. You can imagine f(int x, float y); Root Signature is that we have two parameters on locations 0 and 1 types int and float
-static winrt::com_ptr< ID3D12RootSignature>	 CreateComputeRootSignature(ID3D12Device1* device)
+static winrt::com_ptr< ID3D12RootSignature>  CreateComputeRootSignature(ID3D12Device1* device)
 {
-	static
-	#include <default_compute_signature.h>
+    static
+    #include <default_compute_signature.h>
 
-	winrt::com_ptr<ID3D12RootSignature> r;
-	ThrowIfFailed(device->CreateRootSignature(0, &g_default_compute_signature[0], sizeof(g_default_compute_signature), __uuidof(ID3D12RootSignature), r.put_void()));
-	return r;
+    winrt::com_ptr<ID3D12RootSignature> r;
+    ThrowIfFailed(device->CreateRootSignature(0, &g_default_compute_signature[0], sizeof(g_default_compute_signature), __uuidof(ID3D12RootSignature), r.put_void()));
+    return r;
 }
 
 D3D12_GRAPHICS_PIPELINE_STATE_DESC CreateTriangleDescription()
 {
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
-	state.SampleMask = UINT_MAX;
-	state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+    state.SampleMask = UINT_MAX;
+    state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 
-	state.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
-	state.RasterizerState.FrontCounterClockwise = TRUE;
+    state.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+    state.RasterizerState.FrontCounterClockwise = TRUE;
 
-	state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	state.NumRenderTargets = 1;
-	state.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
-	state.SampleDesc.Count = 1;
-	state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-	state.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    state.NumRenderTargets = 1;
+    state.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
+    state.SampleDesc.Count = 1;
+    state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    state.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
-	state.DepthStencilState.DepthEnable = FALSE;
-	state.DepthStencilState.StencilEnable = FALSE;
-	state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
-	state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
-	return state;
+    state.DepthStencilState.DepthEnable = FALSE;
+    state.DepthStencilState.StencilEnable = FALSE;
+    state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+    state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
+    return state;
 }
 
 //create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
 //It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
-static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
+static winrt::com_ptr< ID3D12PipelineState>  CreateTrianglePipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
 {
-	static
+    static
 #include <triangle_pixel.h>
 
-		static
+        static
 #include <triangle_vertex.h>
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = CreateTriangleDescription();
-    state.pRootSignature			= root;
-    state.NumRenderTargets			= 1;
-    state.RTVFormats[0]				= DXGI_FORMAT_B8G8R8A8_UNORM;
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC state = CreateTriangleDescription();
+    state.pRootSignature            = root;
+    state.NumRenderTargets          = 1;
+    state.RTVFormats[0]             = DXGI_FORMAT_B8G8R8A8_UNORM;
 
     state.DepthStencilState.DepthEnable = TRUE;
-	state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-	state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
+    state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+    state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
 
     state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
     state.PS = { &g_triangle_pixel[0], sizeof(g_triangle_pixel) };
@@ -436,44 +439,44 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
 
 //create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
 //It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
-static winrt::com_ptr< ID3D12PipelineState>	 CreateTriangleDepthPipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
+static winrt::com_ptr< ID3D12PipelineState>  CreateTriangleDepthPipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
 {
-		static
+        static
 #include <triangle_vertex.h>
 
-	D3D12_GRAPHICS_PIPELINE_STATE_DESC state = CreateTriangleDescription();
-	state.pRootSignature = root;
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC state = CreateTriangleDescription();
+    state.pRootSignature = root;
 
-	state.DepthStencilState.DepthEnable		= TRUE;
-	state.DepthStencilState.StencilEnable	= FALSE;
-	state.DepthStencilState.DepthWriteMask	= D3D12_DEPTH_WRITE_MASK_ALL;
-	state.DepthStencilState.DepthFunc		= D3D12_COMPARISON_FUNC_LESS;
+    state.DepthStencilState.DepthEnable     = TRUE;
+    state.DepthStencilState.StencilEnable   = FALSE;
+    state.DepthStencilState.DepthWriteMask  = D3D12_DEPTH_WRITE_MASK_ALL;
+    state.DepthStencilState.DepthFunc       = D3D12_COMPARISON_FUNC_LESS;
 
-	state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
-	
-	winrt::com_ptr<ID3D12PipelineState> r;
+    state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
+    
+    winrt::com_ptr<ID3D12PipelineState> r;
 
-	ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
-	return r;
+    ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
+    return r;
 }
 
 
 //create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
 //It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
-static winrt::com_ptr< ID3D12PipelineState>	 CreateGaussianBlurPipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
+static winrt::com_ptr< ID3D12PipelineState>  CreateGaussianBlurPipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
 {
-	static
+    static
 #include <gaussian_blur.h>
 
-		D3D12_COMPUTE_PIPELINE_STATE_DESC state = {};
-	state.pRootSignature = root;
+        D3D12_COMPUTE_PIPELINE_STATE_DESC state = {};
+    state.pRootSignature = root;
 
-	state.CS = { &g_gaussian_blur[0], sizeof(g_gaussian_blur) };
+    state.CS = { &g_gaussian_blur[0], sizeof(g_gaussian_blur) };
 
-	winrt::com_ptr<ID3D12PipelineState> r;
+    winrt::com_ptr<ID3D12PipelineState> r;
 
-	ThrowIfFailed(device->CreateComputePipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
-	return r;
+    ThrowIfFailed(device->CreateComputePipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
+    return r;
 }
 
 
@@ -488,48 +491,48 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
     void Initialize(const CoreApplicationView& v)
     {
-        m_activated					= v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
-        m_debug						= CreateDebug();
-        m_device					= CreateDevice();
+        m_activated                 = v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
+        m_debug                     = CreateDebug();
+        m_device                    = CreateDevice();
 
-        m_graphics_queue			= CreateGraphicsQueue(m_device.get());
-		m_compute_queue				= CreateComputeQueue(m_device.get());
+        m_graphics_queue            = CreateGraphicsQueue(m_device.get());
+        m_compute_queue             = CreateComputeQueue(m_device.get());
 
-		m_descriptorHeapTargets		= CreateDescriptorHeapTargets(m_device.get());
-		m_descriptorHeapDepth		= CreateDescriptorHeapDepth(m_device.get());
+        m_descriptorHeapTargets     = CreateDescriptorHeapTargets(m_device.get());
+        m_descriptorHeapDepth       = CreateDescriptorHeapDepth(m_device.get());
 
-		m_descriptorHeapShader		= CreateDescriptorHeapShader(m_device.get());
-		m_descriptorHeapShaderGpu	= CreateDescriptorHeapShaderGpu(m_device.get());
+        m_descriptorHeapShader      = CreateDescriptorHeapShader(m_device.get());
+        m_descriptorHeapShaderGpu   = CreateDescriptorHeapShaderGpu(m_device.get());
 
         //if you have many threads that generate commands. 1 per thread per frame
-        m_graphics_allocator[0][0]	= CreateGraphicsAllocator(m_device.get());
-		m_graphics_allocator[0][1]  = CreateGraphicsAllocator(m_device.get());
-		m_graphics_allocator[0][2]  = CreateGraphicsAllocator(m_device.get());
+        m_graphics_allocator[0][0]  = CreateGraphicsAllocator(m_device.get(), L"GraphicsAllocator00");
+        m_graphics_allocator[0][1]  = CreateGraphicsAllocator(m_device.get(), L"GraphicsAllocator01");
+        m_graphics_allocator[0][2]  = CreateGraphicsAllocator(m_device.get(), L"GraphicsAllocator02");
 
-        m_graphics_allocator[1][0]	= CreateGraphicsAllocator(m_device.get());
-		m_graphics_allocator[1][1]  = CreateGraphicsAllocator(m_device.get());
-		m_graphics_allocator[1][2]  = CreateGraphicsAllocator(m_device.get());
+        m_graphics_allocator[1][0]  = CreateGraphicsAllocator(m_device.get(), L"GraphicsAllocator10");
+        m_graphics_allocator[1][1]  = CreateGraphicsAllocator(m_device.get(), L"GraphicsAllocator11");
+        m_graphics_allocator[1][2]  = CreateGraphicsAllocator(m_device.get(), L"GraphicsAllocator12");
 
-        m_graphics_list[0][0]		= CreateGraphicsList(m_device.get(), m_graphics_allocator[0][0].get());
-		m_graphics_list[0][1]		= CreateGraphicsList(m_device.get(), m_graphics_allocator[0][1].get());
-		m_graphics_list[0][2]		= CreateGraphicsList(m_device.get(), m_graphics_allocator[0][2].get());
+        m_graphics_list[0][0]       = CreateGraphicsList(m_device.get(), m_graphics_allocator[0][0].get());
+        m_graphics_list[0][1]       = CreateGraphicsList(m_device.get(), m_graphics_allocator[0][1].get());
+        m_graphics_list[0][2]       = CreateGraphicsList(m_device.get(), m_graphics_allocator[0][2].get());
 
-		m_graphics_list[1][0]		= CreateGraphicsList(m_device.get(), m_graphics_allocator[1][0].get());
-		m_graphics_list[1][1]		= CreateGraphicsList(m_device.get(), m_graphics_allocator[1][1].get());
-		m_graphics_list[1][2]		= CreateGraphicsList(m_device.get(), m_graphics_allocator[1][2].get());
+        m_graphics_list[1][0]       = CreateGraphicsList(m_device.get(), m_graphics_allocator[1][0].get());
+        m_graphics_list[1][1]       = CreateGraphicsList(m_device.get(), m_graphics_allocator[1][1].get());
+        m_graphics_list[1][2]       = CreateGraphicsList(m_device.get(), m_graphics_allocator[1][2].get());
 
-		m_compute_allocator[0]		= CreateComputeAllocator(m_device.get());
-		m_compute_allocator[1]		= CreateComputeAllocator(m_device.get());
+        m_compute_allocator[0]      = CreateComputeAllocator(m_device.get(),L"ComputeAllocator0");
+        m_compute_allocator[1]      = CreateComputeAllocator(m_device.get(),L"ComputeAllocator1");
 
-		m_compute_list[0]			= CreateComputeList(m_device.get(), m_compute_allocator[0].get());
-		m_compute_list[1]			= CreateComputeList(m_device.get(), m_compute_allocator[1].get());
+        m_compute_list[0]           = CreateComputeList(m_device.get(), m_compute_allocator[0].get());
+        m_compute_list[1]           = CreateComputeList(m_device.get(), m_compute_allocator[1].get());
 
         //fence, sync from the gpu and cpu
-        m_graphics_fence			= CreateFence(m_device.get());
-		m_graphics_event			= CreateEvent(nullptr, false, false, nullptr);
+        m_graphics_fence            = CreateFence(m_device.get());
+        m_graphics_event            = CreateEvent(nullptr, false, false, nullptr);
 
-		m_compute_fence				= CreateFence(m_device.get());
-		m_compute_event				= CreateEvent(nullptr, false, false, nullptr);
+        m_compute_fence             = CreateFence(m_device.get());
+        m_compute_event             = CreateEvent(nullptr, false, false, nullptr);
     }
 
     void Uninitialize() 
@@ -537,25 +540,19 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
     }
 
-	void Load(winrt::hstring h)
+    void Load(winrt::hstring h)
+    {
+        m_graphics_signature            = CreateGraphicsRootSignature(m_device.get());
+        m_compute_signature             = CreateComputeRootSignature(m_device.get());
+        m_triangle_state                = CreateTrianglePipelineState(m_device.get(), m_graphics_signature.get());
+        m_triangle_state_depth_prepass  = CreateTriangleDepthPipelineState(m_device.get(), m_graphics_signature.get());
+        m_gaussian_blur                 = CreateGaussianBlurPipelineState(m_device.get(), m_compute_signature.get());
+    }
+
+	void CreateViewDependentResources(uint32_t width, uint32_t height)
 	{
-		m_graphics_signature			= CreateGraphicsRootSignature(m_device.get());
-		m_compute_signature				= CreateComputeRootSignature(m_device.get());
-		m_triangle_state				= CreateTrianglePipelineState(m_device.get(), m_graphics_signature.get());
-		m_triangle_state_depth_prepass	= CreateTriangleDepthPipelineState(m_device.get(), m_graphics_signature.get());
-		m_gaussian_blur					= CreateGaussianBlurPipelineState(m_device.get(), m_compute_signature.get());
-	}
-
-	void SetWindow(const CoreWindow& w)
-	{
-		m_closed = w.Closed(winrt::auto_revoke, { this, &ViewProvider::OnWindowClosed });
-		m_size_changed = w.SizeChanged(winrt::auto_revoke, { this, &ViewProvider::OnWindowSizeChanged });
-
-		m_swap_chain = CreateSwapChain(w, m_graphics_queue.get());
-		m_graphics_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
-
-		m_back_buffer_width = static_cast<UINT>(w.Bounds().Width);
-		m_back_buffer_height = static_cast<UINT>(w.Bounds().Height);
+		m_back_buffer_width = width;
+		m_back_buffer_height = height;
 
 		//allocate memory for the view
 		m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
@@ -588,6 +585,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_lighting_buffer[0]->SetName(L"Lighting Buffer 0");
 		m_lighting_buffer[1]->SetName(L"Lighting Buffer 1");
 
+
 		//create render target views, that will be used for rendering
 		CreateRenderTargetDescriptor(m_device.get(), m_lighting_buffer[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 2);
 		CreateRenderTargetDescriptor(m_device.get(), m_lighting_buffer[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 3);
@@ -600,411 +598,415 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 		m_lighting_descriptor_uav[0] = 0;
 		m_lighting_descriptor_uav[1] = 1;
+
 		//Copy
-
 		m_device->CopyDescriptorsSimple(2, CpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + m_lighting_descriptor_uav[0], CpuView(m_device.get(), m_descriptorHeapShader.get()) + m_lighting_descriptor_uav[0], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
 	}
 
-	void OnWindowClosed(const CoreWindow & w, const CoreWindowEventArgs & a)
-	{
-		m_window_running = false;
-	}
+    void SetWindow(const CoreWindow& w)
+    {
+        auto e = sample::build_environment(w, winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView());
+        m_closed = w.Closed(winrt::auto_revoke, { this, &ViewProvider::OnWindowClosed });
+        m_size_changed = w.SizeChanged(winrt::auto_revoke, { this, &ViewProvider::OnWindowSizeChanged });
 
-	void OnActivated(const CoreApplicationView&, const IActivatedEventArgs&)
-	{
-		CoreWindow::GetForCurrentThread().Activate();
-	}
+		uint32_t width  = static_cast<UINT>(e.m_back_buffer_size.Width);
+		uint32_t height = static_cast<UINT>(e.m_back_buffer_size.Height);
 
-	void OnWindowSizeChanged(const CoreWindow & w, const WindowSizeChangedEventArgs & a)
-	{
-		//wait for the render thread to finish and block it so we can submit a command
-		std::lock_guard lock(m_blockRendering);
+		m_swap_chain = CreateSwapChain(w, m_graphics_queue.get(), width, height);
+        m_graphics_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
 
-		//Now wait for the gpu to finish what it has from the main thread
+	
 
-		//Insert in the gpu a command after all submitted commands so far.
-		ThrowIfFailed(m_graphics_queue->Signal(m_graphics_fence.get(), m_fence_value));
+		CreateViewDependentResources(width, height);
+    }
 
-		//Wait for the gpu to notify us back that it had passed. Now it is idle
-		ThrowIfFailed(m_graphics_fence->SetEventOnCompletion(m_fence_value, m_graphics_event));
+    void OnWindowClosed(const CoreWindow & w, const CoreWindowEventArgs & a)
+    {
+        m_window_running = false;
+    }
+
+    void OnActivated(const CoreApplicationView&, const IActivatedEventArgs&)
+    {
+        CoreWindow::GetForCurrentThread().Activate();
+    }
+
+    void OnWindowSizeChanged(const CoreWindow & w, const WindowSizeChangedEventArgs & a)
+    {
+        //wait for the render thread to finish and block it so we can submit a command
+        std::lock_guard lock(m_blockRendering);
+
+        //Now wait for the gpu to finish what it has from the main thread
+
+		
+
+		ThrowIfFailed(m_graphics_queue->Signal(m_graphics_fence.get(), m_frame_number + 1));
+		ThrowIfFailed(m_graphics_fence->SetEventOnCompletion(m_frame_number + 1, m_graphics_event));
 		WaitForSingleObject(m_graphics_event, INFINITE);
 
+		ThrowIfFailed(m_compute_queue->Signal(m_compute_fence.get(), m_frame_number + 1));
+		ThrowIfFailed(m_compute_fence->SetEventOnCompletion(m_frame_number + 1, m_compute_event));
+		WaitForSingleObject(m_compute_event, INFINITE);
+
 		//Prepare to unblock the rendering
-		m_fence_value = m_fence_value + 1;
-		m_graphics_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+		m_frame_number = m_frame_number + 1;
 
-		m_back_buffer_width = static_cast<UINT>(w.Bounds().Width);
-		m_back_buffer_height = static_cast<UINT>(w.Bounds().Height);
+		m_swap_chain_buffers[0] = nullptr;
+		m_swap_chain_buffers[1] = nullptr;
 
-		//allocate memory for the view
-		m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
-		m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
+		auto e = sample::build_environment(w, winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView());
+		uint32_t width = static_cast<UINT>(e.m_back_buffer_size.Width);
+		uint32_t height = static_cast<UINT>(e.m_back_buffer_size.Height);
 
-		m_swap_chain_buffers[0]->SetName(L"Buffer 0");
-		m_swap_chain_buffers[1]->SetName(L"Buffer 1");
+		m_swap_chain->ResizeBuffers(2, width, height, DXGI_FORMAT_B8G8R8A8_UNORM, 0);
 
-		//create render target views, that will be used for rendering
-		CreateRenderTargetDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
-		CreateRenderTargetDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
-
-		//Where are located the descriptors
-		m_swap_chain_descriptor[0] = 0;
-		m_swap_chain_descriptor[1] = 1;
-
-		m_depth_buffer = CreateDepthResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
-		m_depth_buffer->SetName(L"Depth Buffer");
-
-		CreateDepthWriteDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0);
-		CreateDepthReadDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 1);
-
-		m_depth_descriptor[0] = 0;
-		m_depth_descriptor[1] = 1;
-	}
+		m_swap_chain->Present(1, 0);
+		
+		m_graphics_frame_index = 1 - m_swap_chain->GetCurrentBackBufferIndex();
+		CreateViewDependentResources(static_cast<UINT>(e.m_back_buffer_size.Width), static_cast<UINT>(e.m_back_buffer_size.Height));
+    }
 
     void Run()
     {
-		m_swap_chain->Present(0,0);
+        m_swap_chain->Present(0,0);
 
-		while (m_window_running)
-		{
-			using namespace sample;
-			CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
+        while (m_window_running)
+        {
+            using namespace sample;
+            CoreWindow::GetForCurrentThread().Dispatcher().ProcessEvents(CoreProcessEventsOption::ProcessAllIfPresent);
 
-			std::lock_guard lock(m_blockRendering);
+            std::lock_guard lock(m_blockRendering);
 
-			uint32_t graphics_frame_index = m_graphics_frame_index;
-			uint32_t compute_frame_index = 1 - m_graphics_frame_index;
+            uint32_t graphics_frame_index = m_graphics_frame_index;
+            uint32_t compute_frame_index = 1 - m_graphics_frame_index;
 
-			{
-				ID3D12CommandAllocator* computeAllocator = m_compute_allocator[graphics_frame_index].get();
-				computeAllocator->Reset();
-				ID3D12GraphicsCommandList1* computeList = m_compute_list[graphics_frame_index].get();
-				computeList->Reset(computeAllocator, nullptr);
-			}
+            {
+                ID3D12CommandAllocator* computeAllocator = m_compute_allocator[graphics_frame_index].get();
+                computeAllocator->Reset();
+                ID3D12GraphicsCommandList1* computeList = m_compute_list[graphics_frame_index].get();
+                computeList->Reset(computeAllocator, nullptr);
+            }
 
-			for (auto i = 0; i < 3; ++i)
-			{
-				ID3D12CommandAllocator* graphicsAllocator = m_graphics_allocator[graphics_frame_index][i].get();
-				ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][i].get();
-				graphicsAllocator->Reset();
-				graphicsList->Reset(graphicsAllocator, nullptr);
-			}
+            for (auto i = 0; i < 3; ++i)
+            {
+                ID3D12CommandAllocator* graphicsAllocator = m_graphics_allocator[graphics_frame_index][i].get();
+                ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][i].get();
+                graphicsAllocator->Reset();
+                graphicsList->Reset(graphicsAllocator, nullptr);
+            }
 
-			//Compute queue
-			{
+            //Compute queue
+            {
 
-				ID3D12GraphicsCommandList1* computeList = m_compute_list[graphics_frame_index].get();
-				PIXBeginEvent(computeList, 0, L"PostProcess");
-				// Set Descriptor heaps	
-				ID3D12DescriptorHeap* heaps[] = { m_descriptorHeapShaderGpu.get() };
-				computeList->SetDescriptorHeaps(1, heaps);
+                ID3D12GraphicsCommandList1* computeList = m_compute_list[graphics_frame_index].get();
+                PIXBeginEvent(computeList, 0, L"PostProcess");
+                // Set Descriptor heaps 
+                ID3D12DescriptorHeap* heaps[] = { m_descriptorHeapShaderGpu.get() };
+                computeList->SetDescriptorHeaps(1, heaps);
 
-				//Now do post processing
-				{
-					//set the type of the parameters that we will use in the shader
-					computeList->SetComputeRootSignature(m_compute_signature.get());
-					computeList->SetComputeRootDescriptorTable(1, GpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + m_lighting_descriptor_uav[compute_frame_index]);
-					computeList->SetPipelineState(m_gaussian_blur.get());
-					computeList->Dispatch(1, 1, 1);
-				}
+                //Now do post processing
+                {
+                    //set the type of the parameters that we will use in the shader
+                    computeList->SetComputeRootSignature(m_compute_signature.get());
+                    computeList->SetComputeRootDescriptorTable(1, GpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + m_lighting_descriptor_uav[compute_frame_index]);
+                    computeList->SetPipelineState(m_gaussian_blur.get());
+                    computeList->Dispatch(1, 1, 1);
+                }
 
-				PIXEndEvent(computeList);
-				computeList->Close();
-				
-			}
+                PIXEndEvent(computeList);
+                computeList->Close();
+                
+            }
 
-			//Graphics Queue, Depth Prepass
-			{
-				ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][0].get();
-				PIXBeginEvent(graphicsList, 0, "Depth Prepass");
-				//Depth prepass for frame N
-				//get the pointer to the gpu memory
-				D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get()) + m_depth_descriptor[0];
-				{
-					graphicsList->OMSetRenderTargets(0, 0, TRUE, &depth_buffer);
-					graphicsList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+            //Graphics Queue, Depth Prepass
+            {
+                ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][0].get();
+                PIXBeginEvent(graphicsList, 0, "Depth Prepass");
+                //Depth prepass for frame N
+                //get the pointer to the gpu memory
+                D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get()) + m_depth_descriptor[0];
+                {
+                    graphicsList->OMSetRenderTargets(0, 0, TRUE, &depth_buffer);
+                    graphicsList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-					//set the type of the parameters that we will use in the shader
-					graphicsList->SetGraphicsRootSignature(m_graphics_signature.get());
+                    //set the type of the parameters that we will use in the shader
+                    graphicsList->SetGraphicsRootSignature(m_graphics_signature.get());
 
-					//set the scissor test separately (which parts of the view port will survive)
-					{
-						D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
-						graphicsList->RSSetScissorRects(1, &r);
-					}
+                    //set the scissor test separately (which parts of the view port will survive)
+                    {
+                        D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
+                        graphicsList->RSSetScissorRects(1, &r);
+                    }
 
-					//set the viewport. 
-					{
-						D3D12_VIEWPORT v;
-						v.TopLeftX = 0;
-						v.TopLeftY = 0;
-						v.MinDepth = 0.0f;
-						v.MaxDepth = 1.0f;
-						v.Width = static_cast<float>(m_back_buffer_width);
-						v.Height = static_cast<float>(m_back_buffer_height);
-						graphicsList->RSSetViewports(1, &v);
-					}
+                    //set the viewport. 
+                    {
+                        D3D12_VIEWPORT v;
+                        v.TopLeftX = 0;
+                        v.TopLeftY = 0;
+                        v.MinDepth = 0.0f;
+                        v.MaxDepth = 1.0f;
+                        v.Width = static_cast<float>(m_back_buffer_width);
+                        v.Height = static_cast<float>(m_back_buffer_height);
+                        graphicsList->RSSetViewports(1, &v);
+                    }
 
-					//set the types of the triangles we will use
-					{
-						graphicsList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-					}
-
-
-					//Draw first to clear the depth buffer
-					//set the raster pipeline state as a whole, it was prebuilt before
-					graphicsList->SetPipelineState(m_triangle_state_depth_prepass.get());
-					//draw the triangle
-					graphicsList->DrawInstanced(3, 1, 0, 0);
-				}
-
-				PIXEndEvent(graphicsList);
-
-				graphicsList->Close();
-				
-			}
-
-			//Graphics Queue, Color Pass
-			{
-				ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][1].get();
-
-				PIXBeginEvent(graphicsList, 0, "Heavy Load Pass");
-
-				{
-					D3D12_RESOURCE_BARRIER barrier[1] = {};
-
-					barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-					barrier[0].Transition.pResource = m_lighting_buffer[graphics_frame_index].get();
-					barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-					barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-					barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-					graphicsList->ResourceBarrier(1, &barrier[0]);
-				}
+                    //set the types of the triangles we will use
+                    {
+                        graphicsList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                    }
 
 
-				//Depth prepass for frame N
-				//get the pointer to the gpu memory
-				D3D12_CPU_DESCRIPTOR_HANDLE back_buffer = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_lighting_descriptor[graphics_frame_index];
-				D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get()) + m_depth_descriptor[0];
-				{
-					graphicsList->OMSetRenderTargets(1, &back_buffer, TRUE, &depth_buffer);
-					FLOAT c[4] = { 0.0f, 0.f,0.f,0.f };
-					graphicsList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
+                    //Draw first to clear the depth buffer
+                    //set the raster pipeline state as a whole, it was prebuilt before
+                    graphicsList->SetPipelineState(m_triangle_state_depth_prepass.get());
+                    //draw the triangle
+                    graphicsList->DrawInstanced(3, 1, 0, 0);
+                }
 
-					//set the type of the parameters that we will use in the shader
-					graphicsList->SetGraphicsRootSignature(m_graphics_signature.get());
+                PIXEndEvent(graphicsList);
 
-					//set the scissor test separately (which parts of the view port will survive)
-					{
-						D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
-						graphicsList->RSSetScissorRects(1, &r);
-					}
+                graphicsList->Close();
+                
+            }
 
-					//set the viewport. 
-					{
-						D3D12_VIEWPORT v;
-						v.TopLeftX = 0;
-						v.TopLeftY = 0;
-						v.MinDepth = 0.0f;
-						v.MaxDepth = 1.0f;
-						v.Width = static_cast<float>(m_back_buffer_width);
-						v.Height = static_cast<float>(m_back_buffer_height);
-						graphicsList->RSSetViewports(1, &v);
-					}
+            //Graphics Queue, Color Pass
+            {
+                ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][1].get();
 
-					graphicsList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-					graphicsList->SetPipelineState(m_triangle_state.get());
-					graphicsList->DrawInstanced(3, 1, 0, 0);
-				}
+                PIXBeginEvent(graphicsList, 0, "Heavy Load Pass");
 
-				{
-					D3D12_RESOURCE_BARRIER barrier[1] = {};
+                {
+                    D3D12_RESOURCE_BARRIER barrier[1] = {};
 
-					barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-					barrier[0].Transition.pResource = m_lighting_buffer[graphics_frame_index].get();
-					barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-					barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-					barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                    barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                    barrier[0].Transition.pResource = m_lighting_buffer[graphics_frame_index].get();
+                    barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                    barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+                    barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                    graphicsList->ResourceBarrier(1, &barrier[0]);
+                }
 
-					graphicsList->ResourceBarrier(1, &barrier[0]);
-				}
 
-				PIXEndEvent(graphicsList);
+                //Depth prepass for frame N
+                //get the pointer to the gpu memory
+                D3D12_CPU_DESCRIPTOR_HANDLE back_buffer = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_lighting_descriptor[graphics_frame_index];
+                D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get()) + m_depth_descriptor[0];
+                {
+                    graphicsList->OMSetRenderTargets(1, &back_buffer, TRUE, &depth_buffer);
+                    FLOAT c[4] = { 0.0f, 0.f,0.f,0.f };
+                    graphicsList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
 
-				graphicsList->Close();
-			
-			}
+                    //set the type of the parameters that we will use in the shader
+                    graphicsList->SetGraphicsRootSignature(m_graphics_signature.get());
 
-			//Graphics queue, present to the backbuffer
-			{
-				ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][2].get();
+                    //set the scissor test separately (which parts of the view port will survive)
+                    {
+                        D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
+                        graphicsList->RSSetScissorRects(1, &r);
+                    }
 
-				//PIXBeginEvent(graphicsList, 0, "Present Frame");
+                    //set the viewport. 
+                    {
+                        D3D12_VIEWPORT v;
+                        v.TopLeftX = 0;
+                        v.TopLeftY = 0;
+                        v.MinDepth = 0.0f;
+                        v.MaxDepth = 1.0f;
+                        v.Width = static_cast<float>(m_back_buffer_width);
+                        v.Height = static_cast<float>(m_back_buffer_height);
+                        graphicsList->RSSetViewports(1, &v);
+                    }
 
-				{
-					D3D12_RESOURCE_BARRIER barrier[2] = {};
+                    graphicsList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                    graphicsList->SetPipelineState(m_triangle_state.get());
+                    graphicsList->DrawInstanced(3, 1, 0, 0);
+                }
 
-					barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-					barrier[0].Transition.pResource = m_lighting_buffer[compute_frame_index].get();
-					barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-					barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-					barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                {
+                    D3D12_RESOURCE_BARRIER barrier[1] = {};
 
-					barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-					barrier[1].Transition.pResource = m_swap_chain_buffers[compute_frame_index].get();
-					barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-					barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-					barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                    barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                    barrier[0].Transition.pResource = m_lighting_buffer[graphics_frame_index].get();
+                    barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                    barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+                    barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-					graphicsList->ResourceBarrier(2, &barrier[0]);
-				}
+                    graphicsList->ResourceBarrier(1, &barrier[0]);
+                }
 
-				D3D12_TEXTURE_COPY_LOCATION s = {};
+                PIXEndEvent(graphicsList);
 
-				s.pResource = m_lighting_buffer[compute_frame_index].get();
-				s.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-				s.SubresourceIndex = 0;
+                graphicsList->Close();
+            
+            }
 
-				D3D12_TEXTURE_COPY_LOCATION d = {};
+            //Graphics queue, present to the backbuffer
+            {
+                ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][2].get();
 
-				d.pResource = m_swap_chain_buffers[compute_frame_index].get();
-				d.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-				d.SubresourceIndex = 0;
+                //PIXBeginEvent(graphicsList, 0, "Present Frame");
 
-				graphicsList->CopyTextureRegion(&d, 0, 0, 0, &s, nullptr);
+                {
+                    D3D12_RESOURCE_BARRIER barrier[2] = {};
 
-				{
-					D3D12_RESOURCE_BARRIER barrier[2] = {};
+                    barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                    barrier[0].Transition.pResource = m_lighting_buffer[compute_frame_index].get();
+                    barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+                    barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+                    barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-					barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-					barrier[0].Transition.pResource = m_lighting_buffer[compute_frame_index].get();
-					barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-					barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
-					barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                    barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                    barrier[1].Transition.pResource = m_swap_chain_buffers[compute_frame_index].get();
+                    barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+                    barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+                    barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-					barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-					barrier[1].Transition.pResource = m_swap_chain_buffers[compute_frame_index].get();
-					barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-					barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-					barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-					graphicsList->ResourceBarrier(2, &barrier[0]);
-				}
+                    graphicsList->ResourceBarrier(2, &barrier[0]);
+                }
 
-				graphicsList->Close();
+                D3D12_TEXTURE_COPY_LOCATION s = {};
 
-				//PIXEndEvent(graphicsList);
-			}
+                s.pResource = m_lighting_buffer[compute_frame_index].get();
+                s.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                s.SubresourceIndex = 0;
 
-			{
-				//Wait for the graphics, execute the compute work load
-				m_compute_queue->Wait(m_graphics_fence.get(), m_frame_number - 1);
-				{
-					ID3D12GraphicsCommandList1* computeList = m_compute_list[graphics_frame_index].get();
-					ID3D12CommandList* lists[] = { computeList };
-					m_compute_queue->ExecuteCommandLists(1, lists);
-				}
-				ThrowIfFailed(m_compute_queue->Signal(m_compute_fence.get(), m_frame_number - 1));
-			}
+                D3D12_TEXTURE_COPY_LOCATION d = {};
 
-			{
-				//execute depth prepass
-				{
-					ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][0].get() };
-					m_graphics_queue->ExecuteCommandLists(1, lists);
-				}
-			}
+                d.pResource = m_swap_chain_buffers[compute_frame_index].get();
+                d.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+                d.SubresourceIndex = 0;
 
-			{
-				//wait for the compute work of the previous frame
-				m_graphics_queue->Wait(m_compute_fence.get(), m_frame_number - 1);
+                graphicsList->CopyTextureRegion(&d, 0, 0, 0, &s, nullptr);
 
-				{
-					ID3D12CommandList* lists[] = { 
-					
-						m_graphics_list[graphics_frame_index][2].get(),
-						m_graphics_list[graphics_frame_index][1].get()
-					};
+                {
+                    D3D12_RESOURCE_BARRIER barrier[2] = {};
 
-					m_graphics_queue->ExecuteCommandLists(2, lists);
-				}
+                    barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                    barrier[0].Transition.pResource = m_lighting_buffer[compute_frame_index].get();
+                    barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+                    barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+                    barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-				ThrowIfFailed(m_graphics_queue->Signal(m_graphics_fence.get(), m_frame_number));
-			}
+                    barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                    barrier[1].Transition.pResource = m_swap_chain_buffers[compute_frame_index].get();
+                    barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+                    barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+                    barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                    graphicsList->ResourceBarrier(2, &barrier[0]);
+                }
 
-			m_swap_chain->Present(1, 0);    //present the swap chain
+                graphicsList->Close();
 
-			{
-				//Now block the cpu until the gpu if it gets too far
-				if (m_graphics_fence->GetCompletedValue() < m_frame_number - 1)
-				{
-					ThrowIfFailed(m_graphics_fence->SetEventOnCompletion(m_frame_number - 1, m_graphics_event));
-					WaitForSingleObject(m_graphics_event, INFINITE);
-				}
-			}
+                //PIXEndEvent(graphicsList);
+            }
 
-			m_frame_number = m_frame_number + 1;
-			m_graphics_frame_index = 1 - m_graphics_frame_index;
+            {
+                //Wait for the graphics, execute the compute work load
+                m_compute_queue->Wait(m_graphics_fence.get(), m_frame_number - 1);
+                {
+                    ID3D12GraphicsCommandList1* computeList = m_compute_list[graphics_frame_index].get();
+                    ID3D12CommandList* lists[] = { computeList };
+                    m_compute_queue->ExecuteCommandLists(1, lists);
+                }
+                ThrowIfFailed(m_compute_queue->Signal(m_compute_fence.get(), m_frame_number - 1));
+            }
+
+            {
+                //execute depth prepass
+                {
+                    ID3D12CommandList* lists[] = { m_graphics_list[graphics_frame_index][0].get() };
+                    m_graphics_queue->ExecuteCommandLists(1, lists);
+                }
+            }
+
+            {
+                //wait for the compute work of the previous frame
+                m_graphics_queue->Wait(m_compute_fence.get(), m_frame_number - 1);
+
+                {
+                    ID3D12CommandList* lists[] = { 
+                    
+                        m_graphics_list[graphics_frame_index][2].get(),
+                        m_graphics_list[graphics_frame_index][1].get()
+                    };
+
+                    m_graphics_queue->ExecuteCommandLists(2, lists);
+                }
+
+                ThrowIfFailed(m_graphics_queue->Signal(m_graphics_fence.get(), m_frame_number));
+            }
+
+            m_swap_chain->Present(1, 0);    //present the swap chain
+
+            {
+                //Now block the cpu until the gpu if it gets too far
+                if (m_graphics_fence->GetCompletedValue() < m_frame_number - 1)
+                {
+                    ThrowIfFailed(m_graphics_fence->SetEventOnCompletion(m_frame_number - 1, m_graphics_event));
+                    WaitForSingleObject(m_graphics_event, INFINITE);
+                }
+            }
+
+            m_frame_number = m_frame_number + 1;
+            m_graphics_frame_index = 1 - m_graphics_frame_index;
         }
     }
 
     bool m_window_running = true;
 
-    CoreWindow::Closed_revoker					m_closed;
-    CoreWindow::SizeChanged_revoker				m_size_changed;
-    CoreApplicationView::Activated_revoker		m_activated;
+    CoreWindow::Closed_revoker                  m_closed;
+    CoreWindow::SizeChanged_revoker             m_size_changed;
+    CoreApplicationView::Activated_revoker      m_activated;
     
     winrt::com_ptr <ID3D12Debug>                m_debug;
-    winrt::com_ptr <ID3D12Device1>				m_device;						//device for gpu resources
-    winrt::com_ptr <IDXGISwapChain3>			m_swap_chain;					//swap chain for 
+    winrt::com_ptr <ID3D12Device1>              m_device;                       //device for gpu resources
+    winrt::com_ptr <IDXGISwapChain3>            m_swap_chain;                   //swap chain for 
 
-    winrt::com_ptr <ID3D12Fence>        		m_graphics_fence;				//fence for cpu/gpu synchronization
-	winrt::com_ptr <ID3D12Fence>        		m_compute_fence;				//fence for compute queue
+    winrt::com_ptr <ID3D12Fence>                m_graphics_fence;               //fence for cpu/gpu synchronization
+    winrt::com_ptr <ID3D12Fence>                m_compute_fence;                //fence for compute queue
 
-	winrt::com_ptr <ID3D12CommandQueue>   		m_compute_queue;				//queue to the device
-	winrt::com_ptr <ID3D12CommandQueue>   		m_graphics_queue;				//queue to the device
-	
-    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapTargets;		//descriptor heap for the resources
-    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapDepth;			//descriptor heap for the resources
-	winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapShader;			//descriptor heap for the resources
-	winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapShaderGpu;		//descriptor heap for the resources
+    winrt::com_ptr <ID3D12CommandQueue>         m_compute_queue;                //queue to the device
+    winrt::com_ptr <ID3D12CommandQueue>         m_graphics_queue;               //queue to the device
+    
+    winrt::com_ptr <ID3D12DescriptorHeap>       m_descriptorHeapTargets;        //descriptor heap for the resources
+    winrt::com_ptr <ID3D12DescriptorHeap>       m_descriptorHeapDepth;          //descriptor heap for the resources
+    winrt::com_ptr <ID3D12DescriptorHeap>       m_descriptorHeapShader;         //descriptor heap for the resources
+    winrt::com_ptr <ID3D12DescriptorHeap>       m_descriptorHeapShaderGpu;      //descriptor heap for the resources
 
-    std::mutex                                  m_blockRendering;				//block render thread for the swap chain resizes
+    std::mutex                                  m_blockRendering;               //block render thread for the swap chain resizes
 
-	winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];		//back buffer resources
-	uint64_t                                    m_swap_chain_descriptor[2];
-	winrt::com_ptr<ID3D12Resource1>				m_depth_buffer;
-	uint64_t									m_depth_descriptor[2];
+    winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];        //back buffer resources
+    uint64_t                                    m_swap_chain_descriptor[2];
+    winrt::com_ptr<ID3D12Resource1>             m_depth_buffer;
+    uint64_t                                    m_depth_descriptor[2];
 
-	winrt::com_ptr<ID3D12Resource1>             m_lighting_buffer[2];			//lighting buffers ( ComputeGraphicsLatency + 1 )
-	uint64_t                                    m_lighting_descriptor[2];
-	uint64_t                                    m_lighting_descriptor_uav[2];
+    winrt::com_ptr<ID3D12Resource1>             m_lighting_buffer[2];           //lighting buffers ( ComputeGraphicsLatency + 1 )
+    uint64_t                                    m_lighting_descriptor[2];
+    uint64_t                                    m_lighting_descriptor_uav[2];
 
-	winrt::com_ptr<ID3D12Resource1>             m_depth;						//depth buffer
+    winrt::com_ptr<ID3D12Resource1>             m_depth;                        //depth buffer
 
-    uint32_t									m_back_buffer_width = 0;
-    uint32_t									m_back_buffer_height = 0;
+    uint32_t                                    m_back_buffer_width = 0;
+    uint32_t                                    m_back_buffer_height = 0;
 
-	winrt::com_ptr <ID3D12CommandAllocator>   	m_graphics_allocator[2][3];		//one per frame
-	winrt::com_ptr <ID3D12CommandAllocator>   	m_compute_allocator[2];			//one per frame
-    winrt::com_ptr <ID3D12GraphicsCommandList1> m_graphics_list[2][3];			//three per frame 
-	winrt::com_ptr <ID3D12GraphicsCommandList1>	m_compute_list[2];				//one per frame 
+    winrt::com_ptr <ID3D12CommandAllocator>     m_graphics_allocator[2][3];     //one per frame
+    winrt::com_ptr <ID3D12CommandAllocator>     m_compute_allocator[2];         //one per frame
+    winrt::com_ptr <ID3D12GraphicsCommandList1> m_graphics_list[2][3];          //three per frame 
+    winrt::com_ptr <ID3D12GraphicsCommandList1> m_compute_list[2];              //one per frame 
 
-	uint64_t									m_frame_number			= 1;
-	uint64_t                                    m_graphics_frame_index	= 0;
+    uint64_t                                    m_frame_number          = 1;
+    uint64_t                                    m_graphics_frame_index  = 0;
 
-    uint64_t									m_fence_value			= 0;
-    HANDLE										m_graphics_event		= {};
-	HANDLE										m_compute_event			= {};
+	HANDLE                                      m_graphics_event        = {};
+    HANDLE                                      m_compute_event         = {};
 
-	//Signatures
-    winrt::com_ptr< ID3D12RootSignature>		m_compute_signature;
-	winrt::com_ptr< ID3D12RootSignature>		m_graphics_signature;
+    //Signatures
+    winrt::com_ptr< ID3D12RootSignature>        m_compute_signature;
+    winrt::com_ptr< ID3D12RootSignature>        m_graphics_signature;
 
-	//States
-	winrt::com_ptr< ID3D12PipelineState>		m_triangle_state;
-	winrt::com_ptr< ID3D12PipelineState>		m_triangle_state_depth_prepass;
-	winrt::com_ptr< ID3D12PipelineState>		m_gaussian_blur;
+    //States
+    winrt::com_ptr< ID3D12PipelineState>        m_triangle_state;
+    winrt::com_ptr< ID3D12PipelineState>        m_triangle_state_depth_prepass;
+    winrt::com_ptr< ID3D12PipelineState>        m_gaussian_blur;
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
