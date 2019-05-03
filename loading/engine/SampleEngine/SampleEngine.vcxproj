@@ -42,6 +42,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <PackageCertificateKeyFile>SampleEngine_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateThumbprint>0E642A6F94420FEFA6D353437B60484424218184</PackageCertificateThumbprint>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -70,11 +71,6 @@
     </AppxManifest>
     <None Include="packages.config" />
     <None Include="SampleEngine_TemporaryKey.pfx" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="test.txt">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\LockScreenLogo.scale-200.png" />
