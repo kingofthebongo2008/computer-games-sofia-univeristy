@@ -5,3 +5,5 @@
 
 #include "winrt/Windows.ApplicationModel.Core.h"
 
+#include <Windows.h>
+
