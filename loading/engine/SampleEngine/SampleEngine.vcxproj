@@ -3,6 +3,7 @@
   <Import Project="packages\uc-serialization.1.0.47\build\native\uc-serialization.props" Condition="Exists('packages\uc-serialization.1.0.47\build\native\uc-serialization.props')" />
   <Import Project="packages\Microsoft.Windows.CppWinRT.2.0.190425.5\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('packages\Microsoft.Windows.CppWinRT.2.0.190425.5\build\native\Microsoft.Windows.CppWinRT.props')" />
   <PropertyGroup Label="Globals">
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <ProjectGuid>{cf48c117-9010-4058-a893-4eaf32644dcc}</ProjectGuid>
     <OutputType>exe</OutputType>
     <WindowsAppContainer>true</WindowsAppContainer>
