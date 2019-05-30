@@ -2,6 +2,112 @@
 #include <iostream>
 #include <fstream>
 
+struct Transform
+{
+	float	m_Rotation[4];
+	float	m_Translation[4];
+};
+
+enum RenderObjectType
+{
+	Static,
+	RigidObject,
+	SkinnedObject,
+	Count
+};
+
+struct RenderObject
+{
+	uint8_t m_type;
+};
+
+struct VisiblityObject
+{
+	Transform*		m_transform;
+	RenderObject*	m_object;
+};
+
+struct VisiblityObjects
+{
+	std::vector<Transform>				m_transforms_static;
+	std::vector<uint64_t>				m_visible_masks_static;
+	std::vector < VisiblityObject*>		m_objects_static;
+
+	std::vector<Transform>				m_transforms;
+	std::vector<uint64_t>				m_visible_masks;
+	std::vector < VisiblityObject*>		m_object;
+};
+
+struct RenderObjects
+{
+	std::vector<Transform>				m_worldTransformsStatic;				//pack transforms in a cache friendly way
+	std::vector<Transform>				m_worldTransforms;						//pack transforms in a cache friendly way
+
+	std::vector<RenderObjectType>		m_pointers;								//pack pointer do the bucket
+	std::vector<RenderObject*>			m_objects[RenderObjectType::Count];
+};
+
+struct View
+{
+	float		m_view[16];
+	uint32_t	m_view_mask;			//mask for views
+};
+
+struct VisibleViewObjects
+{
+	std::vector<Transform>				m_worldTransform;
+	std::vector<RenderObject*>			m_objects;
+};
+
+void ComputeVisibility(const  View* __restrict views, const uint32_t views_count, const Transform * __restrict transforms, uint32_t transform_count, uint64_t * __restrict results)
+{
+	/*
+		updates visible mask for all views
+		results should be the same as trasnform_count
+		atomic_bittestandset_x64
+	*/
+}
+
+void ComputeVisibilityStatic(const View* views, const uint32_t views_count, VisiblityObjects* o)
+{
+	ComputeVisibility(views, views_count, &o->m_transforms_static[0], o->m_transforms_static.size(), &o->m_visible_masks_static[0]);
+}
+
+void ComputeVisibilityDynamic(const View* views, const uint32_t views_count, VisiblityObjects* o)
+{
+	ComputeVisibility(views, views_count, &o->m_transforms[0], o->m_transforms.size(), &o->m_visible_masks[0]);
+}
+
+void ComputeVisibility(const VisiblityObjects* o, const View* views, const uint32_t viewsCount)
+{
+	/*
+		updates visible mask for all views
+	*/
+}
+
+//Frame allocator
+
+
+
+
+
+int main()
+{
+	//get input and compute cameras and views
+
+	///Views		mainView
+	//ShadowView	shadowView;
+
+	//Simulate
+	//ComputevisibilityStatic
+
+
+
+	return 0;
+}
+
+/*
+
 struct task
 {
 	virtual void execute() = delete;
@@ -171,8 +277,10 @@ DWORD WINAPI UMSSchedulerThread(_In_ LPVOID lpParameter)
 
 	if ( EnterUmsSchedulingMode(&s) )
 	{
+
 		//block until worker threads exit
 		WaitForMultipleObjects(2, &info->m_workerThreadEvents[0], TRUE, INFINITE);
+
 		return 0;
 	}
 	else
@@ -204,19 +312,14 @@ int main()
 
 	umsSchedulerPool[0]			= CreateThread(nullptr, stackSize, &UMSSchedulerThread, &umsBlockinginfos[0], 0, &umsSchedulerPoolId[0]);
 	umsSchedulerPool[1]			= CreateThread(nullptr, stackSize, &UMSSchedulerThread, &umsBlockinginfos[1], 0, &umsSchedulerPoolId[1]);
-
-	Sleep(1000);
-	auto err = GetLastError();
-
+	Sleep(100);
+	
 	umsWorkdrPool[0]			= CreateRemoteThreadEx(GetCurrentProcess(), nullptr, stackSize, &UMSWorkerThread, nullptr, 0, umsAttributes[0].m_ctx, &umsWorkerPoolId[0]);
-	auto err1 = GetLastError();
-
 	umsWorkdrPool[1]			= CreateRemoteThreadEx(GetCurrentProcess(), nullptr, stackSize, &UMSWorkerThread, nullptr, 0, umsAttributes[1].m_ctx, &umsWorkerPoolId[1]);
 	umsWorkdrPool[2]			= CreateRemoteThreadEx(GetCurrentProcess(), nullptr, stackSize, &UMSWorkerThread, nullptr, 0, umsAttributes[2].m_ctx, &umsWorkerPoolId[2]);
 	umsWorkdrPool[3]			= CreateRemoteThreadEx(GetCurrentProcess(), nullptr, stackSize, &UMSWorkerThread, nullptr, 0, umsAttributes[3].m_ctx, &umsWorkerPoolId[3]);
 
-	auto err2 = GetLastError();
 
-	Sleep(10000000);
     return 0;
 }
+*/
