@@ -4,143 +4,123 @@
 
 using namespace winrt;
 
-struct task
+namespace math
 {
-	virtual void execute() = delete;
-	virtual ~task() = delete;
+
+}
+
+struct quaternion
+{
+	float m_components[4];
 };
 
-void throw_if_failed(BOOL v)
+struct world_transform
 {
-	if (!v)
-	{
-		DWORD e = GetLastError();
-		__debugbreak();
-	}
-}
+	float m_rotation[4];
 
-namespace Ums
+	float m_translation_x;
+	float m_translation_y;
+	float m_translation_z;
+	float m_scale;
+};
+
+namespace renderer
 {
-	struct CompletionList
-	{
-		PUMS_COMPLETION_LIST m_list = {};
+	class component;
 
-		CompletionList()
+	class component_handle
+	{
+		component* m_pointer;
+	};
+
+	struct render_object_allocator
+	{
+		void* make_object( type )
 		{
-			throw_if_failed(CreateUmsCompletionList(&m_list));
+
 		}
 
-		~CompletionList()
+		void free_object(type t)
 		{
-			DeleteUmsCompletionList(m_list);
+
 		}
 	};
 
-	struct Context
+	struct visibility_object_allocator
 	{
-		PUMS_CONTEXT m_ctx = {};
-
-		Context()
+		void* make_object( type )
 		{
-			throw_if_failed(CreateUmsThreadContext(&m_ctx));
+
 		}
 
-		~Context()
+		void free_object( type t )
 		{
-			DeleteUmsThreadContext(m_ctx);
-		}
-	};
 
-	struct AttributeList
-	{
-		std::vector<uint8_t>		 m_attribute_list_memory;
-		LPPROC_THREAD_ATTRIBUTE_LIST m_ctx = {};
-		SIZE_T						 m_ctxSize = 0;
-
-		AttributeList()
-		{
-			InitializeProcThreadAttributeList(nullptr, 1, 0, &m_ctxSize);
-			SetLastError(0);
-			m_attribute_list_memory.resize(m_ctxSize);
-			m_ctx = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(&m_attribute_list_memory[0]);
-			throw_if_failed(InitializeProcThreadAttributeList(m_ctx, 1, 0, &m_ctxSize));
-		}
-
-		void Update( Context* c, CompletionList* l )
-		{
-			UMS_CREATE_THREAD_ATTRIBUTES s = {};
-			s.UmsVersion = UMS_VERSION;
-			s.UmsCompletionList = l->m_list;
-			s.UmsContext = c->m_ctx;
-			throw_if_failed(UpdateProcThreadAttribute(m_ctx, 0, PROC_THREAD_ATTRIBUTE_UMS_THREAD, &s, sizeof(s), nullptr, nullptr));
-		}
-
-		~AttributeList()
-		{
-			DeleteProcThreadAttributeList(m_ctx);
 		}
 	};
 }
 
-DWORD WINAPI UMSWorkerThread(_In_ LPVOID lpParameter)
+namespace game
 {
-	lpParameter;
-	return 0;
-}
-
-void WINAPI UmsScheduler(UMS_SCHEDULER_REASON Reason, ULONG_PTR ActivationPayload, PVOID SchedulerParam)
-{
-}
-
-DWORD WINAPI UMSSchedulerThread(_In_ LPVOID lpParameter)
-{
-	lpParameter;
-
-	UMS_SCHEDULER_STARTUP_INFO s = {};
-	Ums::CompletionList* list = reinterpret_cast<Ums::CompletionList*>(lpParameter);
-
-	s.UmsVersion = UMS_VERSION;
-	s.SchedulerProc = UmsScheduler;
-	s.CompletionList = list->m_list;
-
-	if ( EnterUmsSchedulingMode(&s) )
+	class object
 	{
-		Sleep(10000);
-		return 0;
-	}
-	else
-	{
-		return -1;
-	}
+		public:
+
+		virtual std::vector< renderer::component_handle > make_components( render_object_allocator* r, visibility_object_allocator* r) = 0;
+	};
 }
+
+namespace visibility
+{
+	class object;
+}
+
+namespace renderer
+{
+	class object;
+
+	class component
+	{
+		object*					m_render_object;
+		visibility::object*		m_visibility_object;
+	};
+
+	class object
+	{
+		component*				m_render_component;
+	};
+
+	class world
+	{
+		std::vector<object*>	m_objects;
+	};
+}
+
+namespace visibility
+{
+	class object
+	{
+		renderer::object*	m_render_object;
+	};
+
+	class world
+	{
+		std::vector< object* > m_objects;
+	};
+}
+
+class mechanic	final : public game::object
+{
+	renderer::component_handle m_render_components[1];
+};
+
+class room final : public game::object
+{
+	renderer::component_handle m_render_components[17];
+};
+
 
 int main()
 {
-	//Kernel threads
-	HANDLE						umsSchedulerPool[2];
-	DWORD						umsSchedulerPoolId[2];
-	Ums::CompletionList			umscompletionList[2];
 
-	//UMS threads
-	HANDLE						umsWorkdrPool[4];
-	DWORD						umsWorkerPoolId[4];
-	Ums::Context				umsThreadContexts[4];
-	Ums::AttributeList			umsAttributes[4];
-
-	umsAttributes[0].Update(&umsThreadContexts[0], &umscompletionList[0]);
-	umsAttributes[1].Update(&umsThreadContexts[1], &umscompletionList[0]);
-
-	umsAttributes[2].Update(&umsThreadContexts[2], &umscompletionList[1]);
-	umsAttributes[3].Update(&umsThreadContexts[3], &umscompletionList[1]);
-
-	umsSchedulerPool[0]			= CreateThread(nullptr, 0, &UMSSchedulerThread, &umscompletionList[0], 0, &umsSchedulerPoolId[0]);
-	umsSchedulerPool[1]			= CreateThread(nullptr, 0, &UMSSchedulerThread, &umscompletionList[1], 0, &umsSchedulerPoolId[1]);
-
-	umsWorkdrPool[0]			= CreateRemoteThreadEx(GetCurrentProcess(), nullptr, 0, &UMSWorkerThread, 0, 0, umsAttributes[0].m_ctx, &umsWorkerPoolId[0]);
-	umsWorkdrPool[1]			= CreateRemoteThreadEx(GetCurrentProcess(), nullptr, 0, &UMSWorkerThread, 0, 0, umsAttributes[1].m_ctx, &umsWorkerPoolId[1]);
-	umsWorkdrPool[2]			= CreateRemoteThreadEx(GetCurrentProcess(), nullptr, 0, &UMSWorkerThread, 0, 0, umsAttributes[2].m_ctx, &umsWorkerPoolId[2]);
-	umsWorkdrPool[3]			= CreateRemoteThreadEx(GetCurrentProcess(), nullptr, 0, &UMSWorkerThread, 0, 0, umsAttributes[3].m_ctx, &umsWorkerPoolId[3]);
-
-	Sleep(10000);
-    return 0;
 }
