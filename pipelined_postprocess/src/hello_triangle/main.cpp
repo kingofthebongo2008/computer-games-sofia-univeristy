@@ -62,11 +62,13 @@ inline void ThrowIfFailed(HRESULT hr)
 static winrt::com_ptr<ID3D12Debug> CreateDebug()
 {
     winrt::com_ptr<ID3D12Debug> r;
+    /*
     //check if you have installed debug layer, from the option windows components
     if ( D3D12GetDebugInterface(__uuidof(ID3D12Debug), r.put_void() ) == S_OK)
     {
         r->EnableDebugLayer();
     }
+    */
     return r;
 }
 
@@ -76,7 +78,7 @@ static winrt::com_ptr<ID3D12Device4> CreateDevice()
 
     //One can use d3d12 rendering with d3d11 capable hardware. You will just be missing new functionality.
     //Example, d3d12 on a D3D_FEATURE_LEVEL_9_1 hardare (as some phone are ).
-    D3D_FEATURE_LEVEL features = D3D_FEATURE_LEVEL_11_1;
+    D3D_FEATURE_LEVEL features = D3D_FEATURE_LEVEL_12_1;
     ThrowIfFailed(D3D12CreateDevice(nullptr, features, __uuidof(ID3D12Device4), r.put_void()));
     return r.as<ID3D12Device4>();
 }

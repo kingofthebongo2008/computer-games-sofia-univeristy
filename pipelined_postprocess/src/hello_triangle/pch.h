@@ -18,14 +18,15 @@
 #include <wrl/client.h>
 
 #include <d3d12.h>
-#include <dxgi1_5.h>
+#include <dxgi1_6.h>
 
 
 #include <winrt/base.h>
-#include <winrt/Windows.UI.Core.h>
+#include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.ApplicationModel.Core.h>
 #include <winrt/Windows.ApplicationModel.Activation.h>
 #include <winrt/Windows.UI.ViewManagement.h>
+#include <winrt/Windows.UI.Core.h>
 
 
 
