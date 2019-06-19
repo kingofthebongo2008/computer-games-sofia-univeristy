@@ -4,143 +4,217 @@
 
 using namespace winrt;
 
-struct task
+namespace math
 {
-	virtual void execute() = delete;
-	virtual ~task() = delete;
+
+}
+
+struct quaternion
+{
+	float m_components[4];
 };
 
-void throw_if_failed(BOOL v)
+struct world_transform
 {
-	if (!v)
-	{
-		DWORD e = GetLastError();
-		__debugbreak();
-	}
-}
+	float m_rotation[4];
 
-namespace Ums
+	float m_translation_x;
+	float m_translation_y;
+	float m_translation_z;
+	float m_scale;
+};
+
+class renderer_component;
+
+class renderer_component_handle
 {
-	struct CompletionList
+	renderer_component* m_pointer;
+};
+
+struct render_object_allocator
+{
+	enum type
 	{
-		PUMS_COMPLETION_LIST m_list = {};
-
-		CompletionList()
-		{
-			throw_if_failed(CreateUmsCompletionList(&m_list));
-		}
-
-		~CompletionList()
-		{
-			DeleteUmsCompletionList(m_list);
-		}
+		mechanic,
+		room,
+		count
 	};
 
-	struct Context
+	template <typename o >
+	o* make_object( type )
 	{
-		PUMS_CONTEXT m_ctx = {};
+		return nullptr;
+	}
 
-		Context()
-		{
-			throw_if_failed(CreateUmsThreadContext(&m_ctx));
-		}
+	template <typename o>
+	void free_object(type t, o* o )
+	{
 
-		~Context()
-		{
-			DeleteUmsThreadContext(m_ctx);
-		}
+	}
+};
+
+struct visibility_object_allocator
+{
+	enum type
+	{
+
 	};
 
-	struct AttributeList
+	template <typename o >
+	o* make_object(type)
 	{
-		std::vector<uint8_t>		 m_attribute_list_memory;
-		LPPROC_THREAD_ATTRIBUTE_LIST m_ctx = {};
-		SIZE_T						 m_ctxSize = 0;
+		return nullptr;
+	}
 
-		AttributeList()
-		{
-			InitializeProcThreadAttributeList(nullptr, 1, 0, &m_ctxSize);
-			SetLastError(0);
-			m_attribute_list_memory.resize(m_ctxSize);
-			m_ctx = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(&m_attribute_list_memory[0]);
-			throw_if_failed(InitializeProcThreadAttributeList(m_ctx, 1, 0, &m_ctxSize));
-		}
+	template <typename o>
+	void free_object(type t, o* o)
+	{
+		
+	}
+};
 
-		void Update( Context* c, CompletionList* l )
-		{
-			UMS_CREATE_THREAD_ATTRIBUTES s = {};
-			s.UmsVersion = UMS_VERSION;
-			s.UmsCompletionList = l->m_list;
-			s.UmsContext = c->m_ctx;
-			throw_if_failed(UpdateProcThreadAttribute(m_ctx, 0, PROC_THREAD_ATTRIBUTE_UMS_THREAD, &s, sizeof(s), nullptr, nullptr));
-		}
+struct scratch_pad_allocator
+{
+	void* allocate(size_t s) { return nullptr; };
+};
 
-		~AttributeList()
-		{
-			DeleteProcThreadAttributeList(m_ctx);
-		}
+void* operator new (std::size_t size, scratch_pad_allocator* ptr) throw()
+{
+	return ptr->allocate(size);
+}
+
+void* f()
+{
+	scratch_pad_allocator* p;
+	return new (p) float;
+}
+
+struct scratch_pad_deleter
+{
+	void operator()(void*) const
+	{
+
+	}
+};
+
+template <typename t> std::unique_ptr<t, scratch_pad_deleter > make_unique( scratch_pad_allocator* p )
+{
+	return unique_ptr<t, scratch_pad_deleter >(new (p) t());
+}
+
+struct gpu_resources_allocator
+{
+	void* create_texture_2d() { return nullptr; };
+	void* create_buffer() { return nullptr; };
+	void* create_geometry() { return nullptr; };
+};
+
+struct gpu_command_list
+{
+
+};
+
+struct make_components_allocators
+{
+	render_object_allocator* m_roa;
+	visibility_object_allocator* m_voa;
+	scratch_pad_allocator* m_soa;
+	gpu_resources_allocator* m_ga;
+	gpu_command_list* m_cmd_list;
+};
+
+class game_object
+{
+	public:
+
+	std::vector< renderer_component_handle >		 make_components(make_components_allocators* allocators) { return on_make_components(allocators); }
+
+	protected:
+
+	virtual ~game_object() {};
+	
+	private:
+
+	virtual std::vector< renderer_component_handle > on_make_components(make_components_allocators* allocators) = 0;
+};
+
+class visibility_object;
+class renderer_object;
+
+class renderer_component
+{
+	renderer_object*				m_render;
+	visibility_object*				m_visibility;
+};
+
+class renderer_object
+{
+	public:
+	game_object*					m_game_object;
+};
+
+class renderer_world
+{
+	public:
+	std::vector<renderer_object*>	m_objects;
+};
+
+class visibility_object
+{
+	renderer_object*	m_render;
+};
+
+class visibility_world
+{
+	public:
+	std::vector< visibility_object* > m_objects;
+};
+
+class mechanic	final : public game_object
+{
+	private:
+
+	class mechanic_render_object final : public renderer_object
+	{
+
 	};
-}
 
-DWORD WINAPI UMSWorkerThread(_In_ LPVOID lpParameter)
-{
-	lpParameter;
-	return 0;
-}
-
-void WINAPI UmsScheduler(UMS_SCHEDULER_REASON Reason, ULONG_PTR ActivationPayload, PVOID SchedulerParam)
-{
-}
-
-DWORD WINAPI UMSSchedulerThread(_In_ LPVOID lpParameter)
-{
-	lpParameter;
-
-	UMS_SCHEDULER_STARTUP_INFO s = {};
-	Ums::CompletionList* list = reinterpret_cast<Ums::CompletionList*>(lpParameter);
-
-	s.UmsVersion = UMS_VERSION;
-	s.SchedulerProc = UmsScheduler;
-	s.CompletionList = list->m_list;
-
-	if ( EnterUmsSchedulingMode(&s) )
+	std::vector< renderer_component_handle > on_make_components(make_components_allocators* allocators) override
 	{
-		Sleep(10000);
-		return 0;
+		std::vector< renderer_component_handle > res;
+		return res;
 	}
-	else
+
+	renderer_component_handle m_render_components[1];
+};
+
+class room final : public game_object
+{
+	private:
+
+	std::vector< renderer_component_handle > on_make_components(make_components_allocators* allocators) override
 	{
-		return -1;
+		std::vector< renderer_component_handle > res;
+		return res;
 	}
-}
+
+	renderer_component_handle m_render_components[17];
+};
 
 int main()
 {
-	//Kernel threads
-	HANDLE						umsSchedulerPool[2];
-	DWORD						umsSchedulerPoolId[2];
-	Ums::CompletionList			umscompletionList[2];
+	make_components_allocators  alloc;
 
-	//UMS threads
-	HANDLE						umsWorkdrPool[4];
-	DWORD						umsWorkerPoolId[4];
-	Ums::Context				umsThreadContexts[4];
-	Ums::AttributeList			umsAttributes[4];
+	renderer_world				rw;
+	visibility_world			vw;
 
-	umsAttributes[0].Update(&umsThreadContexts[0], &umscompletionList[0]);
-	umsAttributes[1].Update(&umsThreadContexts[1], &umscompletionList[0]);
-
-	umsAttributes[2].Update(&umsThreadContexts[2], &umscompletionList[1]);
-	umsAttributes[3].Update(&umsThreadContexts[3], &umscompletionList[1]);
-
-	umsSchedulerPool[0]			= CreateThread(nullptr, 0, &UMSSchedulerThread, &umscompletionList[0], 0, &umsSchedulerPoolId[0]);
-	umsSchedulerPool[1]			= CreateThread(nullptr, 0, &UMSSchedulerThread, &umscompletionList[1], 0, &umsSchedulerPoolId[1]);
-
-	umsWorkdrPool[0]			= CreateRemoteThreadEx(GetCurrentProcess(), nullptr, 0, &UMSWorkerThread, 0, 0, umsAttributes[0].m_ctx, &umsWorkerPoolId[0]);
-	umsWorkdrPool[1]			= CreateRemoteThreadEx(GetCurrentProcess(), nullptr, 0, &UMSWorkerThread, 0, 0, umsAttributes[1].m_ctx, &umsWorkerPoolId[1]);
-	umsWorkdrPool[2]			= CreateRemoteThreadEx(GetCurrentProcess(), nullptr, 0, &UMSWorkerThread, 0, 0, umsAttributes[2].m_ctx, &umsWorkerPoolId[2]);
-	umsWorkdrPool[3]			= CreateRemoteThreadEx(GetCurrentProcess(), nullptr, 0, &UMSWorkerThread, 0, 0, umsAttributes[3].m_ctx, &umsWorkerPoolId[3]);
-
-	Sleep(10000);
-    return 0;
+	room						room;
+	mechanic					mechanic;
+	
+	{
+		for (auto&& c : room.make_components(&alloc))
+		{
+			
+		}
+	}
 }
