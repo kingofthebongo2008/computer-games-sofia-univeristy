@@ -8,7 +8,12 @@
   xmlns:desktop4="http://schemas.microsoft.com/appx/manifest/desktop/windows10/4" 
   xmlns:iot2="http://schemas.microsoft.com/appx/manifest/iot/windows10/2" 
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap mp uap5 iot2 desktop4 rescap">
+  xmlns:iot="http://schemas.microsoft.com/appx/manifest/iot/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:uap6="http://schemas.microsoft.com/appx/manifest/uap/windows10/6"
+  xmlns:uap4="http://schemas.microsoft.com/appx/manifest/uap/windows10/4"
+  xmlns:uap2="http://schemas.microsoft.com/appx/manifest/uap/windows10/2"
+  IgnorableNamespaces="uap mp uap5 iot2 desktop4 rescap iot uap3 uap6 uap4 uap2">
 
   <Identity
     Name="4D79AC57-78AE-4DBC-A8F6-F7BD637C63DA"
@@ -65,7 +70,6 @@
   </Applications>
 
   <Capabilities>
-    <Capability Name="internetClient" />
     <rescap:Capability Name="broadFileSystemAccess" />
   </Capabilities>
 </Package>
