@@ -6,9 +6,13 @@
 #include <pix3.h>
 #include "build_window_environment.h"
 
-using namespace winrt::Windows::UI::Core;
+using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::ApplicationModel::Activation;
+
+using namespace winrt::Windows::UI::Core;
+using namespace winrt::Windows::UI::ViewManagement;
+
 using namespace Microsoft::WRL;
 
 //There are many steps required for dx12 triangle to get on the screen
@@ -19,7 +23,6 @@ using namespace Microsoft::WRL;
 //5. Fence is needed to synchronize cpu submission of commands and waiting of the results.
 //6. For shaders. Pipeline State is needed to be setup
 //7. For commands submission allocator and command buffer is needed.
-
 
 namespace sample
 {
@@ -34,7 +37,7 @@ namespace sample
     template <typename to, typename from> winrt::com_ptr<to> copy_to_abi(const from& w)
     {
         winrt::com_ptr<to> v;
-        v.attach(sample::copy_to_abi_private<IUnknown>(w));
+        v.attach(sample::copy_to_abi_private<::IUnknown>(w));
         return v;
     }
 }
@@ -120,7 +123,7 @@ static winrt::com_ptr<IDXGISwapChain3> CreateSwapChain(const CoreWindow& w, ID3D
     desc.AlphaMode      = DXGI_ALPHA_MODE_IGNORE;
     desc.Scaling        = DXGI_SCALING_NONE;
 
-    ThrowIfFailed(f->CreateSwapChainForCoreWindow(d, sample::copy_to_abi<IUnknown>(w).get(), &desc, nullptr, r.put()));
+    ThrowIfFailed(f->CreateSwapChainForCoreWindow(d, sample::copy_to_abi<::IUnknown>(w).get(), &desc, nullptr, r.put()));
     return r.as< IDXGISwapChain3>();
 }
 
@@ -170,12 +173,11 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapShaderGpu(ID3D1
     D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
     d.NumDescriptors = 2;
-    d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    d.Type  = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     d.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
     return r;
 }
-
 
 static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapRendering(ID3D12Device1* device)
 {
@@ -277,8 +279,6 @@ static winrt::com_ptr<ID3D12Resource1> CreateLightingResource(ID3D12Device1* dev
     ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
     return r;
 }
-
-
 
 //Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
 static void CreateDepthWriteDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
@@ -480,6 +480,7 @@ static winrt::com_ptr< ID3D12PipelineState>  CreateGaussianBlurPipelineState(ID3
 }
 
 
+
 class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFrameworkViewSource>
 {
     public:
@@ -491,6 +492,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
     void Initialize(const CoreApplicationView& v)
     {
+        ApplicationView::PreferredLaunchViewSize(Size(1600, 900));
+        ApplicationView::PreferredLaunchWindowingMode(ApplicationViewWindowingMode::PreferredLaunchViewSize);
+
         m_activated                 = v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
         m_debug                     = CreateDebug();
         m_device                    = CreateDevice();
@@ -754,7 +758,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                         graphicsList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                     }
 
-
                     //Draw first to clear the depth buffer
                     //set the raster pipeline state as a whole, it was prebuilt before
                     graphicsList->SetPipelineState(m_triangle_state_depth_prepass.get());
@@ -763,9 +766,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 }
 
                 PIXEndEvent(graphicsList);
-
                 graphicsList->Close();
-                
             }
 
             //Graphics Queue, Color Pass
@@ -785,11 +786,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                     graphicsList->ResourceBarrier(1, &barrier[0]);
                 }
 
-
-                //Depth prepass for frame N
+                //Color pass for frame N
                 //get the pointer to the gpu memory
-                D3D12_CPU_DESCRIPTOR_HANDLE back_buffer = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_lighting_descriptor[graphics_frame_index];
-                D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get()) + m_depth_descriptor[0];
+                D3D12_CPU_DESCRIPTOR_HANDLE back_buffer     = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_lighting_descriptor[graphics_frame_index];
+                D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer    = CpuView(m_device.get(), m_descriptorHeapDepth.get())   + m_depth_descriptor[0];
                 {
                     graphicsList->OMSetRenderTargets(1, &back_buffer, TRUE, &depth_buffer);
                     FLOAT c[4] = { 0.0f, 0.f,0.f,0.f };
@@ -824,11 +824,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 {
                     D3D12_RESOURCE_BARRIER barrier[1] = {};
 
-                    barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                    barrier[0].Type                     = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
                     barrier[0].Transition.pResource = m_lighting_buffer[graphics_frame_index].get();
-                    barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-                    barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-                    barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                    barrier[0].Transition.StateBefore   = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                    barrier[0].Transition.StateAfter    = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+                    barrier[0].Transition.Subresource   = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
                     graphicsList->ResourceBarrier(1, &barrier[0]);
                 }
@@ -966,7 +966,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
     winrt::com_ptr <ID3D12CommandQueue>         m_compute_queue;                //queue to the device
     winrt::com_ptr <ID3D12CommandQueue>         m_graphics_queue;               //queue to the device
-    
+
+    winrt::com_ptr <ID3D12Heap>                 m_HeapTargets;                  //descriptor heap for the resources
+    winrt::com_ptr <ID3D12Heap>                 m_HeapDepth;                    //descriptor heap for the resources
+
     winrt::com_ptr <ID3D12DescriptorHeap>       m_descriptorHeapTargets;        //descriptor heap for the resources
     winrt::com_ptr <ID3D12DescriptorHeap>       m_descriptorHeapDepth;          //descriptor heap for the resources
     winrt::com_ptr <ID3D12DescriptorHeap>       m_descriptorHeapShader;         //descriptor heap for the resources
