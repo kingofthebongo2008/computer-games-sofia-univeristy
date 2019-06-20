@@ -2,6 +2,7 @@
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.190605.7\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190605.7\build\native\Microsoft.Windows.CppWinRT.props')" />
   <PropertyGroup Label="Globals">
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <ProjectGuid>{ea657e57-cf9d-4e03-b87b-9a693133390c}</ProjectGuid>
     <RootNamespace>hello_triangle</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
