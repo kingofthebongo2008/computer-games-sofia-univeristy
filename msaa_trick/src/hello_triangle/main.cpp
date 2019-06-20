@@ -253,7 +253,63 @@ static winrt::com_ptr<ID3D12Resource1> CreateDepthResource(ID3D12Device1* device
     return r;
 }
 
-static winrt::com_ptr<ID3D12Resource1> CreateLightingResource(ID3D12Device1* device, uint32_t width, uint32_t height)
+static winrt::com_ptr<ID3D12Heap> CreateRenderTargetsHeap(ID3D12Device1* device)
+{
+    winrt::com_ptr<ID3D12Heap>     r;
+
+    D3D12_HEAP_DESC         d = {};
+    D3D12_HEAP_PROPERTIES   p = {};
+
+    p.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+    d.Alignment     = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
+    d.Flags         = D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES;
+    d.Properties    = p;
+    d.SizeInBytes   = 1024 * 1024 * 64;
+
+    ThrowIfFailed(device->CreateHeap(&d, __uuidof(ID3D12Heap), r.put_void()));
+
+    return r;
+}
+    
+namespace
+{
+    uint64_t align_value(uint64_t v, uint64_t alignment)
+    {
+        return (v + alignment - 1) & ~( alignment - 1 );
+    }
+}
+
+static winrt::com_ptr<ID3D12Resource1> CreateLightingResource(ID3D12Device1* device, ID3D12Heap* heap, uint32_t index, uint32_t width, uint32_t height)
+{
+    D3D12_RESOURCE_DESC d = {};
+    d.Alignment = 0;// D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
+    d.DepthOrArraySize = 1;
+    d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    d.Flags     = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    d.Format    = DXGI_FORMAT_B8G8R8A8_UNORM;
+    d.Height    = height;
+    d.Layout    = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    d.MipLevels = 1;
+    d.SampleDesc.Count = 1;
+    d.SampleDesc.Quality = 0;
+    d.Width = width;
+
+    D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+
+    D3D12_CLEAR_VALUE v = {};
+    v.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+
+    D3D12_RESOURCE_ALLOCATION_INFO info = device->GetResourceAllocationInfo(0, 1, &d);
+    uint64_t offset                     = align_value(info.SizeInBytes * index, info.Alignment);
+
+    winrt::com_ptr<ID3D12Resource1>     r;
+    ThrowIfFailed(device->CreatePlacedResource(heap, offset , &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
+
+    return r;
+}
+
+static winrt::com_ptr<ID3D12Resource1> CreateLightingResource1(ID3D12Device1* device, uint32_t width, uint32_t height)
 {
     D3D12_RESOURCE_DESC d = {};
     d.Alignment = 0;
@@ -502,6 +558,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_graphics_queue            = CreateGraphicsQueue(m_device.get());
         m_compute_queue             = CreateComputeQueue(m_device.get());
 
+        m_HeapTargets               = CreateRenderTargetsHeap(m_device.get());
+
         m_descriptorHeapTargets     = CreateDescriptorHeapTargets(m_device.get());
         m_descriptorHeapDepth       = CreateDescriptorHeapDepth(m_device.get());
 
@@ -583,8 +641,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_depth_descriptor[1] = 1;
 
 		//create render target views, that will be used for rendering
-		m_lighting_buffer[0] = CreateLightingResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
-		m_lighting_buffer[1] = CreateLightingResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+		m_lighting_buffer[0] = CreateLightingResource(m_device.get(), m_HeapTargets.get(), 0, m_back_buffer_width, m_back_buffer_height);
+		m_lighting_buffer[1] = CreateLightingResource(m_device.get(), m_HeapTargets.get(), 1, m_back_buffer_width, m_back_buffer_height);
 
 		m_lighting_buffer[0]->SetName(L"Lighting Buffer 0");
 		m_lighting_buffer[1]->SetName(L"Lighting Buffer 1");
@@ -968,7 +1026,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     winrt::com_ptr <ID3D12CommandQueue>         m_graphics_queue;               //queue to the device
 
     winrt::com_ptr <ID3D12Heap>                 m_HeapTargets;                  //descriptor heap for the resources
-    winrt::com_ptr <ID3D12Heap>                 m_HeapDepth;                    //descriptor heap for the resources
 
     winrt::com_ptr <ID3D12DescriptorHeap>       m_descriptorHeapTargets;        //descriptor heap for the resources
     winrt::com_ptr <ID3D12DescriptorHeap>       m_descriptorHeapDepth;          //descriptor heap for the resources
