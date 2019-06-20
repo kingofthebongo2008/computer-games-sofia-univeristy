@@ -53,6 +53,9 @@
     <Link>
       <AdditionalDependencies>D3d12.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\hello_triangle\cpu_view.h" />
