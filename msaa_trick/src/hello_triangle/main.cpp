@@ -119,7 +119,7 @@ static winrt::com_ptr<IDXGISwapChain3> CreateSwapChain(const CoreWindow& w, ID3D
     desc.Height         = height;
     desc.SampleDesc.Count = 1;
     desc.SwapEffect     = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-    desc.BufferUsage    = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    desc.BufferUsage    = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_UNORDERED_ACCESS;
     desc.AlphaMode      = DXGI_ALPHA_MODE_IGNORE;
     desc.Scaling        = DXGI_SCALING_NONE;
 
@@ -161,7 +161,7 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapShader(ID3D12De
     winrt::com_ptr<ID3D12DescriptorHeap> r;
     D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-    d.NumDescriptors = 2;
+    d.NumDescriptors = 4;
     d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
     return r;
@@ -172,7 +172,7 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapShaderGpu(ID3D1
     winrt::com_ptr<ID3D12DescriptorHeap> r;
     D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-    d.NumDescriptors = 2;
+    d.NumDescriptors = 4;
     d.Type  = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     d.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
@@ -228,7 +228,7 @@ static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource1(ID3D12Device1* d
 static winrt::com_ptr<ID3D12Resource1> CreateDepthResource(ID3D12Device1* device, uint32_t width, uint32_t height)
 {
     D3D12_RESOURCE_DESC d = {};
-    d.Alignment = 0;
+    d.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
     d.DepthOrArraySize = 1;
     d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     d.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
@@ -236,7 +236,7 @@ static winrt::com_ptr<ID3D12Resource1> CreateDepthResource(ID3D12Device1* device
     d.Height = height;
     d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     d.MipLevels = 1;
-    d.SampleDesc.Count = 1;
+    d.SampleDesc.Count = 4;
     d.SampleDesc.Quality = 0;
     d.Width = width;
 
@@ -280,18 +280,18 @@ namespace
     }
 }
 
-static winrt::com_ptr<ID3D12Resource1> CreateLightingResource(ID3D12Device1* device, ID3D12Heap* heap, uint32_t index, uint32_t width, uint32_t height)
+static winrt::com_ptr<ID3D12Resource1> CreateLightingResourceMSAA(ID3D12Device1* device, ID3D12Heap* heap, uint32_t index, uint32_t width, uint32_t height)
 {
     D3D12_RESOURCE_DESC d = {};
-    d.Alignment = 0;// D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
+    d.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
     d.DepthOrArraySize = 1;
     d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    d.Flags     = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-    d.Format    = DXGI_FORMAT_B8G8R8A8_UNORM;
+    d.Flags     = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    d.Format    = DXGI_FORMAT_B8G8R8A8_TYPELESS;
     d.Height    = height;
     d.Layout    = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     d.MipLevels = 1;
-    d.SampleDesc.Count = 1;
+    d.SampleDesc.Count = 4;
     d.SampleDesc.Quality = 0;
     d.Width = width;
 
@@ -309,13 +309,37 @@ static winrt::com_ptr<ID3D12Resource1> CreateLightingResource(ID3D12Device1* dev
     return r;
 }
 
+static winrt::com_ptr<ID3D12Resource1> CreateLightingResource(ID3D12Device1* device, uint32_t width, uint32_t height)
+{
+    D3D12_RESOURCE_DESC d = {};
+    d.Alignment = 0;
+    d.DepthOrArraySize = 1;
+    d.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    d.Flags     = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    d.Format    = DXGI_FORMAT_UNKNOWN;
+    d.Height    = 1;
+    d.Layout    = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    d.MipLevels = 1;
+    d.SampleDesc.Count = 1;
+    d.SampleDesc.Quality = 0;
+    d.Width = width * height * 4 ;
+
+    winrt::com_ptr<ID3D12Resource1>     r;
+    D3D12_HEAP_PROPERTIES p = {};
+    p.Type = D3D12_HEAP_TYPE_DEFAULT;
+    D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+
+    ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+    return r;
+}
+
 static winrt::com_ptr<ID3D12Resource1> CreateLightingResource1(ID3D12Device1* device, uint32_t width, uint32_t height)
 {
     D3D12_RESOURCE_DESC d = {};
     d.Alignment = 0;
     d.DepthOrArraySize = 1;
     d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    d.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    d.Flags  = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     d.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
     d.Height = height;
     d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -340,7 +364,7 @@ static winrt::com_ptr<ID3D12Resource1> CreateLightingResource1(ID3D12Device1* de
 static void CreateDepthWriteDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
     D3D12_DEPTH_STENCIL_VIEW_DESC d = {};
-    d.ViewDimension                 = D3D12_DSV_DIMENSION_TEXTURE2D;
+    d.ViewDimension                 = D3D12_DSV_DIMENSION_TEXTURE2DMS;
     d.Format                        = DXGI_FORMAT_D32_FLOAT;       //how we will view the resource during rendering
     device->CreateDepthStencilView(resource, &d, handle);
 }
@@ -348,7 +372,7 @@ static void CreateDepthWriteDescriptor(ID3D12Device1* device, ID3D12Resource1* r
 static void CreateDepthReadDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
     D3D12_DEPTH_STENCIL_VIEW_DESC d = {};
-    d.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    d.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
     d.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH;
     d.Format = DXGI_FORMAT_D32_FLOAT;               //how we will view the resource during rendering
     device->CreateDepthStencilView(resource, &d, handle);
@@ -368,17 +392,29 @@ static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* de
 static void CreateRenderTargetDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle )
 {
     D3D12_RENDER_TARGET_VIEW_DESC d = {};
-    d.ViewDimension                 = D3D12_RTV_DIMENSION_TEXTURE2D;
+    d.ViewDimension                 = D3D12_RTV_DIMENSION_TEXTURE2DMS;
     d.Format                        = DXGI_FORMAT_B8G8R8A8_UNORM;       //how we will view the resource during rendering
     device->CreateRenderTargetView(resource, &d, handle);
 }
 
 //Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
-static void CreateUnorderedAccessViewDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+static void CreateShaderResourceViewDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+    D3D12_SHADER_RESOURCE_VIEW_DESC d = {};
+    d.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+    d.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    d.Format = DXGI_FORMAT_B8G8R8A8_UNORM;       //how we will view the resource during rendering
+    device->CreateShaderResourceView(resource, &d, handle);
+}
+
+//Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
+static void CreateUnorderedAccessViewDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle, uint32_t width, uint32_t height)
 {
     D3D12_UNORDERED_ACCESS_VIEW_DESC d = {};
-    d.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-    d.Format = DXGI_FORMAT_B8G8R8A8_UNORM;       //how we will view the resource during rendering
+    d.ViewDimension      = D3D12_UAV_DIMENSION_BUFFER;
+    d.Buffer.NumElements = width * height;
+    d.Buffer.Flags       = D3D12_BUFFER_UAV_FLAG_RAW;
+    d.Format             = DXGI_FORMAT_R32_TYPELESS;       //how we will view the resource during rendering
     device->CreateUnorderedAccessView(resource, nullptr, &d, handle);
 }
 
@@ -452,9 +488,8 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC CreateTriangleDescription()
     state.RasterizerState.FrontCounterClockwise = TRUE;
 
     state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-    state.NumRenderTargets = 1;
-    state.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
-    state.SampleDesc.Count = 1;
+    state.NumRenderTargets  = 0;
+    state.SampleDesc.Count  = 4;
     state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
     state.DSVFormat = DXGI_FORMAT_D32_FLOAT;
 
@@ -631,7 +666,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		CreateRenderTargetDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 0);
 		CreateRenderTargetDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 1);
 
-		m_depth_buffer = CreateDepthResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+		m_depth_buffer = CreateDepthResource(m_device.get(), m_back_buffer_width / 2, m_back_buffer_height / 2);
 		m_depth_buffer->SetName(L"Depth Buffer");
 
 		CreateDepthWriteDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0);
@@ -641,28 +676,39 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_depth_descriptor[1] = 1;
 
 		//create render target views, that will be used for rendering
-		m_lighting_buffer[0] = CreateLightingResource(m_device.get(), m_HeapTargets.get(), 0, m_back_buffer_width, m_back_buffer_height);
-		m_lighting_buffer[1] = CreateLightingResource(m_device.get(), m_HeapTargets.get(), 1, m_back_buffer_width, m_back_buffer_height);
+		m_lighting_buffer[0] = CreateLightingResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+		m_lighting_buffer[1] = CreateLightingResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+
+        m_lighting_buffer_msaa[0] = CreateLightingResourceMSAA(m_device.get(), m_HeapTargets.get(), 0, m_back_buffer_width / 2, m_back_buffer_height / 2);
+        m_lighting_buffer_msaa[1] = CreateLightingResourceMSAA(m_device.get(), m_HeapTargets.get(), 1, m_back_buffer_width / 2, m_back_buffer_height / 2);
 
 		m_lighting_buffer[0]->SetName(L"Lighting Buffer 0");
 		m_lighting_buffer[1]->SetName(L"Lighting Buffer 1");
 
+        m_lighting_buffer_msaa[0]->SetName(L"MSAA Lighting Buffer 0");
+        m_lighting_buffer_msaa[1]->SetName(L"MSAA Lighting Buffer 1");
 
 		//create render target views, that will be used for rendering
-		CreateRenderTargetDescriptor(m_device.get(), m_lighting_buffer[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 2);
-		CreateRenderTargetDescriptor(m_device.get(), m_lighting_buffer[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 3);
+		CreateRenderTargetDescriptor(m_device.get(), m_lighting_buffer_msaa[0].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 2);
+		CreateRenderTargetDescriptor(m_device.get(), m_lighting_buffer_msaa[1].get(), CpuView(m_device.get(), m_descriptorHeapTargets.get()) + 3);
 
-		CreateUnorderedAccessViewDescriptor(m_device.get(), m_lighting_buffer[0].get(), CpuView(m_device.get(), m_descriptorHeapShader.get()) + 0);
-		CreateUnorderedAccessViewDescriptor(m_device.get(), m_lighting_buffer[1].get(), CpuView(m_device.get(), m_descriptorHeapShader.get()) + 1);
+        CreateShaderResourceViewDescriptor(m_device.get(), m_lighting_buffer_msaa[0].get(), CpuView(m_device.get(), m_descriptorHeapShader.get()) + 0);
+        CreateShaderResourceViewDescriptor(m_device.get(), m_lighting_buffer_msaa[1].get(), CpuView(m_device.get(), m_descriptorHeapShader.get()) + 1);
 
-		m_lighting_descriptor[0] = 2;
-		m_lighting_descriptor[1] = 3;
+        CreateUnorderedAccessViewDescriptor(m_device.get(), m_lighting_buffer[0].get(), CpuView(m_device.get(), m_descriptorHeapShader.get()) + 2, m_back_buffer_width, m_back_buffer_height);
+        CreateUnorderedAccessViewDescriptor(m_device.get(), m_lighting_buffer[1].get(), CpuView(m_device.get(), m_descriptorHeapShader.get()) + 3, m_back_buffer_width, m_back_buffer_height);
+
+        m_lighting_descriptor[0]     = 2;
+		m_lighting_descriptor[1]     = 3;
 
 		m_lighting_descriptor_uav[0] = 0;
 		m_lighting_descriptor_uav[1] = 1;
 
+        m_lighting_descriptor_uav[2] = 2;
+        m_lighting_descriptor_uav[3] = 3;
+
 		//Copy
-		m_device->CopyDescriptorsSimple(2, CpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + m_lighting_descriptor_uav[0], CpuView(m_device.get(), m_descriptorHeapShader.get()) + m_lighting_descriptor_uav[0], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		m_device->CopyDescriptorsSimple(4, CpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + m_lighting_descriptor_uav[0], CpuView(m_device.get(), m_descriptorHeapShader.get()) + m_lighting_descriptor_uav[0], D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	}
 
     void SetWindow(const CoreWindow& w)
@@ -676,8 +722,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 		m_swap_chain = CreateSwapChain(w, m_graphics_queue.get(), width, height);
         m_graphics_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
-
-	
 
 		CreateViewDependentResources(width, height);
     }
@@ -698,8 +742,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         std::lock_guard lock(m_blockRendering);
 
         //Now wait for the gpu to finish what it has from the main thread
-
-		
 
 		ThrowIfFailed(m_graphics_queue->Signal(m_graphics_fence.get(), m_frame_number + 1));
 		ThrowIfFailed(m_graphics_fence->SetEventOnCompletion(m_frame_number + 1, m_graphics_event));
@@ -750,8 +792,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
             for (auto i = 0; i < 3; ++i)
             {
-                ID3D12CommandAllocator* graphicsAllocator = m_graphics_allocator[graphics_frame_index][i].get();
-                ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][i].get();
+                ID3D12CommandAllocator* graphicsAllocator   = m_graphics_allocator[graphics_frame_index][i].get();
+                ID3D12GraphicsCommandList1* graphicsList    = m_graphics_list[graphics_frame_index][i].get();
                 graphicsAllocator->Reset();
                 graphicsList->Reset(graphicsAllocator, nullptr);
             }
@@ -769,7 +811,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 {
                     //set the type of the parameters that we will use in the shader
                     computeList->SetComputeRootSignature(m_compute_signature.get());
-                    computeList->SetComputeRootDescriptorTable(1, GpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + m_lighting_descriptor_uav[compute_frame_index]);
+                    computeList->SetComputeRootDescriptorTable(1, GpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + ( m_lighting_descriptor_uav[compute_frame_index] + 2));
+                    computeList->SetComputeRootDescriptorTable(2, GpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + ( m_lighting_descriptor_uav[compute_frame_index] + 0));
                     computeList->SetPipelineState(m_gaussian_blur.get());
                     computeList->Dispatch(1, 1, 1);
                 }
@@ -837,12 +880,14 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                     D3D12_RESOURCE_BARRIER barrier[1] = {};
 
                     barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                    barrier[0].Transition.pResource = m_lighting_buffer[graphics_frame_index].get();
-                    barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
-                    barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-                    barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                    barrier[0].Transition.pResource     = m_lighting_buffer_msaa[graphics_frame_index].get();
+                    barrier[0].Transition.StateBefore   = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+                    barrier[0].Transition.StateAfter    = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                    barrier[0].Transition.Subresource   = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
                     graphicsList->ResourceBarrier(1, &barrier[0]);
                 }
+
+                graphicsList->DiscardResource(m_lighting_buffer_msaa[graphics_frame_index].get(), nullptr);
 
                 //Color pass for frame N
                 //get the pointer to the gpu memory
@@ -880,15 +925,21 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 }
 
                 {
-                    D3D12_RESOURCE_BARRIER barrier[1] = {};
+                    D3D12_RESOURCE_BARRIER barrier[2] = {};
 
                     barrier[0].Type                     = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                    barrier[0].Transition.pResource = m_lighting_buffer[graphics_frame_index].get();
+                    barrier[0].Transition.pResource     = m_lighting_buffer_msaa[graphics_frame_index].get();
                     barrier[0].Transition.StateBefore   = D3D12_RESOURCE_STATE_RENDER_TARGET;
                     barrier[0].Transition.StateAfter    = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
                     barrier[0].Transition.Subresource   = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-                    graphicsList->ResourceBarrier(1, &barrier[0]);
+                    barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                    barrier[1].Transition.pResource     = m_lighting_buffer[graphics_frame_index].get();
+                    barrier[1].Transition.StateBefore   = D3D12_RESOURCE_STATE_COPY_SOURCE;
+                    barrier[1].Transition.StateAfter    = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+                    barrier[1].Transition.Subresource   = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+                    graphicsList->ResourceBarrier(2, &barrier[0]);
                 }
 
                 PIXEndEvent(graphicsList);
@@ -907,16 +958,16 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                     D3D12_RESOURCE_BARRIER barrier[2] = {};
 
                     barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                    barrier[0].Transition.pResource = m_lighting_buffer[compute_frame_index].get();
-                    barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-                    barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
-                    barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                    barrier[0].Transition.pResource     = m_lighting_buffer[compute_frame_index].get();
+                    barrier[0].Transition.StateBefore   = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+                    barrier[0].Transition.StateAfter    = D3D12_RESOURCE_STATE_COPY_SOURCE;
+                    barrier[0].Transition.Subresource   = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
                     barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                    barrier[1].Transition.pResource = m_swap_chain_buffers[compute_frame_index].get();
-                    barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-                    barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
-                    barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                    barrier[1].Transition.pResource     = m_swap_chain_buffers[compute_frame_index].get();
+                    barrier[1].Transition.StateBefore   = D3D12_RESOURCE_STATE_PRESENT;
+                    barrier[1].Transition.StateAfter    = D3D12_RESOURCE_STATE_COPY_DEST;
+                    barrier[1].Transition.Subresource   = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
                     graphicsList->ResourceBarrier(2, &barrier[0]);
                 }
@@ -939,16 +990,16 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                     D3D12_RESOURCE_BARRIER barrier[2] = {};
 
                     barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                    barrier[0].Transition.pResource = m_lighting_buffer[compute_frame_index].get();
-                    barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-                    barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
-                    barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                    barrier[0].Transition.pResource     = m_lighting_buffer[compute_frame_index].get();
+                    barrier[0].Transition.StateBefore   = D3D12_RESOURCE_STATE_COPY_SOURCE;
+                    barrier[0].Transition.StateAfter    = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+                    barrier[0].Transition.Subresource   = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
                     barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                    barrier[1].Transition.pResource = m_swap_chain_buffers[compute_frame_index].get();
-                    barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-                    barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-                    barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                    barrier[1].Transition.pResource     = m_swap_chain_buffers[compute_frame_index].get();
+                    barrier[1].Transition.StateBefore   = D3D12_RESOURCE_STATE_COPY_DEST;
+                    barrier[1].Transition.StateAfter    = D3D12_RESOURCE_STATE_PRESENT;
+                    barrier[1].Transition.Subresource   = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
                     graphicsList->ResourceBarrier(2, &barrier[0]);
                 }
 
@@ -1040,8 +1091,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     uint64_t                                    m_depth_descriptor[2];
 
     winrt::com_ptr<ID3D12Resource1>             m_lighting_buffer[2];           //lighting buffers ( ComputeGraphicsLatency + 1 )
+    winrt::com_ptr<ID3D12Resource1>             m_lighting_buffer_msaa[2];      //lighting msaa    ( ComputeGraphicsLatency + 1 )
     uint64_t                                    m_lighting_descriptor[2];
-    uint64_t                                    m_lighting_descriptor_uav[2];
+    uint64_t                                    m_lighting_descriptor_uav[4];
 
     winrt::com_ptr<ID3D12Resource1>             m_depth;                        //depth buffer
 
