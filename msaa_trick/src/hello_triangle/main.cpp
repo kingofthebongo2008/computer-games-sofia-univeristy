@@ -481,7 +481,8 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC CreateTriangleDescription()
     D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
     state.SampleMask = UINT_MAX;
     state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-
+    state.RasterizerState.MultisampleEnable = TRUE;
+    
     state.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
     state.RasterizerState.FrontCounterClockwise = TRUE;
 
@@ -649,6 +650,14 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 		m_back_buffer_width = width;
 		m_back_buffer_height = height;
 
+        m_lighting_buffer[0]      = nullptr;
+        m_lighting_buffer[1]      = nullptr;
+        m_lighting_buffer_msaa[0] = nullptr;
+        m_lighting_buffer_msaa[1] = nullptr;
+        m_swap_chain_buffers[0]   = nullptr;
+        m_swap_chain_buffers[1]   = nullptr;
+
+
 		//allocate memory for the view
 		m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
 		m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
@@ -812,7 +821,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                     computeList->SetComputeRootDescriptorTable(1, GpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + ( m_lighting_descriptor_uav[compute_frame_index] + 2));
                     computeList->SetComputeRootDescriptorTable(2, GpuView(m_device.get(), m_descriptorHeapShaderGpu.get()) + ( m_lighting_descriptor_uav[compute_frame_index] + 0));
                     computeList->SetPipelineState(m_gaussian_blur.get());
-                    computeList->Dispatch(1, 1, 1);
+
+                    uint32_t x = (m_back_buffer_width + 7) / 8;
+                    uint32_t y = (m_back_buffer_height+ 7) / 8;
+
+                    computeList->Dispatch(x, y , 1);
                 }
 
                 PIXEndEvent(computeList);
@@ -824,6 +837,19 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             {
                 ID3D12GraphicsCommandList1* graphicsList = m_graphics_list[graphics_frame_index][0].get();
                 PIXBeginEvent(graphicsList, 0, "Depth Prepass");
+
+
+                D3D12_SAMPLE_POSITION pos[4] =
+                {
+                    {-4,-4},
+                    {4,-4},
+                    {-4,4},
+                    {4,4},
+                };
+
+                graphicsList->SetSamplePositions(4, 1, &pos[0]);
+
+
                 //Depth prepass for frame N
                 //get the pointer to the gpu memory
                 D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get()) + m_depth_descriptor[0];
@@ -847,8 +873,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                         v.TopLeftY = 0;
                         v.MinDepth = 0.0f;
                         v.MaxDepth = 1.0f;
-                        v.Width = static_cast<float>(m_back_buffer_width);
-                        v.Height = static_cast<float>(m_back_buffer_height);
+                        v.Width = static_cast<float>(m_back_buffer_width / 2);
+                        v.Height = static_cast<float>(m_back_buffer_height / 2);
                         graphicsList->RSSetViewports(1, &v);
                     }
 
@@ -887,6 +913,19 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
                 graphicsList->DiscardResource(m_lighting_buffer_msaa[graphics_frame_index].get(), nullptr);
 
+
+                {
+                    D3D12_SAMPLE_POSITION pos[4] =
+                    {
+                        {-4,-4},
+                        {4,-4},
+                        {-4,4},
+                        {4,4},
+                    };
+
+                    graphicsList->SetSamplePositions(4, 1, &pos[0]);
+                }
+
                 //Color pass for frame N
                 //get the pointer to the gpu memory
                 D3D12_CPU_DESCRIPTOR_HANDLE back_buffer     = CpuView(m_device.get(), m_descriptorHeapTargets.get()) + m_lighting_descriptor[graphics_frame_index];
@@ -912,8 +951,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                         v.TopLeftY = 0;
                         v.MinDepth = 0.0f;
                         v.MaxDepth = 1.0f;
-                        v.Width = static_cast<float>(m_back_buffer_width);
-                        v.Height = static_cast<float>(m_back_buffer_height);
+                        v.Width = static_cast<float>(m_back_buffer_width / 2 );
+                        v.Height = static_cast<float>(m_back_buffer_height / 2);
                         graphicsList->RSSetViewports(1, &v);
                     }
 
