@@ -44,7 +44,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="SampleEngine_TemporaryKey.pfx" />
-    <None Include="test.txt" />
     <None Include="packages.config" />
   </ItemGroup>
 </Project>
