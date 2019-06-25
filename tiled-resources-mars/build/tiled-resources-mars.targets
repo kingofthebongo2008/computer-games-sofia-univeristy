@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)..\..\lib\native\diffuse.bin">
+      <DeploymentContent>true</DeploymentContent>
+      <Link>$([MSBuild]::MakeRelative($(TargetDir),data\diffuse.bin))</Link>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)..\..\lib\native\geometry.ib.bin">
+      <DeploymentContent>true</DeploymentContent>
+      <Link>$([MSBuild]::MakeRelative($(TargetDir),data\geometry.ib.bin))</Link>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)..\..\lib\native\geometry.vb.bin">
+      <DeploymentContent>true</DeploymentContent>
+      <Link>$([MSBuild]::MakeRelative($(TargetDir),data\geometry.vb.bin))</Link>
+    </None>
+    <None Include="$(MSBuildThisFileDirectory)..\..\lib\native\normal.bin">
+      <DeploymentContent>true</DeploymentContent>
+      <Link>$([MSBuild]::MakeRelative($(TargetDir),data\normal.bin))</Link>
+    </None>
+  </ItemGroup>
+
+</Project>

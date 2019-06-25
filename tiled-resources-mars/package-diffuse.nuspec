@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>tiled-resources-mars-diffuse</id>
+    <version>1.0</version>
+    <title>Tiled Resources Data Pack Diffuse</title>
+    <authors>Stefan Dyulgerov</authors>
+    <owners>kingofthebongo2009</owners>
+    <licenseUrl>http://opensource.org/licenses/MS-PL</licenseUrl>
+    <projectUrl>https://blogs.msdn.microsoft.com/pix/winpixeventruntime/</projectUrl>
+    <iconUrl>http://www.gravatar.com/avatar/df362936893270e6a1b53807fa90e8fa</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Data for Tiled Resources Sample data</description>
+    <tags>tiled, resources, directx, diffuse, normal, uwp</tags>
+    <dependencies>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src = "data\credits.txt" target = "content\credits.txt" />
+    <file src = "data\diffuse.bin" target = "content\diffuse.bin" />
+    <file src = "data\geometry.ib.bin" target = "content\geometry.ib.bin" />
+    <file src = "data\geometry.vb.bin" target = "content\geometry.vb.bin" />
+    <file src = "data\geometry_data_descriptions.txt" target = "content\geometry_data_descriptions.txt" />
+    <file src = "data\texture_data_descriptions.txt" target = "content\texture_data_descriptions.txt" />
+    <file src = "build\tiled-resources-mars-diffuse.props"     target = "build\native" />
+    <file src = "build\tiled-resources-mars-diffuse.targets"   target = "build\native" />
+    <file src = "build\tiled-resources-mars-diffuse.props"     target = "build\uap" />
+    <file src = "build\tiled-resources-mars-diffuse.targets"   target = "build\uap" />
+  </files>
+</package>

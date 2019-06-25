@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>tiled-resources-mars-normal</id>
+    <version>1.0</version>
+    <title>Tiled Resources Data Pack Normal</title>
+    <authors>Stefan Dyulgerov</authors>
+    <owners>kingofthebongo2009</owners>
+    <licenseUrl>http://opensource.org/licenses/MS-PL</licenseUrl>
+    <projectUrl>https://blogs.msdn.microsoft.com/pix/winpixeventruntime/</projectUrl>
+    <iconUrl>http://www.gravatar.com/avatar/df362936893270e6a1b53807fa90e8fa</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Data for Tiled Resources Sample data</description>
+    <tags>tiled, resources, directx, diffuse, normal, uwp</tags>
+    <dependencies>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src = "data\normal.bin" target = "content\normal.bin" />
+    <file src = "build\tiled-resources-mars-normal.props"     target = "build\native" />
+    <file src = "build\tiled-resources-mars-normal.targets"   target = "build\native" />
+    <file src = "build\tiled-resources-mars-normal.props"     target = "build\uap" />
+    <file src = "build\tiled-resources-mars-normal.targets"   target = "build\uap" />
+  </files>
+</package>
