@@ -249,7 +249,7 @@ namespace sample
 
 			//Create resource on the upload heap. Example works with 1 heap per resource
 			//Read the data and copy to the resource
-			auto bytes0 = sample::ReadFileAsync(L"data1\\geometry.vb.bin").then([d](std::vector<uint8_t> b)
+			auto bytes0 = sample::ReadFileAsync(L"content\\geometry.vb.bin").then([d](std::vector<uint8_t> b)
 			{
 				auto buf0Upload = CreateGeometryUploadBuffer(d, b.size());
 				void* upload;
@@ -262,7 +262,7 @@ namespace sample
 
 			//Create resource on the upload heap. Example works with 1 heap per resource
 			//Read the data and copy to the resource
-			auto bytes1 = sample::ReadFileAsync(L"data1\\geometry.ib.bin").then([d](std::vector<uint8_t>  b)
+			auto bytes1 = sample::ReadFileAsync(L"content\\geometry.ib.bin").then([d](std::vector<uint8_t>  b)
 			{
 				auto buf0Upload = CreateGeometryUploadBuffer(d, b.size());
 
@@ -350,8 +350,8 @@ namespace sample
 				ctx.m_shader_heap		= m_deviceResources->ShaderHeap();
 				ctx.m_shader_heap_index = 0;
 
-				ctx.m_diffuse			= L"data1\\diffuse.bin";
-				ctx.m_normal			= L"data1\\normal.bin";
+				ctx.m_diffuse			= L"content\\diffuse.bin";
+				ctx.m_normal			= L"content\\normal.bin";
 
 				ResidencyManagerCreateResult r = m_residencyManager->CreateResidencyManager(ctx);
 
