@@ -133,5 +133,14 @@
     <None Include="data1/geometry.ib.bin" />
     <None Include="data1/geometry.vb.bin" />
     <None Include="data1/normal.bin" />
+    <None Include="geometry.vb.bin" />
+    <None Include="geometry.ib.bin" />
+    <None Include="diffuse.bin" />
+    <None Include="normal.bin" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="texture_data_descriptions.txt" />
+    <Text Include="geometry_data_descriptions.txt" />
+    <Text Include="credits.txt" />
   </ItemGroup>
 </Project>

@@ -1,7 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\tiled-resources-mars-normal.1.0.0\build\native\tiled-resources-mars-normal.props" Condition="Exists('..\packages\tiled-resources-mars-normal.1.0.0\build\native\tiled-resources-mars-normal.props')" />
+  <Import Project="..\packages\tiled-resources-mars-diffuse.1.0.0\build\native\tiled-resources-mars-diffuse.props" Condition="Exists('..\packages\tiled-resources-mars-diffuse.1.0.0\build\native\tiled-resources-mars-diffuse.props')" />
   <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.190408.1\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190408.1\build\native\Microsoft.Windows.CppWinRT.props')" />
   <PropertyGroup Label="Globals">
+    <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
     <ProjectGuid>{ea657e57-cf9d-4e03-b87b-9a693133390c}</ProjectGuid>
     <RootNamespace>tiled_resources</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
@@ -188,40 +191,12 @@
     <None Include="..\..\src\tiled_resources\shaders\default_samplers.hlsli" />
     <None Include="..\..\src\tiled_resources\shaders\default_signature.hlsli" />
     <None Include="..\..\src\tiled_resources\shaders\pass_constants.hlsli" />
-    <None Include="packages.config" />
-    <None Include="tiled_resources_TemporaryKey.pfx" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="data0/diffuse.bin">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="data0/geometry.ib.bin">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="data0/geometry.vb.bin">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="data0/normal.bin">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="data1/diffuse.bin">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="data1/geometry.ib.bin">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="data1/geometry.vb.bin">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
-    <None Include="data1/normal.bin">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.190408.1\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190408.1\build\native\Microsoft.Windows.CppWinRT.targets')" />
+    <Import Project="..\packages\tiled-resources-mars-diffuse.1.0.0\build\native\tiled-resources-mars-diffuse.targets" Condition="Exists('..\packages\tiled-resources-mars-diffuse.1.0.0\build\native\tiled-resources-mars-diffuse.targets')" />
+    <Import Project="..\packages\tiled-resources-mars-normal.1.0.0\build\native\tiled-resources-mars-normal.targets" Condition="Exists('..\packages\tiled-resources-mars-normal.1.0.0\build\native\tiled-resources-mars-normal.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -229,5 +204,9 @@
     </PropertyGroup>
     <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190408.1\build\native\Microsoft.Windows.CppWinRT.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.190408.1\build\native\Microsoft.Windows.CppWinRT.props'))" />
     <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190408.1\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.190408.1\build\native\Microsoft.Windows.CppWinRT.targets'))" />
+    <Error Condition="!Exists('..\packages\tiled-resources-mars-diffuse.1.0.0\build\native\tiled-resources-mars-diffuse.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\tiled-resources-mars-diffuse.1.0.0\build\native\tiled-resources-mars-diffuse.props'))" />
+    <Error Condition="!Exists('..\packages\tiled-resources-mars-diffuse.1.0.0\build\native\tiled-resources-mars-diffuse.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\tiled-resources-mars-diffuse.1.0.0\build\native\tiled-resources-mars-diffuse.targets'))" />
+    <Error Condition="!Exists('..\packages\tiled-resources-mars-normal.1.0.0\build\native\tiled-resources-mars-normal.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\tiled-resources-mars-normal.1.0.0\build\native\tiled-resources-mars-normal.props'))" />
+    <Error Condition="!Exists('..\packages\tiled-resources-mars-normal.1.0.0\build\native\tiled-resources-mars-normal.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\tiled-resources-mars-normal.1.0.0\build\native\tiled-resources-mars-normal.targets'))" />
   </Target>
 </Project>
