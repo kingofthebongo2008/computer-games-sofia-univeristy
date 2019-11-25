@@ -584,7 +584,7 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 			constants[2] = static_cast<float>(0);
 			constants[3] = static_cast<float>(0);
 
-			m_bundle_command_list->SetGraphicsRoot32BitConstants(0, 4, &constants[4], 0);
+			m_bundle_command_list->SetGraphicsRoot32BitConstants(0, 4, &constants[0], 0);
 
 			//set the types of the triangles we will use
 			m_bundle_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
