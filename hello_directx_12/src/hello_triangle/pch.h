@@ -14,6 +14,7 @@
 // Windows Header Files:
 // cppwinrt takes too much time to compile, so it is good to precompile it
 #include <windows.h>
+#include <mutex>
 
 #include <wrl/client.h>
 
