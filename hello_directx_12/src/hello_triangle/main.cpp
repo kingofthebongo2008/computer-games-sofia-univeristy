@@ -1,5 +1,6 @@
 #include "pch.h"
 #include <cstdint>
+#include "build_window_environment.h"
 
 #include "d3dx12.h"
 
@@ -125,10 +126,12 @@ static winrt::com_ptr<IDXGISwapChain3> CreateSwapChain(const CoreWindow& w, ID3D
 
     DXGI_SWAP_CHAIN_DESC1 desc = {};
 
+	auto e = sample::build_environment(w, winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView());
+
     desc.BufferCount	= 2;
     desc.Format			= DXGI_FORMAT_B8G8R8A8_UNORM;
-    desc.Width			= static_cast<UINT>(w.Bounds().Width);
-    desc.Height			= static_cast<UINT>(w.Bounds().Height);
+    desc.Width			= static_cast<UINT>(e.m_back_buffer_size.Width);
+    desc.Height			= static_cast<UINT>(e.m_back_buffer_size.Height);
     desc.SampleDesc.Count = 1;
     desc.SwapEffect		= DXGI_SWAP_EFFECT_FLIP_DISCARD;
     desc.BufferUsage	= DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -465,8 +468,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_swap_chain		    = CreateSwapChain(w, m_queue.get());
         m_frame_index           = m_swap_chain->GetCurrentBackBufferIndex();
 
-        m_back_buffer_width     = static_cast<UINT>(w.Bounds().Width);
-        m_back_buffer_height    = static_cast<UINT>(w.Bounds().Height);
+		auto e = sample::build_environment(w, winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView());
+
+		//Now recreate the swap chain with the new dimensions, we must have back buffer as the window size
+		m_back_buffer_width		= static_cast<UINT>(e.m_back_buffer_size.Width);
+		m_back_buffer_height	= static_cast<UINT>(e.m_back_buffer_size.Height);
 
         //allocate memory for the view
         m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
@@ -510,11 +516,18 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
         //Prepare to unblock the rendering
         m_fence_value = m_fence_value + 1;
-        m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+        m_frame_index = 0;
 
-        //Now recreate the swap chain with the new dimensions, we must have back buffer as the window size
-        m_back_buffer_width		= static_cast<UINT>(a.Size().Width);
-        m_back_buffer_height	= static_cast<UINT>(a.Size().Height);
+		auto e = sample::build_environment(w, winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView());
+
+		//Now recreate the swap chain with the new dimensions, we must have back buffer as the window size
+		m_back_buffer_width		= static_cast<UINT>(e.m_back_buffer_size.Width);
+		m_back_buffer_height	= static_cast<UINT>(e.m_back_buffer_size.Height);
+
+		m_swap_chain_buffers[0] = nullptr;
+		m_swap_chain_buffers[1] = nullptr;
+
+		ThrowIfFailed(m_swap_chain->ResizeBuffers(2, m_back_buffer_width, m_back_buffer_height, DXGI_FORMAT_B8G8R8A8_UNORM, 0));
 
         //allocate memory for the swap chain again
         m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);

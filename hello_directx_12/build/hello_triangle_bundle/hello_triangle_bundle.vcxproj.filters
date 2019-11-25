@@ -15,6 +15,8 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\hello_triangle_bundle\main.cpp" />
     <ClCompile Include="..\..\src\hello_triangle_bundle\pch.cpp" />
+    <ClCompile Include="..\..\src\hello_triangle_bundle\build_window_environment.cpp" />
+    <ClCompile Include="..\..\src\hello_triangle_bundle\window_environment.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\hello_triangle_bundle\pch.h" />
