@@ -466,25 +466,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_bundle_allocator = CreateBundleCommandAllocator(m_device.get());
         m_bundle_command_list = CreateBundleCommandList(m_device.get(), m_bundle_allocator.get());
 
-        //Record the drawing
-        //Usually up to ten draw calls does not make sense, but if you can do more than that will add up
-        //This may involve drawing a character.
-        {
-            m_bundle_command_list->Reset(m_bundle_allocator.get(), nullptr);
-
-            //set the type of the parameters that we will use in the shader
-            m_bundle_command_list->SetGraphicsRootSignature(m_root_signature.get());
-
-            //set the raster pipeline state as a whole, it was prebuilt before
-            m_bundle_command_list->SetPipelineState(m_triangle_state.get());
-
-            //set the types of the triangles we will use
-            m_bundle_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-            //draw the triangle
-            m_bundle_command_list->DrawInstanced(3, 1, 0, 0);
-
-            m_bundle_command_list->Close();
-        }
+		GenerateBundle();
     }
 
     void SetWindow(const CoreWindow& w)
@@ -560,7 +542,47 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
+
+		GenerateBundle();
     }
+
+	void GenerateBundle()
+	{
+		m_bundle_allocator->Reset();
+
+		//Record the drawing
+		//Usually up to ten draw calls does not make sense, but if you can do more than that will add up
+		//This may involve drawing a character.
+		{
+			m_bundle_command_list->Reset(m_bundle_allocator.get(), nullptr);
+
+			//set the type of the parameters that we will use in the shader
+			m_bundle_command_list->SetGraphicsRootSignature(m_root_signature.get());
+
+			//set the raster pipeline state as a whole, it was prebuilt before
+			m_bundle_command_list->SetPipelineState(m_triangle_state.get());
+
+
+			float constants[4] = {};
+
+			constants[0] = static_cast<float>(m_back_buffer_width);
+			constants[1] = static_cast<float>(m_back_buffer_height);
+			constants[2] = static_cast<float>(0);
+			constants[3] = static_cast<float>(0);
+
+			m_bundle_command_list->SetGraphicsRoot32BitConstants(0, 4, &constants[4], 0);
+
+
+			//set the types of the triangles we will use
+			m_bundle_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			//draw the triangle
+			m_bundle_command_list->DrawInstanced(3, 1, 0, 0);
+
+			m_bundle_command_list->Close();
+		}
+
+
+	}
 
     bool m_window_running = true;
 
