@@ -93,6 +93,8 @@
       <ObjectFileOutput />
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.1</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.1</ShaderModel>
+      <AllResourcesBound Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</AllResourcesBound>
     </FxCompile>
     <FxCompile Include="..\..\src\hello_triangle_bundle\shaders\triangle_vertex.hlsl">
       <ShaderType>Vertex</ShaderType>
