@@ -39,31 +39,7 @@ float iTriangle(in float3 ro, in float3 rd, in float2 distBound, inout float3 no
 	float v		= d * dot(q, v1v0);
 	float t		= d * dot(-n, rov0);
 
-	//if ( d < 0 || ( u  < 0. ) || (v  < 0.) || (u + v)> 1. || t < distBound.x || t > distBound.y )
-
-	float		c0 = d < 0.			  ? 0.0 : 1.0f;
-	float		c1 = u < 0.			  ? 0.0 : 1.0f;
-	float		c2 = v < 0.			  ? 0.0 : 1.0f;
-	float		c3 = u + v > 1		  ? 0.0 : 1.0f;
-	float		c4 = t < distBound.x  ? 0.0 : 1.0f;
-	float		c5 = t > distBound.y  ? 0.0 : 1.0f;
-
-	float r = lerp(0., 1., c0);
-
-	
-	//float r = 1.0f;
-
-	r		= r * lerp(0, 1, c1);
-	r		= r * lerp(0, 1, c2);
-	r		= r * lerp(0, 1, c3);
-	r		= r * lerp(0, 1, c4);
-	r		= r * lerp(0, 1, c5);
-
-	return lerp(MaxDistance, t, r);
-
-	//return lerp(t, MaxDistance, r);
-
-	/*
+	if ( d < 0 || ( u  < 0. ) || (v  < 0.) || (u + v)> 1. || t < distBound.x || t > distBound.y )
 	{
 		return MaxDistance;
 	}
@@ -72,7 +48,6 @@ float iTriangle(in float3 ro, in float3 rd, in float2 distBound, inout float3 no
 		normal = normalize(-n);
 		return t;
 	}
-	*/
 }
 
 [RootSignature( MyRS3 ) ]
@@ -104,7 +79,7 @@ float4 main(interpolated_value v) : SV_TARGET0
    float3 normal			= float3(0, 0, 0);
    float2 distBound			= float2(0.001f, 100);
 
-   for (int i = 0; i < 300; i++)
+   for (int i = 0; i < 3200; i++)
    {
 	   distBound				= opU(distBound, iTriangle(rayOrigin, rayDir, distBound, normal, t0, t1, t2));
 	   distBound				= opU(distBound, iTriangle(rayOrigin, rayDir, distBound, normal, t3, t4, t5));
