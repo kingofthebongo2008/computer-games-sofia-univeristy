@@ -1,0 +1,65 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="common">
+      <UniqueIdentifier>ea657e57-cf9d-4e03-b87b-9a693133390c</UniqueIdentifier>
+    </Filter>
+    <Filter Include="assets">
+      <UniqueIdentifier>e94ed907-e44e-41a5-9379-cdeba6132364</UniqueIdentifier>
+      <Extensions>bmp;fbx;gif;jpg;jpeg;tga;tiff;tif;png</Extensions>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{dfba3b57-6816-4942-9ab6-28df1b0f84ea}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\hello_triangle_bundle\main.cpp" />
+    <ClCompile Include="..\..\src\hello_triangle_bundle\pch.cpp" />
+    <ClCompile Include="..\..\src\hello_triangle_bundle\build_window_environment.cpp" />
+    <ClCompile Include="..\..\src\hello_triangle_bundle\window_environment.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\hello_triangle_bundle\pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="assets\lock_screen_logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="assets\splash_screen.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="assets\square_150x150_logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="assets\square_44x44_logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="assets\square_44x44_logo.targetsize-24_altform-unplated.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="assets\store_logo.png">
+      <Filter>Assets</Filter>
+    </Image>
+    <Image Include="assets\wide_310x150_logo.scale-200.png">
+      <Filter>Assets</Filter>
+    </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <AppxManifest Include="package.appxmanifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="..\..\src\hello_triangle_bundle\shaders\triangle_vertex.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\hello_triangle_bundle\shaders\triangle_pixel.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\hello_triangle_bundle\shaders\default_graphics_signature.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="hello_triangle_bundle_TemporaryKey.pfx" />
+    <None Include="packages.config" />
+  </ItemGroup>
+</Project>
