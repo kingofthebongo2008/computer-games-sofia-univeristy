@@ -15,80 +15,51 @@ cbuffer Constants : register(b9)
 	float m_pad[2];
 };
 
-
-float2 octahedral_mapping(float3 co)
+float signNotZero(float value)
 {
-	// projection onto octahedron
-	co /= dot(float3(1.0,1.0,1.0), abs(co));
-
-	// out-folding of the downward faces
-	if (co.y < 0.0) {
-		co.xy = (1.0 - abs(co.zx)) * sign(co.xz);
-	}
-
-	// mapping to [0;1]ˆ2 texture space
-	return co.xy * 0.5 + 0.5;
+	return value >= 0.0 ? 1.0 : -1.0;
 }
 
-float3 octahedral_unmapping(float2 co)
+float2 signNotZero(float2 value)
 {
-	co = co * 2.0 - 1.0;
-
-	float2 abs_co = abs(co);
-	float3 v = float3(co, 1.0 - (abs_co.x + abs_co.y));
-
-	if (abs_co.x + abs_co.y > 1.0) {
-		v.xy = (abs(co.yx) - 1.0) * -sign(co.xy);
-	}
-
-	return v;
+	return value >= 0.0 ? 1.0 : -1.0;
 }
 
-/*
-void mainImage(out vec4 fragColor, in vec2 fragCoord)
+float3 signNotZero(float3 value)
 {
-	vec2 uv = fragCoord.xy / iResolution.xy;
-	//uv = 0.5 + vec2(uv - 0.5)*(1.6+0.6*sin(iTime));
-
-	//edge mirroring
-	vec2 m = abs(uv - 0.5) + 0.5;
-	vec2 f = floor(m);
-	float x = f.x - f.y;
-	bool mirror = (x != 0.0);
-
-	if (mirror) {
-		uv.xy = 1.0 - uv.xy;
-	}
-
-	uv = fract(uv);
-
-	vec3 co = octahedral_unmapping(uv);
-
-	fragColor = vec4(texture(iChannel0, co).rgb, 1.0);
+	return value >= 0.0 ? 1.0 : -1.0;
 }
-*/
 
+/** Assumes that v is a unit vector. The result is an octahedral vector on the [-1, +1] square. */
+float2 octEncode(in float3 v) 
+{
+	float l1norm = abs(v.x) + abs(v.y) + abs(v.z);
+	float2 result = v.xy / l1norm;
+	if (v.z < 0.0)
+	{
+		result = (1.0 - abs(result.yx)) * signNotZero(result.xy);
+	}
+	return result;
+}
 
-Texture2DArray<float4> g_texture : register(t0);
+/** Returns a unit vector. Argument o is an octahedral vector packed via octEncode,
+	on the [-1, +1] square*/
+float3 octDecode(float2 o)
+{
+	float3 v = float3(o.x, o.y, 1.0 - abs(o.x) - abs(o.y));
+	if (v.z < 0.0)
+	{
+		v.xy = (1.0 - abs(v.yx)) * signNotZero(v.xy);
+	}
+	return normalize(v);
+}
+
+TextureCube<float4> g_texture : register(t0);
 [RootSignature( MyRS3 ) ]
 float4 main(interpolated_value v) : SV_TARGET0
 {
-	float2 uv = v.m_uv;
-	//uv = 0.5 + vec2(uv - 0.5)*(1.6+0.6*sin(iTime));
-
-	//edge mirroring
-	float2 m = abs(uv - 0.5) + 0.5;
-	float2 f = floor(m);
-	float x	 = f.x - f.y;
-	bool mirror = (x != 0.0);
-
-	if (mirror)
-	{
-		uv.xy = 1.0 - uv.xy;
-	}
-
-	uv = frac(uv);
-	float3 co		 = octahedral_unmapping(uv);
-	float4 fragColor = float4(g_texture.Sample(g_linear_clamp, co).rgb, 1.0);
+	float2 uv			= v.m_uv * 2.0 - 1.0f;
+	float3 co			= octDecode(uv);
+	float4 fragColor	= float4(g_texture.Sample(g_linear_clamp, co).rgb, 1.0);
 	return fragColor;
 }

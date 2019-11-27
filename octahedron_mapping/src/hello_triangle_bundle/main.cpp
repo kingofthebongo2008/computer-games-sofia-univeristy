@@ -549,14 +549,10 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 			D3D12_SHADER_RESOURCE_VIEW_DESC d = {};
 
 			d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			d.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-			d.Texture2DArray.FirstArraySlice = 0;
-			d.Texture2DArray.ArraySize = 6;
-			d.Texture2DArray.MipLevels = 1;
-			d.Texture2DArray.MostDetailedMip = 0;
+			d.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+			d.TextureCube.MipLevels = 1;
+			d.TextureCube.MostDetailedMip = 0;
 
-			//d.TextureCube.MipLevels = 1;
-			//d.TextureCube.MostDetailedMip = 0;
 			d.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			m_device->CreateShaderResourceView(m_cube_texture.get(), &d, cpu(0));
 		}
