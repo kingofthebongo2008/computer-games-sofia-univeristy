@@ -3,6 +3,8 @@
 
 #include "d3dx12.h"
 #include "build_window_environment.h"
+#include "cpu_view.h"
+
 
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
@@ -40,34 +42,6 @@ namespace sample
 	{
 		return (b << 24) << (g << 16) | (r << 8) | 0xFF;
 	}
-}
-
-//Helper class that assists us using the descriptors
-struct DescriptorHeapCpuView
-{
-    DescriptorHeapCpuView( D3D12_CPU_DESCRIPTOR_HANDLE  base, uint64_t offset) : m_base(base), m_offset(offset)
-    {
-
-    }
-
-    D3D12_CPU_DESCRIPTOR_HANDLE operator () ( size_t index) const
-    {
-        return { m_base.ptr + index * m_offset };
-    }
-
-    D3D12_CPU_DESCRIPTOR_HANDLE operator + (size_t index) const
-    {
-        return { m_base.ptr + index * m_offset };
-    }
-
-    D3D12_CPU_DESCRIPTOR_HANDLE m_base      = {};
-    uint64_t                    m_offset;
-};
-
-DescriptorHeapCpuView CpuView( ID3D12Device* d, ID3D12DescriptorHeap* heap )
-{
-    D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
-    return DescriptorHeapCpuView(heap->GetCPUDescriptorHandleForHeapStart(), d->GetDescriptorHandleIncrementSize(desc.Type));
 }
 
 struct exception : public std::exception
@@ -165,13 +139,13 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeap(ID3D12Device1*
     return r;
 }
 
-static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapRendering(ID3D12Device1* device)
+static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapShaders(ID3D12Device1* device)
 {
     winrt::com_ptr<ID3D12DescriptorHeap> r;
     D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
     d.NumDescriptors = 2;
-    d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
     return r;
 }
@@ -218,7 +192,7 @@ static winrt::com_ptr<ID3D12Resource1> CreateCubeTexture(ID3D12Device1* device, 
 	d.DepthOrArraySize		= 6;
 	d.Dimension				= D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	d.Flags					= D3D12_RESOURCE_FLAG_NONE;
-	d.Format				= DXGI_FORMAT_B8G8R8A8_UNORM;
+	d.Format				= DXGI_FORMAT_R8G8B8A8_UNORM;
 	d.Height				= height;
 	d.Layout				= D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	d.MipLevels				= 1;
@@ -378,7 +352,7 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 
         m_descriptorHeap		    = CreateDescriptorHeap(m_device.get());
 
-        m_descriptorHeapRendering   = CreateDescriptorHeapRendering(m_device.get());
+		m_descriptorHeapShaders		= CreateDescriptorHeapShaders(m_device.get());
 
         //if you have many threads that generate commands. 1 per thread per frame
         m_command_allocator[0]		= CreateCommandAllocator(m_device.get());
@@ -524,6 +498,19 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 
 		m_cube_texture = CreateCubeTexture(m_device.get(), 32, 32, D3D12_RESOURCE_STATE_COPY_DEST);
 
+		DescriptorHeapGpuView gpu = GpuView(m_device.get(), m_descriptorHeapShaders.get());
+		DescriptorHeapCpuView cpu = CpuView(m_device.get(), m_descriptorHeapShaders.get());
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC d = {};
+
+		d.Format						= DXGI_FORMAT_R8G8B8A8_UNORM;
+		d.ViewDimension					= D3D12_SRV_DIMENSION_TEXTURECUBE;
+		d.TextureCube.MipLevels			= 1;
+		d.TextureCube.MostDetailedMip	= 0;
+		d.Shader4ComponentMapping		= D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		m_device->CreateShaderResourceView(m_cube_texture.get(), &d, cpu(0));
+
+
 
 		winrt::com_ptr <ID3D12CommandAllocator>   	upload_allocator	= CreateCommandAllocator(m_device.get());
 		winrt::com_ptr <ID3D12GraphicsCommandList1> upload_list			= CreateCommandList(m_device.get(), upload_allocator.get());
@@ -553,6 +540,18 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 			d.SlicePitch	= 32 * 32 * 4;
 
 			UpdateSubresources(upload_list.get(), m_cube_texture.get(), upload_cube_texture.get(), 0UL, i, 1U, &d);
+		}
+
+		{
+			D3D12_RESOURCE_BARRIER b[1];
+
+			b[0].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+			b[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+			b[0].Transition.pResource	= m_cube_texture.get();
+			b[0].Transition.Subresource = 0;
+			b[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+			b[0].Transition.StateAfter  = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+			upload_list->ResourceBarrier(1, &b[0]);
 		}
 
 		upload_list->Close();   //close the list
@@ -688,7 +687,7 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 			constants[2] = static_cast<float>(0);
 			constants[3] = static_cast<float>(0);
 
-			m_bundle_command_list->SetGraphicsRoot32BitConstants(0, 4, &constants[0], 0);
+			m_bundle_command_list->SetGraphicsRoot32BitConstants(1, 4, &constants[0], 0);
 
 			//set the types of the triangles we will use
 			m_bundle_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -716,7 +715,7 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 
     winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeap;            //descriptor heap for the resources
 
-    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapRendering;   //descriptor heap for the resources
+    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapShaders;   //descriptor heap for the resources
 
     std::mutex                                  m_blockRendering;   //block render thread for the swap chain resizes
 

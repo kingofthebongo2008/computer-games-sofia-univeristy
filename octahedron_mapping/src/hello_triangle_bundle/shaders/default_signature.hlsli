@@ -2,6 +2,7 @@
 #define __default_signature_hlsli__
 
 #define MyRS3 "RootFlags( ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT ), " \
+              "CBV(b0, space = 0), " \
               "RootConstants(num32BitConstants=4, b9), " \
               "StaticSampler(s0)," \
               "StaticSampler(s1)," \
