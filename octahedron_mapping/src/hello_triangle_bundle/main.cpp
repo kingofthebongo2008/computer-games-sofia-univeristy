@@ -150,6 +150,18 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapShaders(ID3D12D
     return r;
 }
 
+static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapShadersGpu(ID3D12Device1* device)
+{
+	winrt::com_ptr<ID3D12DescriptorHeap> r;
+	D3D12_DESCRIPTOR_HEAP_DESC d = {};
+
+	d.NumDescriptors = 2;
+	d.Type			 = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	d.Flags			 = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
+	return r;
+}
+
 //compute sizes
 static D3D12_RESOURCE_DESC DescribeSwapChain ( uint32_t width, uint32_t height)
 {
@@ -353,6 +365,7 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
         m_descriptorHeap		    = CreateDescriptorHeap(m_device.get());
 
 		m_descriptorHeapShaders		= CreateDescriptorHeapShaders(m_device.get());
+		m_descriptorHeapShadersGpu  = CreateDescriptorHeapShadersGpu(m_device.get());
 
         //if you have many threads that generate commands. 1 per thread per frame
         m_command_allocator[0]		= CreateCommandAllocator(m_device.get());
@@ -444,6 +457,21 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
                 }
             }
 
+			//set the type of the parameters that we will use in the shader
+			commandList->SetGraphicsRootSignature(m_root_signature.get());
+
+			//set the type of the parameters that we will use in the shader
+			{
+				ID3D12DescriptorHeap* heaps[1] = { m_descriptorHeapShadersGpu.get() };
+
+				commandList->SetDescriptorHeaps(1, heaps);
+			}
+
+			{
+				DescriptorHeapGpuView gpu = GpuView(m_device.get(), m_descriptorHeapShadersGpu.get());
+				commandList->SetGraphicsRootDescriptorTable(0, gpu(0));
+			}
+
             //insert pregenerated commands
             commandList->ExecuteBundle(m_bundle_command_list.get());
 
@@ -494,21 +522,22 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
         m_bundle_allocator = CreateBundleCommandAllocator(m_device.get());
         m_bundle_command_list = CreateBundleCommandList(m_device.get(), m_bundle_allocator.get());
 
-		GenerateBundle();
+
 
 		m_cube_texture = CreateCubeTexture(m_device.get(), 32, 32, D3D12_RESOURCE_STATE_COPY_DEST);
 
-		DescriptorHeapGpuView gpu = GpuView(m_device.get(), m_descriptorHeapShaders.get());
-		DescriptorHeapCpuView cpu = CpuView(m_device.get(), m_descriptorHeapShaders.get());
+		{
+			DescriptorHeapCpuView cpu = CpuView(m_device.get(), m_descriptorHeapShaders.get());
 
-		D3D12_SHADER_RESOURCE_VIEW_DESC d = {};
+			D3D12_SHADER_RESOURCE_VIEW_DESC d = {};
 
-		d.Format						= DXGI_FORMAT_R8G8B8A8_UNORM;
-		d.ViewDimension					= D3D12_SRV_DIMENSION_TEXTURECUBE;
-		d.TextureCube.MipLevels			= 1;
-		d.TextureCube.MostDetailedMip	= 0;
-		d.Shader4ComponentMapping		= D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		m_device->CreateShaderResourceView(m_cube_texture.get(), &d, cpu(0));
+			d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+			d.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+			d.TextureCube.MipLevels = 1;
+			d.TextureCube.MostDetailedMip = 0;
+			d.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			m_device->CreateShaderResourceView(m_cube_texture.get(), &d, cpu(0));
+		}
 
 
 
@@ -543,16 +572,20 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 		}
 
 		{
-			D3D12_RESOURCE_BARRIER b[1];
+			D3D12_RESOURCE_BARRIER b[6];
 
-			b[0].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			b[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-			b[0].Transition.pResource	= m_cube_texture.get();
-			b[0].Transition.Subresource = 0;
-			b[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-			b[0].Transition.StateAfter  = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-			upload_list->ResourceBarrier(1, &b[0]);
+			for (uint32_t i = 0; i < 6; ++i)
+			{
+				b[i].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+				b[i].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+				b[i].Transition.pResource = m_cube_texture.get();
+				b[i].Transition.Subresource = i;
+				b[i].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+				b[i].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+			}
+			upload_list->ResourceBarrier(6, &b[0]);
 		}
+
 
 		upload_list->Close();   //close the list
 
@@ -573,6 +606,14 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 		}
 
 		m_fence_value = m_fence_value + 2;
+		{
+			DescriptorHeapCpuView cpu = CpuView(m_device.get(), m_descriptorHeapShaders.get());
+			DescriptorHeapCpuView gpu = CpuView(m_device.get(), m_descriptorHeapShadersGpu.get());
+			
+			m_device->CopyDescriptorsSimple(1, gpu(0), cpu(0), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		}
+
+		GenerateBundle();
 	}
 
     void SetWindow(const CoreWindow& w)
@@ -679,7 +720,6 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 			//set the raster pipeline state as a whole, it was prebuilt before
 			m_bundle_command_list->SetPipelineState(m_triangle_state.get());
 
-
 			float constants[4] = {};
 
 			constants[0] = static_cast<float>(m_back_buffer_width);
@@ -707,17 +747,18 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
     CoreApplicationView::Activated_revoker		m_activated;
     
     winrt::com_ptr <ID3D12Debug>                m_debug;
-    winrt::com_ptr <ID3D12Device1>				m_device;           //device for gpu resources
-    winrt::com_ptr <IDXGISwapChain3>			m_swap_chain;       //swap chain for 
+    winrt::com_ptr <ID3D12Device1>				m_device;						//device for gpu resources
+    winrt::com_ptr <IDXGISwapChain3>			m_swap_chain;					//swap chain for 
 
-    winrt::com_ptr <ID3D12Fence>        		m_fence;                     //fence for cpu/gpu synchronization
-    winrt::com_ptr <ID3D12CommandQueue>   		m_queue;                     //queue to the device
+    winrt::com_ptr <ID3D12Fence>        		m_fence;						//fence for cpu/gpu synchronization
+    winrt::com_ptr <ID3D12CommandQueue>   		m_queue;						//queue to the device
 
-    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeap;            //descriptor heap for the resources
+    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeap;				//descriptor heap for the resources
 
-    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapShaders;   //descriptor heap for the resources
+    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapShaders;		//descriptor heap for the resources
+	winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapShadersGpu;		//descriptor heap for the gpu resources
 
-    std::mutex                                  m_blockRendering;   //block render thread for the swap chain resizes
+    std::mutex                                  m_blockRendering;				//block render thread for the swap chain resizes
 
     winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];
     uint64_t                                    m_swap_chain_descriptors[2];
