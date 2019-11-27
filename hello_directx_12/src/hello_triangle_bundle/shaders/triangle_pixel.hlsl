@@ -18,9 +18,9 @@ static const float3 CameraCenter	= float3(0.0, 0.0, -12.0);
 static const float  imagePlaneDist	= 1.5;
 static const float4 purp			= float4(0.5, 0.0, 1.0, 1.0);
 
-float2 opU(float2 d, float iResult)
+float3 opU(float3 d, float iResult, float v)
 {
-	return (iResult < d.y) ? float2(d.x, iResult) : d;
+	return (iResult < d.y) ? float3(d.x, iResult, v) : d;
 }
 
 static const float MaxDistance = 1e10;
@@ -50,6 +50,15 @@ float iTriangle(in float3 ro, in float3 rd, in float2 distBound, inout float3 no
 	}
 }
 
+static const float3 colors[3] =
+{
+	float3 (0.10,0.10,0.10),
+	float3 (1, 0,0),
+	float3 (0,1,0)
+};
+
+
+
 [RootSignature( MyRS3 ) ]
 float4 main(interpolated_value v) : SV_TARGET0
 {
@@ -59,11 +68,11 @@ float4 main(interpolated_value v) : SV_TARGET0
    uv.x					   *= m_w / m_h;
 
    //SPHERE RENDER
-	//ray origin
+   //ray origin
    float3 rayOrigin			= CameraCenter;
 
    //image plane pixel
-   float3 imagePlanePixel	= float3(uv.x, uv.y, CameraCenter.z + imagePlaneDist);
+   float3 imagePlanePixel		= float3(uv.x, uv.y, CameraCenter.z + imagePlaneDist);
 
    //ray direction
    float3 rayDir			= normalize(imagePlanePixel - rayOrigin);
@@ -72,32 +81,22 @@ float4 main(interpolated_value v) : SV_TARGET0
    float3 t1				= float3(1, 0, -5);
    float3 t2				= float3(0, 1, -5);
 
-   float3 t3				= float3(0, 2, -5);
-   float3 t4				= float3(-2, 2, -5);
-   float3 t5				= float3(0, 0.5, -5);
+   float3 t3				= float3(0, 2, -6);
+   float3 t4				= float3(-2, 2, -6);
+   float3 t5				= float3(0, 0.5, -6);
 
    float3 normal			= float3(0, 0, 0);
-   float2 distBound			= float2(0.001f, 100);
+   float3 distBound			= float3(0.001f, 100,0);
 
-   for (int i = 0; i < 3200; i++)
+   for (int i = 0; i < 32; i++)
    {
-	   distBound				= opU(distBound, iTriangle(rayOrigin, rayDir, distBound, normal, t0, t1, t2));
-	   distBound				= opU(distBound, iTriangle(rayOrigin, rayDir, distBound, normal, t3, t4, t5));
+	   distBound			= opU(distBound, iTriangle(rayOrigin, rayDir, distBound.xy, normal, t0, t1, t2), 1);
+	   distBound			= opU(distBound, iTriangle(rayOrigin, rayDir, distBound.xy, normal, t3, t4, t5), 2);
    }
 
-   float value;
-
-   if (distBound.y != 100.0)
-   {
-	   value = 1.0f;
-   }
-   else
-   {
-	   value = 0.0f;
-   }
-
-   value				   = clamp(value, 0.0, 1.0);
-   float4 fragColor		   = float4(value * purp.x, value * purp.y, value * purp.z, 1.0);
+     
+   float3 material = colors[(int)distBound.z];
+   float4 fragColor		= float4(material.x,material.y,material.z, 1.0);
 
    return fragColor;
 }
