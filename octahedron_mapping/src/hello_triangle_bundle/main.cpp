@@ -40,7 +40,7 @@ namespace sample
 
 	constexpr uint32_t color(uint8_t r, uint8_t g, uint8_t b)
 	{
-		return (b << 24) << (g << 16) | (r << 8) | 0xFF;
+		return (0xFF << 24) | (b << 16) | (g << 8) | r;
 	}
 }
 
@@ -472,8 +472,27 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 				commandList->SetGraphicsRootDescriptorTable(0, gpu(0));
 			}
 
+
+			//set the raster pipeline state as a whole, it was prebuilt before
+			commandList->SetPipelineState(m_triangle_state.get());
+
+			float constants[4] = {};
+
+			constants[0] = static_cast<float>(m_back_buffer_width);
+			constants[1] = static_cast<float>(m_back_buffer_height);
+			constants[2] = static_cast<float>(0);
+			constants[3] = static_cast<float>(0);
+
+			commandList->SetGraphicsRoot32BitConstants(1, 4, &constants[0], 0);
+
+			//set the types of the triangles we will use
+			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			//draw the triangle
+			commandList->DrawInstanced(3, 1, 0, 0);
+
+
             //insert pregenerated commands
-            commandList->ExecuteBundle(m_bundle_command_list.get());
+            //commandList->ExecuteBundle(m_bundle_command_list.get());
 
             //Transition resources for presenting, flush the gpu caches
             {
@@ -522,8 +541,6 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
         m_bundle_allocator = CreateBundleCommandAllocator(m_device.get());
         m_bundle_command_list = CreateBundleCommandList(m_device.get(), m_bundle_allocator.get());
 
-
-
 		m_cube_texture = CreateCubeTexture(m_device.get(), 32, 32, D3D12_RESOURCE_STATE_COPY_DEST);
 
 		{
@@ -532,14 +549,17 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 			D3D12_SHADER_RESOURCE_VIEW_DESC d = {};
 
 			d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-			d.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-			d.TextureCube.MipLevels = 1;
-			d.TextureCube.MostDetailedMip = 0;
+			d.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+			d.Texture2DArray.FirstArraySlice = 0;
+			d.Texture2DArray.ArraySize = 6;
+			d.Texture2DArray.MipLevels = 1;
+			d.Texture2DArray.MostDetailedMip = 0;
+
+			//d.TextureCube.MipLevels = 1;
+			//d.TextureCube.MostDetailedMip = 0;
 			d.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			m_device->CreateShaderResourceView(m_cube_texture.get(), &d, cpu(0));
 		}
-
-
 
 		winrt::com_ptr <ID3D12CommandAllocator>   	upload_allocator	= CreateCommandAllocator(m_device.get());
 		winrt::com_ptr <ID3D12GraphicsCommandList1> upload_list			= CreateCommandList(m_device.get(), upload_allocator.get());
@@ -558,18 +578,24 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 			sample::color(0, 0,127)
 		};
 
+		std::vector<uint32_t> pixels(6 * 32 * 32, 0);
+
+		D3D12_SUBRESOURCE_DATA d[6] = {};
+
 		for (uint32_t i = 0; i < 6; ++i)
 		{
-			std::vector<uint32_t> pixels(32*32, colors[i]);
+			uint32_t* p = &pixels[ 32 * 32 * i];
+			d[i].pData = p;
+			d[i].RowPitch = 32 * 4;
+			d[i].SlicePitch = 32 * 32 * 4;
 
-			D3D12_SUBRESOURCE_DATA d = {};
-
-			d.pData			= &pixels[0];
-			d.RowPitch		= 32 * 4;
-			d.SlicePitch	= 32 * 32 * 4;
-
-			UpdateSubresources(upload_list.get(), m_cube_texture.get(), upload_cube_texture.get(), 0UL, i, 1U, &d);
+			for (auto k = 0; k < 32 * 32; ++k)
+			{
+				*p++ = colors[i];
+			}
 		}
+
+		UpdateSubresources(upload_list.get(), m_cube_texture.get(), upload_cube_texture.get(), 0, 0, 6U, &d[0]);
 
 		{
 			D3D12_RESOURCE_BARRIER b[6];

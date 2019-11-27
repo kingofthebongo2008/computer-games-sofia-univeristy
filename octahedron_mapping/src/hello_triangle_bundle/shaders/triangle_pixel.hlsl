@@ -1,4 +1,5 @@
 #include "default_signature.hlsli"
+#include "default_samplers.hlsli"
 
 struct interpolated_value
 {
@@ -14,11 +15,11 @@ cbuffer Constants : register(b9)
 	float m_pad[2];
 };
 
-/*
+
 float2 octahedral_mapping(float3 co)
 {
 	// projection onto octahedron
-	co /= dot(vec3(1), abs(co));
+	co /= dot(float3(1.0,1.0,1.0), abs(co));
 
 	// out-folding of the downward faces
 	if (co.y < 0.0) {
@@ -29,12 +30,12 @@ float2 octahedral_mapping(float3 co)
 	return co.xy * 0.5 + 0.5;
 }
 
-float3 octahedral_unmapping(vec2 co)
+float3 octahedral_unmapping(float2 co)
 {
 	co = co * 2.0 - 1.0;
 
-	vec2 abs_co = abs(co);
-	vec3 v = vec3(co, 1.0 - (abs_co.x + abs_co.y));
+	float2 abs_co = abs(co);
+	float3 v = float3(co, 1.0 - (abs_co.x + abs_co.y));
 
 	if (abs_co.x + abs_co.y > 1.0) {
 		v.xy = (abs(co.yx) - 1.0) * -sign(co.xy);
@@ -43,6 +44,7 @@ float3 octahedral_unmapping(vec2 co)
 	return v;
 }
 
+/*
 void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
 	vec2 uv = fragCoord.xy / iResolution.xy;
@@ -66,10 +68,27 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 }
 */
 
+
+Texture2DArray<float4> g_texture : register(t0);
 [RootSignature( MyRS3 ) ]
 float4 main(interpolated_value v) : SV_TARGET0
 {
-   float  value			= 1;
-   float4 fragColor		= float4(1,0,0, 1.0);
-   return fragColor;
+	float2 uv = v.m_uv;
+	//uv = 0.5 + vec2(uv - 0.5)*(1.6+0.6*sin(iTime));
+
+	//edge mirroring
+	float2 m = abs(uv - 0.5) + 0.5;
+	float2 f = floor(m);
+	float x	 = f.x - f.y;
+	bool mirror = (x != 0.0);
+
+	if (mirror)
+	{
+		uv.xy = 1.0 - uv.xy;
+	}
+
+	uv = frac(uv);
+	float3 co		 = octahedral_unmapping(uv);
+	float4 fragColor = float4(g_texture.Sample(g_linear_clamp, co).rgb, 1.0);
+	return fragColor;
 }
