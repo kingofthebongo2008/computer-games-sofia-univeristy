@@ -564,16 +564,16 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 		}
 
 		//Tell the gpu to signal the cpu after it finishes executing the commands that we have just submitted
-		ThrowIfFailed(m_queue->Signal(m_fence.get(), m_fence_value));
+		ThrowIfFailed(m_queue->Signal(m_fence.get(), m_fence_value + 1));
 
 		//Now block the cpu until the gpu completes the previous frame
-		if (m_fence->GetCompletedValue() < m_fence_value)
+		if (m_fence->GetCompletedValue() < m_fence_value + 2)
 		{
-			ThrowIfFailed(m_fence->SetEventOnCompletion(m_fence_value, m_fence_event));
+			ThrowIfFailed(m_fence->SetEventOnCompletion(m_fence_value + 1, m_fence_event));
 			WaitForSingleObject(m_fence_event, INFINITE);
 		}
 
-		m_fence_value = m_fence_value + 1;
+		m_fence_value = m_fence_value + 2;
 	}
 
     void SetWindow(const CoreWindow& w)
