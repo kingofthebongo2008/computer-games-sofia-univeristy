@@ -541,7 +541,7 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
         m_bundle_allocator = CreateBundleCommandAllocator(m_device.get());
         m_bundle_command_list = CreateBundleCommandList(m_device.get(), m_bundle_allocator.get());
 
-		m_cube_texture = CreateCubeTexture(m_device.get(), 32, 32, D3D12_RESOURCE_STATE_COPY_DEST);
+		m_cube_texture = CreateCubeTexture(m_device.get(), 64, 64, D3D12_RESOURCE_STATE_COPY_DEST);
 
 		{
 			DescriptorHeapCpuView cpu = CpuView(m_device.get(), m_descriptorHeapShaders.get());
@@ -574,18 +574,18 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 			sample::color(0, 0,127)
 		};
 
-		std::vector<uint32_t> pixels(6 * 32 * 32, 0);
+		std::vector<uint32_t> pixels(6 * 64 * 64, 0);
 
 		D3D12_SUBRESOURCE_DATA d[6] = {};
 
 		for (uint32_t i = 0; i < 6; ++i)
 		{
-			uint32_t* p = &pixels[ 32 * 32 * i];
+			uint32_t* p = &pixels[64 * 64 * i];
 			d[i].pData = p;
-			d[i].RowPitch = 32 * 4;
-			d[i].SlicePitch = 32 * 32 * 4;
+			d[i].RowPitch = 64 * 4;
+			d[i].SlicePitch = 64 * 64 * 4;
 
-			for (auto k = 0; k < 32 * 32; ++k)
+			for (auto k = 0; k < 64 * 64; ++k)
 			{
 				*p++ = colors[i];
 			}
