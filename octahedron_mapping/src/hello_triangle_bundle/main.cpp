@@ -128,7 +128,7 @@ static winrt::com_ptr <ID3D12Fence> CreateFence(ID3D12Device1* device, uint64_t 
     return r;
 }
 
-static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeap(ID3D12Device1* device)
+static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapRenderTargets(ID3D12Device1* device)
 {
     winrt::com_ptr<ID3D12DescriptorHeap> r;
     D3D12_DESCRIPTOR_HEAP_DESC d = {};
@@ -344,7 +344,6 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     return r;
 }
 
-
 class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, IFrameworkViewSource>
 {
     public:
@@ -362,7 +361,7 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 
         m_queue					    = CreateCommandQueue(m_device.get());
 
-        m_descriptorHeap		    = CreateDescriptorHeap(m_device.get());
+        m_descriptorHeap		    = CreateDescriptorHeapRenderTargets(m_device.get());
 
 		m_descriptorHeapShaders		= CreateDescriptorHeapShaders(m_device.get());
 		m_descriptorHeapShadersGpu  = CreateDescriptorHeapShadersGpu(m_device.get());
