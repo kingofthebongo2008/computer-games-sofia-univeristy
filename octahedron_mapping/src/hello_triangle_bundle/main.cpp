@@ -133,7 +133,7 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapRenderTargets(I
     winrt::com_ptr<ID3D12DescriptorHeap> r;
     D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-    d.NumDescriptors = 2;
+    d.NumDescriptors = 3;
     d.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
     return r;
@@ -144,7 +144,7 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapShaders(ID3D12D
     winrt::com_ptr<ID3D12DescriptorHeap> r;
     D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-    d.NumDescriptors = 2;
+    d.NumDescriptors = 3;
     d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
     device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
     return r;
@@ -155,7 +155,7 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapShadersGpu(ID3D
 	winrt::com_ptr<ID3D12DescriptorHeap> r;
 	D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-	d.NumDescriptors = 2;
+	d.NumDescriptors = 3;
 	d.Type			 = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	d.Flags			 = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
@@ -220,6 +220,7 @@ static winrt::com_ptr<ID3D12Resource1> CreateCubeTexture(ID3D12Device1* device, 
 	return r;
 }
 
+
 static winrt::com_ptr<ID3D12Resource1> CreateUploadCubeTexture(ID3D12Device1* device, uint64_t size, D3D12_RESOURCE_STATES state)
 {
 	D3D12_RESOURCE_DESC d = {};
@@ -242,6 +243,30 @@ static winrt::com_ptr<ID3D12Resource1> CreateUploadCubeTexture(ID3D12Device1* de
 	ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
 	return r;
 }
+
+static winrt::com_ptr<ID3D12Resource1> CreateOctogonalMap(ID3D12Device1* device, uint32_t width, uint32_t height, D3D12_RESOURCE_STATES state)
+{
+    D3D12_RESOURCE_DESC d = {};
+    d.Alignment = 0;
+    d.DepthOrArraySize = 1;
+    d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    d.Flags = D3D12_RESOURCE_FLAG_NONE;
+    d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    d.Height = height;
+    d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    d.MipLevels = 1;
+    d.SampleDesc.Count = 1;
+    d.SampleDesc.Quality = 0;
+    d.Width = width;
+
+    winrt::com_ptr<ID3D12Resource1>     r;
+    D3D12_HEAP_PROPERTIES p = {};
+    p.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+    ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+    return r;
+}
+
 
 //Get the buffer for the swap chain, this is the end result for the window
 static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* device, IDXGISwapChain* chain, uint32_t buffer)
@@ -403,11 +428,23 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
             allocator->Reset();
             commandList->Reset(allocator, nullptr);
 
-            // Set Descriptor heaps
+            
+
+            //set the type of the parameters that we will use in the shader
             {
-                //ID3D12DescriptorHeap* heaps[] = { m_descriptorHeap.get()};
-                //commandList->SetDescriptorHeaps(1, heaps);
+                ID3D12DescriptorHeap* heaps[1] = { m_descriptorHeapShadersGpu.get() };
+
+                commandList->SetDescriptorHeaps(1, heaps);
             }
+
+
+            //set the type of the parameters that we will use in the shader
+            commandList->SetGraphicsRootSignature(m_root_signature.get());
+            {
+                DescriptorHeapGpuView gpu = GpuView(m_device.get(), m_descriptorHeapShadersGpu.get());
+                commandList->SetGraphicsRootDescriptorTable(0, gpu(0));
+            }
+
 
             //get the pointer to the gpu memory
             D3D12_CPU_DESCRIPTOR_HANDLE back_buffer = CpuView(m_device.get(), m_descriptorHeap.get()) + m_swap_chain_descriptors[m_frame_index];
@@ -435,7 +472,6 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
                 commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
             }
 
-
             {
                 //set the scissor test separately (which parts of the view port will survive)
                 {
@@ -456,42 +492,9 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
                 }
             }
 
-			//set the type of the parameters that we will use in the shader
-			commandList->SetGraphicsRootSignature(m_root_signature.get());
-
-			//set the type of the parameters that we will use in the shader
-			{
-				ID3D12DescriptorHeap* heaps[1] = { m_descriptorHeapShadersGpu.get() };
-
-				commandList->SetDescriptorHeaps(1, heaps);
-			}
-
-			{
-				DescriptorHeapGpuView gpu = GpuView(m_device.get(), m_descriptorHeapShadersGpu.get());
-				commandList->SetGraphicsRootDescriptorTable(0, gpu(0));
-			}
-
-
-			//set the raster pipeline state as a whole, it was prebuilt before
-			commandList->SetPipelineState(m_triangle_state.get());
-
-			float constants[4] = {};
-
-			constants[0] = static_cast<float>(m_back_buffer_width);
-			constants[1] = static_cast<float>(m_back_buffer_height);
-			constants[2] = static_cast<float>(0);
-			constants[3] = static_cast<float>(0);
-
-			commandList->SetGraphicsRoot32BitConstants(1, 4, &constants[0], 0);
-
-			//set the types of the triangles we will use
-			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			//draw the triangle
-			commandList->DrawInstanced(3, 1, 0, 0);
-
 
             //insert pregenerated commands
-            //commandList->ExecuteBundle(m_bundle_command_list.get());
+            commandList->ExecuteBundle(m_bundle_command_list.get());
 
             //Transition resources for presenting, flush the gpu caches
             {
@@ -735,6 +738,13 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 		{
 			m_bundle_command_list->Reset(m_bundle_allocator.get(), nullptr);
 
+            //set the type of the parameters that we will use in the shader
+            {
+                ID3D12DescriptorHeap* heaps[1] = { m_descriptorHeapShadersGpu.get() };
+
+                m_bundle_command_list->SetDescriptorHeaps(1, heaps);
+            }
+
 			//set the type of the parameters that we will use in the shader
 			m_bundle_command_list->SetGraphicsRootSignature(m_root_signature.get());
 
@@ -750,15 +760,17 @@ class MyViewProvider : public winrt::implements<MyViewProvider, IFrameworkView, 
 
 			m_bundle_command_list->SetGraphicsRoot32BitConstants(1, 4, &constants[0], 0);
 
-			//set the types of the triangles we will use
+            {
+                DescriptorHeapGpuView gpu = GpuView(m_device.get(), m_descriptorHeapShadersGpu.get());
+                m_bundle_command_list->SetGraphicsRootDescriptorTable(0, gpu(0));
+            }
+
+            //set the types of the triangles we will use
 			m_bundle_command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			//draw the triangle
 			m_bundle_command_list->DrawInstanced(3, 1, 0, 0);
-
 			m_bundle_command_list->Close();
 		}
-
-
 	}
 
     bool m_window_running = true;
