@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_triangle_bundle", "he
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_triangle_bundle2", "hello_triangle_bundle2\hello_triangle_bundle2.vcxproj", "{72EEB080-713C-4BC7-A360-172A460797D1}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_triangle_bundle3", "hello_triangle_bundle3\hello_triangle_bundle3.vcxproj", "{72EEB080-713C-4BC7-A360-172A460797D2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Release|x64 = Release|x64
@@ -23,12 +25,16 @@ Global
 		{72EEB080-713C-4BC7-A360-172A460797D1}.Release|x64.ActiveCfg = Release|x64
 		{72EEB080-713C-4BC7-A360-172A460797D1}.Release|x64.Build.0 = Release|x64
 		{72EEB080-713C-4BC7-A360-172A460797D1}.Release|x64.Deploy.0 = Release|x64
+		{72EEB080-713C-4BC7-A360-172A460797D2}.Release|x64.ActiveCfg = Release|x64
+		{72EEB080-713C-4BC7-A360-172A460797D2}.Release|x64.Build.0 = Release|x64
+		{72EEB080-713C-4BC7-A360-172A460797D2}.Release|x64.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		        SolutionGuid = {76718BB5-5DD8-42A6-A2A3-0E9121334355}
-		SolutionGuid = {452987ED-0B1D-4942-8936-EF48C4C8763D}
+		        SolutionGuid = {452987ED-0B1D-4942-8936-EF48C4C8763D}
+		                SolutionGuid = {76718BB5-5DD8-42A6-A2A3-0E9121334355}
+		SolutionGuid = {470C71B0-E91E-4E4C-AEE7-CCA668C1714C}
 	EndGlobalSection
 EndGlobal
