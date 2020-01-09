@@ -59,7 +59,6 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="hello_triangle_bundle_TemporaryKey.pfx" />
     <None Include="packages.config" />
   </ItemGroup>
 </Project>
