@@ -3,7 +3,7 @@
   <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.191111.2\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.191111.2\build\native\Microsoft.Windows.CppWinRT.props')" />
   <PropertyGroup Label="Globals">
     <AppxPackageSigningEnabled>false</AppxPackageSigningEnabled>
-    <ProjectGuid>{ea657e57-cf9d-4e03-b87b-9a693133390c}</ProjectGuid>
+    <ProjectGuid>{8AF3B04A-E754-46B8-A1AC-EBFAAD738764}</ProjectGuid>
     <RootNamespace>hello_triangle</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
@@ -75,22 +75,22 @@
     <Image Include="assets\wide_310x150_logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\hello_triangle\build_window_environment.cpp" />
-    <ClCompile Include="..\..\src\hello_triangle\window_environment.cpp" />
-    <ClCompile Include="..\..\src\hello_triangle\main.cpp" />
-    <ClCompile Include="..\..\src\hello_triangle\pch.cpp">
+    <ClCompile Include="..\..\src\hello_deferred_rendering\build_window_environment.cpp" />
+    <ClCompile Include="..\..\src\hello_deferred_rendering\window_environment.cpp" />
+    <ClCompile Include="..\..\src\hello_deferred_rendering\main.cpp" />
+    <ClCompile Include="..\..\src\hello_deferred_rendering\pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\..\src\hello_triangle\shaders\triangle_pixel.hlsl">
+    <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\triangle_pixel.hlsl">
       <VariableName>g_%(Filename)</VariableName>
       <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput />
       <ShaderType>Pixel</ShaderType>
       <ShaderModel>5.1</ShaderModel>
     </FxCompile>
-    <FxCompile Include="..\..\src\hello_triangle\shaders\triangle_vertex.hlsl">
+    <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\triangle_vertex.hlsl">
       <ShaderType>Vertex</ShaderType>
       <ShaderModel>5.0</ShaderModel>
       <VariableName>g_%(Filename)</VariableName>
@@ -98,7 +98,7 @@
       <ObjectFileOutput />
       <ShaderModel>5.1</ShaderModel>
     </FxCompile>
-    <FxCompile Include="..\..\src\hello_triangle\shaders\default_graphics_signature.hlsl">
+    <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\default_graphics_signature.hlsl">
       <ShaderType>Vertex</ShaderType>
       <ShaderModel>5.0</ShaderModel>
       <VariableName>g_%(Filename)</VariableName>

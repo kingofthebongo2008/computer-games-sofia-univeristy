@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.28721.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_triangle", "hello_triangle\hello_triangle.vcxproj", "{EA657E57-CF9D-4E03-B87B-9A693133390C}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_triangle_bundle", "hello_triangle_bundle\hello_triangle_bundle.vcxproj", "{72EEB080-713C-4BC7-A360-172A460797D6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC943}") = "hello_triangle_bundle", "hello_triangle_bundle\hello_triangle_bundle.vcxproj", "{72EEB080-713C-4BC7-A360-172A460797D6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_deferred_rendering", "hello_deferred_rendering\hello_deferred_rendering.vcxproj", "{8AF3B04A-E754-46B8-A1AC-EBFAAD738764}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,6 +20,9 @@ Global
 		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.ActiveCfg = Release|x64
 		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.Build.0 = Release|x64
 		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.Deploy.0 = Release|x64
+		{8AF3B04A-E754-46B8-A1AC-EBFAAD738764}.Release|x64.ActiveCfg = Release|x64
+		{8AF3B04A-E754-46B8-A1AC-EBFAAD738764}.Release|x64.Build.0 = Release|x64
+		{8AF3B04A-E754-46B8-A1AC-EBFAAD738764}.Release|x64.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
