@@ -92,7 +92,14 @@
     </FxCompile>
     <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\triangle_vertex.hlsl">
       <ShaderType>Vertex</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\triangle_geometry.hlsl">
+      <ShaderType>Geometry</ShaderType>
+      <ShaderModel>5.1</ShaderModel>
       <VariableName>g_%(Filename)</VariableName>
       <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput />
@@ -100,7 +107,6 @@
     </FxCompile>
     <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\default_graphics_signature.hlsl">
       <ShaderType>Vertex</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
       <VariableName>g_%(Filename)</VariableName>
       <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
       <ObjectFileOutput />

@@ -263,6 +263,9 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     static
     #include <triangle_vertex.h>
 
+    static 
+    #include <triangle_geometry.h>
+
     D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
     state.pRootSignature			= root;
     state.SampleMask				= UINT_MAX;
@@ -280,8 +283,23 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     state.DepthStencilState.DepthEnable = FALSE;
     state.DepthStencilState.StencilEnable = FALSE;
 
+
+    D3D12_INPUT_ELEMENT_DESC elem[2] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT  , 0, 0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT  , 0, 8, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }
+    };
+
+    state.InputLayout.pInputElementDescs = &elem[0];
+    state.InputLayout.NumElements        = 2;
+
+
+
     state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
     state.PS = { &g_triangle_pixel[0], sizeof(g_triangle_pixel) };
+    state.GS = { &g_triangle_geometry[0], sizeof(g_triangle_geometry) };
+
+    
 
     winrt::com_ptr<ID3D12PipelineState> r;
 

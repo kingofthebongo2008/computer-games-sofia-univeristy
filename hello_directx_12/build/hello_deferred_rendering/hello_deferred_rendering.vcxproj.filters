@@ -48,9 +48,18 @@
     <AppxManifest Include="package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\triangle_pixel.hlsl" />
-    <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\triangle_vertex.hlsl" />
-    <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\default_graphics_signature.hlsl" />
+    <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\triangle_pixel.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\triangle_vertex.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\default_graphics_signature.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\triangle_geometry.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
