@@ -284,14 +284,15 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     state.DepthStencilState.StencilEnable = FALSE;
 
 
-    D3D12_INPUT_ELEMENT_DESC elem[2] =
+    D3D12_INPUT_ELEMENT_DESC elem[3] =
     {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT  , 0, 0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT  , 0, 8, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT   , 0, 16, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+        { "TEXCOORD", 1, DXGI_FORMAT_R32G32B32A32_UINT , 0, 28, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }
     };
 
     state.InputLayout.pInputElementDescs = &elem[0];
-    state.InputLayout.NumElements        = 2;
+    state.InputLayout.NumElements        = 3;
 
 
 
