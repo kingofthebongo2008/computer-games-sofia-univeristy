@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC943}") = "hello_triangle_bundle", "he
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_deferred_rendering", "hello_deferred_rendering\hello_deferred_rendering.vcxproj", "{8AF3B04A-E754-46B8-A1AC-EBFAAD738764}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_geometry_shader", "hello_geometry_shader\hello_geometry_shader.vcxproj", "{6B1DF48D-B734-42F6-B8E0-685EF25AA7F3}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Release|x64 = Release|x64
@@ -23,6 +25,9 @@ Global
 		{8AF3B04A-E754-46B8-A1AC-EBFAAD738764}.Release|x64.ActiveCfg = Release|x64
 		{8AF3B04A-E754-46B8-A1AC-EBFAAD738764}.Release|x64.Build.0 = Release|x64
 		{8AF3B04A-E754-46B8-A1AC-EBFAAD738764}.Release|x64.Deploy.0 = Release|x64
+		{6B1DF48D-B734-42F6-B8E0-685EF25AA7F3}.Release|x64.ActiveCfg = Release|x64
+		{6B1DF48D-B734-42F6-B8E0-685EF25AA7F3}.Release|x64.Build.0 = Release|x64
+		{6B1DF48D-B734-42F6-B8E0-685EF25AA7F3}.Release|x64.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

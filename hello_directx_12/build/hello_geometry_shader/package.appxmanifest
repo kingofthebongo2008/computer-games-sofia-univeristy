@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap mp">
+  <Identity Name="76bab530-c538-43c0-a6f0-2bae45b05058" Publisher="CN=SDyulgerov" Version="1.0.0.0" />
+  <mp:PhoneIdentity PhoneProductId="76bab530-c538-43c0-a6f0-2bae45b05058" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
+  <Properties>
+    <DisplayName>hello_deferred_rendering</DisplayName>
+    <PublisherDisplayName>sdyulgerov</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+  <Dependencies>
+    <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.0.0" MaxVersionTested="10.0.0.0" />
+  </Dependencies>
+  <Resources>
+    <Resource Language="x-generate" />
+  </Resources>
+  <Applications>
+    <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="hello_triangle.App">
+      <uap:VisualElements DisplayName="hello_geometry_shader" Square150x150Logo="assets\square_150x150_logo.png" Square44x44Logo="assets\square_44x44_logo.png" Description="hello_deferred_rendering" BackgroundColor="transparent">
+        <uap:DefaultTile Wide310x150Logo="assets\wide_310x150_logo.png">
+        </uap:DefaultTile>
+        <uap:SplashScreen Image="assets\splash_screen.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+  <Capabilities>
+    <Capability Name="internetClient" />
+  </Capabilities>
+</Package>
