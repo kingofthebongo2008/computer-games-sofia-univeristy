@@ -284,23 +284,21 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     state.DepthStencilState.StencilEnable = FALSE;
 
 
-    D3D12_INPUT_ELEMENT_DESC elem[3] =
+    D3D12_INPUT_ELEMENT_DESC elem[] =
     {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT   , 0, 16, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
-        { "TEXCOORD", 1, DXGI_FORMAT_R32G32B32A32_UINT , 0, 28, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }
+        { "TEXCOORD", 1, DXGI_FORMAT_R32G32B32A32_UINT , 0, 28, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+        { "SV_ViewportArrayIndex", 0, DXGI_FORMAT_R32_UINT , 0, 44, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 }
     };
 
-    state.InputLayout.pInputElementDescs = &elem[0];
-    state.InputLayout.NumElements        = 3;
-
-
+    //state.InputLayout.pInputElementDescs = &elem[0];
+    //state.InputLayout.NumElements        = 4;
 
     state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
     state.PS = { &g_triangle_pixel[0], sizeof(g_triangle_pixel) };
     state.GS = { &g_triangle_geometry[0], sizeof(g_triangle_geometry) };
 
-    
 
     winrt::com_ptr<ID3D12PipelineState> r;
 
@@ -409,20 +407,51 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 
                 //set the scissor test separately (which parts of the view port will survive)
                 {
-                    D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
-                    commandList->RSSetScissorRects(1, &r);
+                    LONG w = static_cast<uint32_t> (m_back_buffer_width);
+                    LONG h = static_cast<uint32_t> (m_back_buffer_height);
+
+                    D3D12_RECT r[4];
+
+                    r[0] = { 0, 0, w / 2, h / 2 };
+                    r[1] = { w / 2, h / 2, w, h  };
+                    r[2] = { w / 2, 0, w, h / 2 };
+                    r[3] = { 0, h / 2, w / 2, h };
+
+                    commandList->RSSetScissorRects(4, r);
                 }
 
                 //set the viewport. 
                 {
-                    D3D12_VIEWPORT v;
-                    v.TopLeftX = 0;
-                    v.TopLeftY = 0;
-                    v.MinDepth = 0.0f;
-                    v.MaxDepth = 1.0f;
-                    v.Width = static_cast<float>(m_back_buffer_width);
-                    v.Height = static_cast<float>(m_back_buffer_height);
-                    commandList->RSSetViewports(1, &v);
+                    D3D12_VIEWPORT v[4];
+                    v[0].TopLeftX   = 0;
+                    v[0].TopLeftY   = 0;
+                    v[0].MinDepth   = 0.0f;
+                    v[0].MaxDepth   = 1.0f;
+                    v[0].Width      = static_cast<float>(m_back_buffer_width / 2);
+                    v[0].Height     = static_cast<float>(m_back_buffer_height /2);
+
+                    v[1].TopLeftX   = m_back_buffer_width  / 2;
+                    v[1].TopLeftY   = m_back_buffer_height / 2;
+                    v[1].MinDepth   = 0.0f;
+                    v[1].MaxDepth   = 1.0f;
+                    v[1].Width      = static_cast<float>(m_back_buffer_width / 2);
+                    v[1].Height     = static_cast<float>(m_back_buffer_height / 2 );
+
+                    v[2].TopLeftX   = m_back_buffer_width / 2;
+                    v[2].TopLeftY   = 0;
+                    v[2].MinDepth   = 0.0f;
+                    v[2].MaxDepth   = 1.0f;
+                    v[2].Width      = static_cast<float>(m_back_buffer_width / 2);
+                    v[2].Height     = static_cast<float>(m_back_buffer_height / 2);
+
+                    v[3].TopLeftX   = 0;
+                    v[3].TopLeftY   = m_back_buffer_height / 2;
+                    v[3].MinDepth   = 0.0f;
+                    v[3].MaxDepth   = 1.0f;
+                    v[3].Width      = static_cast<float>(m_back_buffer_width / 2);
+                    v[3].Height     = static_cast<float>(m_back_buffer_height / 2);
+
+                    commandList->RSSetViewports(4, v);
                 }
 
                 //set the types of the triangles we will use

@@ -50,13 +50,13 @@
   <ItemGroup>
     <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\default_graphics_signature.hlsl" />
     <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\triangle_geometry.hlsl">
-      <Filter>common</Filter>
+      <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\triangle_pixel.hlsl">
-      <Filter>common</Filter>
+      <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="..\..\src\hello_deferred_rendering\shaders\triangle_vertex.hlsl">
-      <Filter>common</Filter>
+      <Filter>shaders</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
