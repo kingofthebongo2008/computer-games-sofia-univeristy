@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003"> 
+
+<ItemGroup>	
+<ClInclude Include = "..\..\src\app\build_window_environment.h"/>	
+<ClInclude Include = "..\..\src\app\d3dx12.h"/>	
+<ClInclude Include = "..\..\src\app\pch.h"/>	
+<ClInclude Include = "..\..\src\app\window_environment.h"/>
+</ItemGroup></Project> 

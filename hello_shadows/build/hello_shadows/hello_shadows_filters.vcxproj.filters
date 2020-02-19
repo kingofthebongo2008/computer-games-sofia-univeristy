@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003"> 
+
+<ItemGroup>
+<Filter Include = "src"/>
+<Filter Include = "src\app"/>
+</ItemGroup>
+<ItemGroup>	
+<ClInclude Include = "..\..\src\app\build_window_environment.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\d3dx12.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\pch.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\window_environment.h"><Filter>src\app</Filter></ClInclude>
+</ItemGroup>
+<ItemGroup>
+<Filter Include = "src"/>
+<Filter Include = "src\app"/>
+</ItemGroup>
+<ItemGroup>	
+<ClCompile Include = "..\..\src\app\pch.cpp"><Filter>src\app</Filter></ClCompile>
+</ItemGroup>
+<ItemGroup>
+<Filter Include = "src"/>
+<Filter Include = "src\app"/>
+</ItemGroup>
+<ItemGroup>	
+<ClCompile Include = "..\..\src\app\build_window_environment.cpp"><Filter>src\app</Filter></ClCompile>	
+<ClCompile Include = "..\..\src\app\main.cpp"><Filter>src\app</Filter></ClCompile>	
+<ClCompile Include = "..\..\src\app\window_environment.cpp"><Filter>src\app</Filter></ClCompile>
+</ItemGroup></Project> 

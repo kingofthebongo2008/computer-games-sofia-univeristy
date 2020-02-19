@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003"> 
+
+  <ItemGroup>
+    <FxCompile Include="..\..\src\app\shaders\triangle_pixel.hlsl">
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\app\shaders\triangle_vertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="..\..\src\app\shaders\default_graphics_signature.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderModel>5.1</ShaderModel>
+      <ShaderType>RootSignature</ShaderType>
+      <ShaderModel>rootsig_1.1</ShaderModel>
+      <EntryPointName>MyRS1</EntryPointName>
+    </FxCompile>
+  </ItemGroup>
+
+
+</Project> 

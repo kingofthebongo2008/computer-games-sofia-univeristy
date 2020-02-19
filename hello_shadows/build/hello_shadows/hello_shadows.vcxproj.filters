@@ -13,13 +13,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\hello_shadows\main.cpp" />
-    <ClCompile Include="..\..\src\hello_shadows\pch.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\src\hello_shadows\pch.h" />
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png">
       <Filter>Assets</Filter>
     </Image>
@@ -46,17 +39,19 @@
     <AppxManifest Include="package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="..\..\src\hello_shadows\shaders\triangle_vertex.hlsl">
+    <FxCompile Include="..\..\src\app\shaders\triangle_vertex.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\src\hello_shadows\shaders\triangle_pixel.hlsl">
+    <FxCompile Include="..\..\src\app\shaders\triangle_pixel.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="..\..\src\hello_shadows\shaders\default_graphics_signature.hlsl">
+    <FxCompile Include="..\..\src\app\shaders\default_graphics_signature.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+
+  <Import Project="hello_shadows_filters.vcxproj.filters" />
 </Project>

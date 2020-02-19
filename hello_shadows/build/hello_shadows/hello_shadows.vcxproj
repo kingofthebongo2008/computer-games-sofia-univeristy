@@ -75,45 +75,12 @@
     <Image Include="assets\wide_310x150_logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\hello_shadows\build_window_environment.cpp" />
-    <ClCompile Include="..\..\src\hello_shadows\window_environment.cpp" />
-    <ClCompile Include="..\..\src\hello_shadows\main.cpp" />
-    <ClCompile Include="..\..\src\hello_shadows\pch.cpp">
-      <PrecompiledHeader>Create</PrecompiledHeader>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="..\..\src\hello_shadows\shaders\triangle_pixel.hlsl">
-      <VariableName>g_%(Filename)</VariableName>
-      <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
-      <ObjectFileOutput />
-      <ShaderType>Pixel</ShaderType>
-      <ShaderModel>5.1</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="..\..\src\hello_shadows\shaders\triangle_vertex.hlsl">
-      <ShaderType>Vertex</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
-      <VariableName>g_%(Filename)</VariableName>
-      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
-      <ObjectFileOutput />
-      <ShaderModel>5.1</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="..\..\src\hello_shadows\shaders\default_graphics_signature.hlsl">
-      <ShaderType>Vertex</ShaderType>
-      <ShaderModel>5.0</ShaderModel>
-      <VariableName>g_%(Filename)</VariableName>
-      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
-      <ObjectFileOutput />
-      <ShaderModel>5.1</ShaderModel>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">RootSignature</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">rootsig_1.1</ShaderModel>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MyRS1</EntryPointName>
-    </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Import Project="hello_shadows_hlsl.msbuild" />
+  <Import Project="hello_shadows_h.msbuild" />
+  <Import Project="hello_shadows_cpp.msbuild" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.191111.2\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.191111.2\build\native\Microsoft.Windows.CppWinRT.targets')" />
   </ImportGroup>
