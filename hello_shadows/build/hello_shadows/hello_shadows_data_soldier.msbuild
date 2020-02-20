@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003"> 
+
+<ItemGroup>
+<None Include="../../data/meshes/soldier/head_diff.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/soldier/head_diff.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/soldier/head_norm.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/soldier/head_norm.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/soldier/jacket_diff.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/soldier/jacket_diff.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/soldier/jacket_norm.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/soldier/jacket_norm.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/soldier/pants_diff.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/soldier/pants_diff.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/soldier/pants_norm.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/soldier/pants_norm.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/soldier/soldier.sdkmesh">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/soldier/soldier.sdkmesh'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/soldier/soldier.sdkmesh_anim">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/soldier/soldier.sdkmesh_anim'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/soldier/upBody_diff.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/soldier/upBody_diff.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/soldier/upbody_norm.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/soldier/upbody_norm.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+
+</ItemGroup>
+
+</Project> 

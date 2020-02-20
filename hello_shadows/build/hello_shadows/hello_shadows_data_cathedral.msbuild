@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003"> 
+
+
+  <ItemGroup>
+<None Include="../../data/meshes/cathedral/cathedral.sdkmesh">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/cathedral.sdkmesh'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/cathedral_end_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/cathedral_end_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/cathedral_end_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/cathedral_end_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/cathedral_end_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/cathedral_end_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/cathedral_high.sdkmesh">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/cathedral_high.sdkmesh'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dias_pedastal_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dias_pedastal_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dias_pedastal_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dias_pedastal_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome1_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome1_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome2_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome2_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome3_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome3_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome4_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome4_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_connector_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_connector_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_connector_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_connector_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_connector_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_connector_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_dias_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_dias_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_dias_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_dias_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_dias_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_dias_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_plug_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_plug_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_plug_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_plug_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_plug_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_plug_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_window_border_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_window_border_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_window_border_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_window_border_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_window_border_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_window_border_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/dome_window_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/dome_window_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/gargoyle_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/gargoyle_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/gargoyle_normals_working.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/gargoyle_normals_working.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/gargoyle_occlusion_working.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/gargoyle_occlusion_working.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/glass_pane.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/glass_pane.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/gothic_window_diffuse.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/gothic_window_diffuse.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/gothic_window_diffuse_1024.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/gothic_window_diffuse_1024.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/gothic_window_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/gothic_window_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/gothic_window_normals_1024.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/gothic_window_normals_1024.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/large_dome1_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/large_dome1_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/large_dome1_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/large_dome1_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/large_dome2_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/large_dome2_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/large_dome2_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/large_dome2_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/large_dome3_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/large_dome3_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/large_dome3_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/large_dome3_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/large_dome4_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/large_dome4_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/large_dome4_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/large_dome4_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/large_dome_pillar_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/large_dome_pillar_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/large_dome_pillar_normal.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/large_dome_pillar_normal.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/large_dome_pillar_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/large_dome_pillar_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/marble_tiles_diffuse.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/marble_tiles_diffuse.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/marble_tile_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/marble_tile_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pedastal_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pedastal_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_end_connector_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_end_connector_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_end_connector_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_end_connector_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_end_connector_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_end_connector_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_supportocclusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_supportocclusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_support_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_support_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_support_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_support_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_support_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_support_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_wall_middle_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_wall_middle_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_wall_middle_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_wall_middle_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_wall_middle_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_wall_middle_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_wall_section_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_wall_section_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_wall_section_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_wall_section_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/pillar_wall_section_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/pillar_wall_section_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/round_window_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/round_window_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/round_window_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/round_window_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/rug_tile.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/rug_tile.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/rug_tile_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/rug_tile_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/small_dome_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/small_dome_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/small_dome_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/small_dome_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/small_dome_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/small_dome_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/top_dome1_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/top_dome1_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/top_dome1_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/top_dome1_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/top_dome1_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/top_dome1_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/top_dome2.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/top_dome2.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/top_dome2_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/top_dome2_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/top_dome2_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/top_dome2_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/top_dome3_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/top_dome3_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/top_dome3_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/top_dome3_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/top_dome3_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/top_dome3_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/top_dome4_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/top_dome4_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/top_dome4_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/top_dome4_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/top_dome4_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/top_dome4_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/window_wall_section_no.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/window_wall_section_no.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/window_wall_section_normals.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/window_wall_section_normals.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/cathedral/window_wall_section_occlusion.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/cathedral/window_wall_section_occlusion.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+  </ItemGroup>
+
+</Project> 

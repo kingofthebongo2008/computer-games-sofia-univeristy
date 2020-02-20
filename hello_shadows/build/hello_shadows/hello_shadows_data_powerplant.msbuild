@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003"> 
+  <ItemGroup>
+<None Include="../../data/meshes/powerplant/basket_map.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/basket_map.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/command_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/command_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/container_grn_num.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/container_grn_num.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/container_gry_num.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/container_gry_num.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/container_hab_num.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/container_hab_num.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/container_orn_num.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/container_orn_num.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/con_edge.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/con_edge.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/crane_light.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/crane_light.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/crane_wheel.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/crane_wheel.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/crn_clamp_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/crn_clamp_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/crn_pan_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/crn_pan_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/crn_pan_c.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/crn_pan_c.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/crn_pan_d.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/crn_pan_d.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/crn_pan_e.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/crn_pan_e.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/crn_pan_f.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/crn_pan_f.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/crn_pan_g.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/crn_pan_g.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/crn_pan_i.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/crn_pan_i.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/ele_bot.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/ele_bot.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/ele_floor.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/ele_floor.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/ele_support.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/ele_support.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/ele_track_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/ele_track_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/fan_blde.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/fan_blde.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/fan_housing_b.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/fan_housing_b.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/fan_hub.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/fan_hub.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/gravel_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/gravel_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/gravel_c.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/gravel_c.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/grt_sm_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/grt_sm_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/grt_sm_b.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/grt_sm_b.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/gr_trans_b.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/gr_trans_b.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/hill_mound_b.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/hill_mound_b.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/hz_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/hz_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/mav_a_ring.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/mav_a_ring.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/mav_b_body.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/mav_b_body.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/mav_b_lit.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/mav_b_lit.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/pad_big_b.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/pad_big_b.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/pad_pan_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/pad_pan_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/pipe_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/pipe_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/pipe_b.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/pipe_b.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/pipe_d.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/pipe_d.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/pipe_e.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/pipe_e.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/powerplant.sdkmesh">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/powerplant.sdkmesh'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/rail.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/rail.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/red_girder_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/red_girder_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/re_bar_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/re_bar_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/re_bar_trans.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/re_bar_trans.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/ring_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/ring_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/road_end.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/road_end.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/road_end_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/road_end_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/road_end_b.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/road_end_b.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/road_loop_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/road_loop_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/road_st_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/road_st_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/sm_pan_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/sm_pan_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/tank_side.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/tank_side.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/tank_top.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/tank_top.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/test_ground_b.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/test_ground_b.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/tow_rib_ a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/tow_rib_ a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/tow_rib_c.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/tow_rib_c.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/trench_b.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/trench_b.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/trench_end.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/trench_end.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/trench_surround.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/trench_surround.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/truss_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/truss_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/truss_end.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/truss_end.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/tw_tex_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/tw_tex_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/walkway_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/walkway_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/wall_tex_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/wall_tex_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/wall_tex_b.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/wall_tex_b.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/wheel_house.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/wheel_house.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+<None Include="../../data/meshes/powerplant/yellow_girder_a.dds">
+ <Link>$([MSBuild]::MakeRelative($(TargetDir), 'appdata/meshes/powerplant/yellow_girder_a.dds'))</Link>
+ <DeploymentContent>true</DeploymentContent>
+</None>
+
+</ItemGroup>
+
+</Project> 
