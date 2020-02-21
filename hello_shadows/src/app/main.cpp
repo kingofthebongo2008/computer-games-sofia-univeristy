@@ -255,15 +255,110 @@ static winrt::com_ptr< ID3D12RootSignature>	 CreateRootSignature(ID3D12Device1* 
 
 namespace lispsm
 {
-    using float3 = DirectX::XMFLOAT3;
-    using float2 = DirectX::XMFLOAT2;
-    using float4 = DirectX::XMFLOAT4;
-    using matrix44 = DirectX::XMFLOAT4X4;
+    struct float4
+    {
+        float x;
+        float y;
+        float z;
+        float w;
+
+        float4()
+        {
+
+        }
+
+        float4(float v0, float v1, float v2, float v3) 
+        {
+            x = v0;
+            y = v1;
+            z = v2;
+            w = v3;
+        }
+    };
+
+    struct matrix44
+    {
+        float4 r[4];
+    };
+
+
+    struct float3
+    {
+        float x;
+        float y;
+        float z;
+
+        float3()
+        {
+
+        }
+
+        float3(float v0, float v1, float v2)
+        {
+            x = v0;
+            y = v1;
+            z = v2;
+        }
+    };
+
+    struct float2
+    {
+        float x;
+        float y;
+
+        float2()
+        {
+
+        }
+
+        float2(float v0, float v1)
+        {
+            x = v0;
+            y = v1;
+        }
+    };
+
+    struct vector4
+    {
+        float4 m_value;
+
+        vector4() {}
+        vector4(float  v0, float  v1, float  v2, float  v3) { m_value.x = v0; m_value.y = v1; m_value.z = v2; m_value.w = v3; }
+        vector4(float4 v) { m_value = v; }
+        vector4(float3 v)
+        {
+            m_value.x = v.x;
+            m_value.y = v.y;
+            m_value.z = v.z;
+            m_value.w = 0.0;
+        }
+    };
 
     struct vector3
     {
         float3 m_value;
+
+        vector3() {}
+        vector3(float  v0, float  v1, float  v2) { m_value.x = v0; m_value.y = v1; m_value.z = v2;}
+        vector3(float3 v) { m_value = v; }
+        vector3(float2 v)
+        {
+            m_value.x = v.x;
+            m_value.y = v.y;
+            m_value.z = 0.0;
+        }
     };
+
+    vector4 make_vector4(vector3 v)
+    {
+        vector4 r;
+
+        r.m_value.x = r.m_value.x;
+        r.m_value.y = r.m_value.y;
+        r.m_value.z = r.m_value.z;
+        r.m_value.w = 0.0f;
+        return r;
+    }
 
     vector3 unit_x()
     {
@@ -292,9 +387,102 @@ namespace lispsm
         return v;
     }
 
+    vector3 mul(vector3 v, float scalar)
+    {
+        vector3 r;
+
+        r.m_value.x = v.m_value.x * scalar;
+        r.m_value.y = v.m_value.y * scalar;
+        r.m_value.z = v.m_value.z * scalar;
+
+        return r;
+    }
+
+    vector3 add(vector3 v0, vector3 v1)
+    {
+        vector3 r;
+
+        r.m_value.x = v0.m_value.x + v1.m_value.x;
+        r.m_value.y = v0.m_value.y + v1.m_value.y;
+        r.m_value.z = v0.m_value.z + v1.m_value.z;
+        return r;
+    }
+
+    vector3 negate(vector3 v0)
+    {
+        vector3 r;
+
+        r.m_value.x = -v0.m_value.x;
+        r.m_value.y = -v0.m_value.y;
+        r.m_value.z = -v0.m_value.z;
+        return r;
+    }
+
+    vector3 subtract(vector3 v0, vector3 v1)
+    {
+        return add(v0, negate(v1));
+    }
+
+    float dot(vector3 v0, vector3 v1)
+    {
+        return v0.m_value.x * v1.m_value.x + v0.m_value.y * v1.m_value.y + v0.m_value.z * v1.m_value.z;
+    }
+
+    vector3 normalize(vector3 v)
+    {
+        float norm = dot(v, v);
+        return mul(v, 1.0f / norm);
+    }
+
+    vector3 cross(vector3 v0, vector3 v1)
+    {
+        vector3 r;
+
+        float ax = v0.m_value.x;
+        float ay = v0.m_value.y;
+        float az = v0.m_value.z;
+
+        float bx = v1.m_value.x;
+        float by = v1.m_value.y;
+        float bz = v1.m_value.z;
+
+
+        r.m_value.x = ay * bz - az * by;
+        r.m_value.y = az * bx - ax * bz;
+        r.m_value.z = ax * by - ay * bx;
+
+        return r;
+    }
+
+    struct point4
+    {
+        float4 m_value;
+
+        point4() {}
+        point4(float  v0, float  v1, float  v2, float  v3) { m_value.x = v0; m_value.y = v1; m_value.z = v2; m_value.w = v3; }
+        point4(float4 v) { m_value = v; }
+        point4(float3 v)
+        {
+            m_value.x = v.x;
+            m_value.y = v.y;
+            m_value.z = v.z;
+            m_value.w = 0.0;
+        }
+    };
+
     struct point3
     {
         float3 m_value;
+
+        point3() {}
+        point3(float  v0, float  v1, float  v2, float  v3) { m_value.x = v0; m_value.y = v1; m_value.z = v2; }
+        point3(float3 v) { m_value = v; }
+        point3(float2 v)
+        {
+            m_value.x = v.x;
+            m_value.y = v.y;
+            m_value.z = 0.0f;
+        }
     };
 
     struct point2
@@ -356,31 +544,120 @@ namespace lispsm
         radian m_fov_y;
     };
 
+    vector3 up(const camera c)
+    {
+        return c.m_up;
+    }
 
-    matrix44 view_matrix(const ortho_camera c)
+    vector3 forward(const camera c)
+    {
+        return c.m_direction;
+    }
+
+    vector3 right(const camera c)
+    {
+        return cross(up(c), forward(c));
+    }
+
+    point3 position(const camera c)
+    {
+        return c.m_position;
+    }
+
+    float project(vector3 v, point3 p)
+    {
+        vector3 v0;
+        v0.m_value.x = p.m_value.x;
+        v0.m_value.y = p.m_value.y;
+        v0.m_value.z = p.m_value.z;
+        return dot(v, v0);
+    }
+
+    struct view_transform
+    {
+        matrix44 m_matrix;
+    };
+
+    struct perspective_transform
+    {
+        matrix44 m_matrix;
+    };
+
+    view_transform view_matrix(const camera c)
     {
         matrix44 r;
-        return r;
+
+        vector3 translation;
+
+        vector3 right_          = right(c);
+        vector3 up_             = up(c);
+        vector3 forward_        = forward(c);
+
+        translation.m_value.x   = project(right_, position(c));
+        translation.m_value.y   = project(up_, position(c));
+        translation.m_value.z   = project(forward_, position(c));
+        translation             = negate(translation);
+
+        r.r[0]                  = float4(right_.m_value.x, right_.m_value.y, right_.m_value.z, 0.0);
+        r.r[1]                  = float4(up_.m_value.x, up_.m_value.y, up_.m_value.z, 0.0);
+        r.r[2]                  = float4(forward_.m_value.x, forward_.m_value.y, forward_.m_value.z, 0.0);
+        r.r[3]                  = float4(translation.m_value.x, translation.m_value.y, translation.m_value.z, 1.0);
+
+        view_transform t;
+        t.m_matrix = r;
+        return t;
     }
 
     matrix44 perspective_matrix(const ortho_camera c)
     {
         matrix44 r;
-        return r;
-    }
 
-    matrix44 view_matrix(const perspective_camera c)
-    {
-        matrix44 r;
         return r;
     }
 
     matrix44 perspective_matrix(const perspective_camera c)
     {
         matrix44 r;
+
+        float sinFov = sinf(c.m_fov_y.m_value / 2.0f);
+        float cosFov = cosf(c.m_fov_y.m_value / 2.0f);
+
+        float height    = cosFov / sinFov;
+        float width     = c.m_aspect.m_value * height;
+        float range     = c.m_far.m_value / (c.m_far.m_value - c.m_near.m_value);
+
         return r;
     }
 
+    point4 transform_point(matrix44 m, point4 p)
+    {
+        point4 r;
+
+        r.m_value.x = m.r[0].x * p.m_value.x + m.r[1].x * p.m_value.y + m.r[2].x * p.m_value.z + m.r[3].x * p.m_value.w;
+        r.m_value.y = m.r[0].y * p.m_value.x + m.r[1].y * p.m_value.y + m.r[2].y * p.m_value.z + m.r[3].y * p.m_value.w;
+        r.m_value.z = m.r[0].z * p.m_value.x + m.r[1].z * p.m_value.y + m.r[2].z * p.m_value.z + m.r[3].z * p.m_value.w;
+        r.m_value.w = m.r[0].w * p.m_value.x + m.r[1].w * p.m_value.y + m.r[2].w * p.m_value.z + m.r[3].w * p.m_value.w;
+
+        return r;
+    }
+
+    point4 transform_point(view_transform m, point4 p)
+    {
+        point4  r;
+        point4  p0;
+        float4  v    = m.m_matrix.r[3];
+
+        p0.m_value.x = p.m_value.x + v.x;
+        p0.m_value.y = p.m_value.y + v.y;
+        p0.m_value.z = p.m_value.z + v.z;
+        p0.m_value.w = 1.0;
+
+        r.m_value.x  = m.m_matrix.r[0].x * p0.m_value.x + m.m_matrix.r[1].x * p0.m_value.y + m.m_matrix.r[2].x * p0.m_value.z + m.m_matrix.r[3].x * p0.m_value.w;
+        r.m_value.y  = m.m_matrix.r[0].y * p0.m_value.x + m.m_matrix.r[1].y * p0.m_value.y + m.m_matrix.r[2].y * p0.m_value.z + m.m_matrix.r[3].y * p0.m_value.w;
+        r.m_value.z  = m.m_matrix.r[0].z * p0.m_value.x + m.m_matrix.r[1].z * p0.m_value.y + m.m_matrix.r[2].z * p0.m_value.z + m.m_matrix.r[3].z * p0.m_value.w;
+
+        return r;
+    }
 }
 
 namespace storage_factors
@@ -482,6 +759,14 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         float storage_p             = sqrtf(perspective);
 
         float n_opt                 = n_e + sqrtf(n_e * f_e);
+
+
+        using namespace lispsm;
+
+        vector3 up      = unit_y();
+        vector3 forward = unit_z();
+        vector3 right   = cross(up, forward);
+
 
         m_activated					= v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
         m_debug						= CreateDebug();
