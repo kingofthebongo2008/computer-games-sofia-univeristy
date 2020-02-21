@@ -253,6 +253,170 @@ static winrt::com_ptr< ID3D12RootSignature>	 CreateRootSignature(ID3D12Device1* 
     return r;
 }
 
+namespace lispsm
+{
+    using float3 = DirectX::XMFLOAT3;
+    using float2 = DirectX::XMFLOAT2;
+    using float4 = DirectX::XMFLOAT4;
+    using matrix44 = DirectX::XMFLOAT4X4;
+
+    struct vector3
+    {
+        float3 m_value;
+    };
+
+    vector3 unit_x()
+    {
+        vector3 v;
+        v.m_value.x = 1.0f;
+        v.m_value.y = 0.0f;
+        v.m_value.z = 0.0f;
+        return v;
+    }
+
+    vector3 unit_y()
+    {
+        vector3 v;
+        v.m_value.x = 0.0f;
+        v.m_value.y = 1.0f;
+        v.m_value.z = 0.0f;
+        return v;
+    }
+
+    vector3 unit_z()
+    {
+        vector3 v;
+        v.m_value.x = 0.0f;
+        v.m_value.y = 0.0f;
+        v.m_value.z = 1.0f;
+        return v;
+    }
+
+    struct point3
+    {
+        float3 m_value;
+    };
+
+    struct point2
+    {
+        float2 m_value;
+    };
+
+    struct point1
+    {
+        float m_value;
+    };
+
+    struct aabb
+    {
+        float3 m_min;
+        float3 m_max;
+    };
+
+    struct distance
+    {
+        float m_value;
+    };
+
+    struct camera
+    {
+        point3      m_position;
+        distance    m_near;
+        vector3     m_direction;
+        distance    m_far;
+        vector3     m_up;
+    };
+
+    struct radian
+    {
+        float m_value;
+    };
+
+    struct degree
+    {
+        float m_value;
+    };
+
+    struct ratio
+    {
+        float m_value;
+    };
+
+    struct ortho_camera : camera
+    {
+        point1 m_left;
+        point1 m_right;
+        point1 m_top;
+        point1 m_bottom;
+    };
+
+    struct perspective_camera : camera
+    {
+        ratio  m_aspect;
+        radian m_fov_y;
+    };
+
+
+    matrix44 view_matrix(const ortho_camera c)
+    {
+        matrix44 r;
+        return r;
+    }
+
+    matrix44 perspective_matrix(const ortho_camera c)
+    {
+        matrix44 r;
+        return r;
+    }
+
+    matrix44 view_matrix(const perspective_camera c)
+    {
+        matrix44 r;
+        return r;
+    }
+
+    matrix44 perspective_matrix(const perspective_camera c)
+    {
+        matrix44 r;
+        return r;
+    }
+
+}
+
+namespace storage_factors
+{
+    float r_end_b_t(float theta)
+    {
+        return 1.0f / cos(theta);
+    }
+
+    float r_side_b_s(float theta)
+    {
+        return 1.0f / cos(theta);
+    }
+
+    float r_side_b_t(float theta, float n_e, float f_e)
+    {
+        return logf(f_e / n_e) / (2.0f * tanf(theta) * cosf(theta) * cosf(theta));
+    }
+
+    float uniform(float theta, float n_e, float f_e)
+    {
+        float ratio  = f_e / n_e;
+        float cos    = cosf(theta);
+        return ratio * ((ratio - 1) / (2 * tanf(theta) * cos * cos * cos));
+    }
+
+    float perspective(float theta, float n_e, float f_e)
+    {
+        float ratio = f_e / n_e;
+        float cos = cosf(theta);
+        return ((ratio - 1) / (2 * tanf(theta) * cos * cos * cos));
+    }
+
+    
+}
+
 //create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
 //It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
 static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
@@ -301,6 +465,24 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
     void Initialize(const CoreApplicationView& v)
     {
+        float theta                 = 0.785398185f;
+        float n_e                   = 0.25f;
+        float f_e                   = 32000.f;
+
+        float r_end_t               = storage_factors::r_end_b_t(theta);
+        float r_end_s               = storage_factors::r_end_b_t(theta);
+
+        float r_side_s              = storage_factors::r_side_b_s(theta);
+        float r_side_t              = storage_factors::r_side_b_t(theta, n_e, f_e);
+
+        float uniform               = storage_factors::uniform(theta, n_e, f_e);
+        float storage               = sqrtf(uniform);
+
+        float perspective           = storage_factors::perspective(theta, n_e, f_e);
+        float storage_p             = sqrtf(perspective);
+
+        float n_opt                 = n_e + sqrtf(n_e * f_e);
+
         m_activated					= v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
         m_debug						= CreateDebug();
         m_device					= CreateDevice();
