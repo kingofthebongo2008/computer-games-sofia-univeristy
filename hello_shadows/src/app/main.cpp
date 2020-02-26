@@ -721,6 +721,8 @@ namespace lispsm
 
         return min_point;
     }
+
+
 }
 
 namespace storage_factors
@@ -843,13 +845,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         point3              p(0.0f, 0.0f, 16440.0f);
 
         point4          t0          = transform_point(view_, point4( p.m_value ));
-
-
-
-
-
-
-
 
 
         DirectX::XMMATRIX m0        = DirectX::XMMatrixLookToLH({ 0,1200,10 }, { 0,0,20 }, { 0,1,0 });
