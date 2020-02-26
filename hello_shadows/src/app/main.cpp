@@ -349,6 +349,37 @@ namespace lispsm
         }
     };
 
+    struct point4
+    {
+        float4 m_value;
+
+        point4() {}
+        point4(float  v0, float  v1, float  v2, float  v3) { m_value.x = v0; m_value.y = v1; m_value.z = v2; m_value.w = v3; }
+        point4(float4 v) { m_value = v; }
+        point4(float3 v)
+        {
+            m_value.x = v.x;
+            m_value.y = v.y;
+            m_value.z = v.z;
+            m_value.w = 0.0;
+        }
+    };
+
+    struct point3
+    {
+        float3 m_value;
+
+        point3() {}
+        point3(float  v0, float  v1, float  v2) { m_value.x = v0; m_value.y = v1; m_value.z = v2; }
+        point3(float3 v) { m_value = v; }
+        point3(float2 v)
+        {
+            m_value.x = v.x;
+            m_value.y = v.y;
+            m_value.z = 0.0f;
+        }
+    };
+
     vector4 make_vector4(vector3 v)
     {
         vector4 r;
@@ -408,6 +439,27 @@ namespace lispsm
         return r;
     }
 
+    point3 add(point3 v0, vector3 v1)
+    {
+        point3 r;
+
+        r.m_value.x = v0.m_value.x + v1.m_value.x;
+        r.m_value.y = v0.m_value.y + v1.m_value.y;
+        r.m_value.z = v0.m_value.z + v1.m_value.z;
+
+        return r;
+    }
+
+    vector3 sub(point3 v0, point3 v1)
+    {
+        vector3 v;
+
+        v.m_value.x = v0.m_value.x - v0.m_value.x;
+        v.m_value.y = v0.m_value.y - v0.m_value.y;
+        v.m_value.z = v0.m_value.z - v0.m_value.z;
+        return v;
+    }
+
     vector3 negate(vector3 v0)
     {
         vector3 r;
@@ -454,46 +506,14 @@ namespace lispsm
         return r;
     }
 
-    struct point4
+    point3 zero()
     {
-        float4 m_value;
-
-        point4() {}
-        point4(float  v0, float  v1, float  v2, float  v3) { m_value.x = v0; m_value.y = v1; m_value.z = v2; m_value.w = v3; }
-        point4(float4 v) { m_value = v; }
-        point4(float3 v)
-        {
-            m_value.x = v.x;
-            m_value.y = v.y;
-            m_value.z = v.z;
-            m_value.w = 0.0;
-        }
-    };
-
-    struct point3
-    {
-        float3 m_value;
-
-        point3() {}
-        point3(float  v0, float  v1, float  v2, float  v3) { m_value.x = v0; m_value.y = v1; m_value.z = v2; }
-        point3(float3 v) { m_value = v; }
-        point3(float2 v)
-        {
-            m_value.x = v.x;
-            m_value.y = v.y;
-            m_value.z = 0.0f;
-        }
-    };
-
-    struct point2
-    {
-        float2 m_value;
-    };
-
-    struct point1
-    {
-        float m_value;
-    };
+        point3 v;
+        v.m_value.x = 0.0f;
+        v.m_value.y = 0.0f;
+        v.m_value.z = 0.0f;
+        return v;
+    }
 
     struct aabb
     {
@@ -532,10 +552,10 @@ namespace lispsm
 
     struct ortho_camera : camera
     {
-        point1 m_left;
-        point1 m_right;
-        point1 m_top;
-        point1 m_bottom;
+        float m_left;
+        float m_right;
+        float m_top;
+        float m_bottom;
     };
 
     struct perspective_camera : camera
@@ -583,7 +603,7 @@ namespace lispsm
         matrix44 m_matrix;
     };
 
-    view_transform view_matrix(const camera c)
+    view_transform make_view_transform(const camera c)
     {
         matrix44 r;
 
@@ -608,13 +628,6 @@ namespace lispsm
         return t;
     }
 
-    matrix44 perspective_matrix(const ortho_camera c)
-    {
-        matrix44 r;
-
-        return r;
-    }
-
     matrix44 perspective_matrix(const perspective_camera c)
     {
         matrix44 r;
@@ -622,34 +635,44 @@ namespace lispsm
         float sinFov = sinf(c.m_fov_y.m_value / 2.0f);
         float cosFov = cosf(c.m_fov_y.m_value / 2.0f);
 
-        float height    = cosFov / sinFov;
-        float width     = c.m_aspect.m_value * height;
-        float range     = c.m_far.m_value / (c.m_far.m_value - c.m_near.m_value);
+        float height = cosFov / sinFov;
+        float width  = c.m_aspect.m_value * height;
+        float nearz  = c.m_near.m_value;
+        float farz   = c.m_far.m_value;
+        float range  = farz / (farz - nearz);
+
+        r.r[0]  = float4(width,    0,      0,                0);
+        r.r[1]  = float4(0,        height, 0,                0);
+        r.r[2]  = float4(0,        0,      range,            0);
+        r.r[3]  = float4(0,        0,      -range * nearz,   0);
 
         return r;
     }
 
-    point4 transform_point(matrix44 m, point4 p)
+    perspective_transform make_perspective_transform(const perspective_camera c)
     {
-        point4 r;
+        matrix44 r;
+        perspective_transform t;
+        t.m_matrix = r;
+        return t;
+    }
 
-        r.m_value.x = m.r[0].x * p.m_value.x + m.r[1].x * p.m_value.y + m.r[2].x * p.m_value.z + m.r[3].x * p.m_value.w;
-        r.m_value.y = m.r[0].y * p.m_value.x + m.r[1].y * p.m_value.y + m.r[2].y * p.m_value.z + m.r[3].y * p.m_value.w;
-        r.m_value.z = m.r[0].z * p.m_value.x + m.r[1].z * p.m_value.y + m.r[2].z * p.m_value.z + m.r[3].z * p.m_value.w;
-        r.m_value.w = m.r[0].w * p.m_value.x + m.r[1].w * p.m_value.y + m.r[2].w * p.m_value.z + m.r[3].w * p.m_value.w;
+    matrix44 perspective_matrix(const ortho_camera c)
+    {
+        matrix44 r;
 
         return r;
     }
 
-    point4 transform_point(view_transform m, point4 p)
+    point4 transform_point( view_transform m, point4 p )
     {
         point4  r;
         point4  p0;
         float4  v    = m.m_matrix.r[3];
 
-        p0.m_value.x = p.m_value.x + v.x;
-        p0.m_value.y = p.m_value.y + v.y;
-        p0.m_value.z = p.m_value.z + v.z;
+        p0.m_value.x = p.m_value.x;
+        p0.m_value.y = p.m_value.y;
+        p0.m_value.z = p.m_value.z;
         p0.m_value.w = 1.0;
 
         r.m_value.x  = m.m_matrix.r[0].x * p0.m_value.x + m.m_matrix.r[1].x * p0.m_value.y + m.m_matrix.r[2].x * p0.m_value.z + m.m_matrix.r[3].x * p0.m_value.w;
@@ -657,6 +680,46 @@ namespace lispsm
         r.m_value.z  = m.m_matrix.r[0].z * p0.m_value.x + m.m_matrix.r[1].z * p0.m_value.y + m.m_matrix.r[2].z * p0.m_value.z + m.m_matrix.r[3].z * p0.m_value.w;
 
         return r;
+    }
+
+    point3 transform(matrix44 m, point3 p)
+    {
+        return { 0,1,0 };
+    }
+
+    vector3 project_view_direction_in_light_space(matrix44 light, point3 closest_point_to_camera_ws, vector3 camera_dir_ws )
+    {
+        point3  b = closest_point_to_camera_ws;
+        point3  e = add(closest_point_to_camera_ws, camera_dir_ws);
+
+        point3  b_ls            = transform(light, b);
+        point3  e_ls            = transform(light, e);
+
+        vector3 projected_dir   = sub(e_ls, b_ls);
+        projected_dir.m_value.y = 0;
+
+        return normalize(projected_dir);
+    }
+
+    point3 get_closest_point(point3 frustum_points_ws[8], point3 camera_position_ws)
+    {
+        vector3 min_difference      = sub(camera_position_ws, frustum_points_ws[0]);
+        float min_norm_squared      = dot(min_difference, min_difference);
+        point3 min_point            = frustum_points_ws[0];
+
+        for (uint32_t i = 0U; i < 7; ++i)
+        {
+            vector3 difference      = sub(camera_position_ws, frustum_points_ws[i]);
+            float   norm_squared    = dot(difference, difference);
+
+            if (norm_squared < min_norm_squared)
+            {
+                min_norm_squared    = norm_squared;
+                min_point           = frustum_points_ws[i];
+            }
+        }
+
+        return min_point;
     }
 }
 
@@ -767,6 +830,39 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         vector3 forward = unit_z();
         vector3 right   = cross(up, forward);
 
+        camera c;
+
+        c.m_up        = up;
+        c.m_direction = forward;
+        c.m_position = { 0.0,1200.0,10.0f };
+        c.m_near      = { 0.25f };
+        c.m_far       = { 32000.f };
+
+        view_transform view_ = make_view_transform(c);
+
+        point3              p(0.0f, 0.0f, 16440.0f);
+
+        point4          t0          = transform_point(view_, point4( p.m_value ));
+
+
+
+
+
+
+
+
+
+        DirectX::XMMATRIX m0        = DirectX::XMMatrixLookToLH({ 0,1200,10 }, { 0,0,20 }, { 0,1,0 });
+        DirectX::XMVECTOR v0        = DirectX::XMVector3Transform({ 0,0,16440.0f }, m0);
+
+        DirectX::XMMATRIX m01       = DirectX::XMMatrixInverse(0,m0);
+        DirectX::XMVECTOR veye      = DirectX::XMVector3Transform({ 0,0,0 }, m01);
+
+        DirectX::XMVECTOR v1        = DirectX::XMVectorAdd(v0, DirectX::XMVectorNegate(veye));
+        DirectX::XMVECTOR v2        = DirectX::XMVector3Transform(v1, m0);
+
+        DirectX::XMMATRIX m1        = DirectX::XMMatrixLookToLH({ 0,0,0 }, { 0,0,20 }, { 0,1,0 });
+        DirectX::XMVECTOR v3        = DirectX::XMVector3Transform(v1, m1);
 
         m_activated					= v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
         m_debug						= CreateDebug();
