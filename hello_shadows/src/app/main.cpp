@@ -154,7 +154,7 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeap(ID3D12Device1*
     winrt::com_ptr<ID3D12DescriptorHeap> r;
     D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-    d.NumDescriptors = 2;
+    d.NumDescriptors = 3;
     d.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
     return r;
@@ -165,7 +165,7 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapRendering(ID3D1
     winrt::com_ptr<ID3D12DescriptorHeap> r;
     D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-    d.NumDescriptors = 2;
+    d.NumDescriptors = 3;
     d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
     return r;
@@ -214,6 +214,51 @@ static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* de
     chain->GetBuffer(buffer, __uuidof(ID3D12Resource1), r.put_void());
     return r;
 }
+
+//compute sizes
+static D3D12_RESOURCE_DESC DescribeDebugBuffer(uint32_t width, uint32_t height)
+{
+    D3D12_RESOURCE_DESC d = {};
+    d.Alignment = 0;
+    d.DepthOrArraySize = 1;
+    d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    d.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    d.Format = DXGI_FORMAT_R32G32B32A32_TYPELESS;     //important for computing the resource footprint
+    d.Height = height;
+    d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    d.MipLevels = 1;
+    d.SampleDesc.Count = 1;
+    d.SampleDesc.Quality = 0;
+    d.Width = width;
+    return                  d;
+}
+
+static winrt::com_ptr<ID3D12Resource1> CreateDebugBuffer1(ID3D12Device1* device, uint32_t width, uint32_t height)
+{
+    D3D12_RESOURCE_DESC d = DescribeDebugBuffer(width, height);
+
+    winrt::com_ptr<ID3D12Resource1>     r;
+    D3D12_HEAP_PROPERTIES p = {};
+    p.Type = D3D12_HEAP_TYPE_DEFAULT;
+    D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_RENDER_TARGET;
+
+    D3D12_CLEAR_VALUE v = {};
+    v.Color[0] = 1.0f;
+    v.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+    ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
+    return r;
+}
+
+//Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
+static void CreateDebugBuffer1Descriptior(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+    D3D12_RENDER_TARGET_VIEW_DESC d = {};
+    d.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+    d.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;       //how we will view the resource during rendering
+    device->CreateRenderTargetView(resource, &d, handle);
+}
+
 
 //Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
 static void CreateSwapChainDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle )
@@ -1046,6 +1091,13 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         //Where are located the descriptors
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
+
+
+        m_debug_buffer1 = CreateDebugBuffer1(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+        //create render target views, that will be used for rendering
+        CreateDebugBuffer1Descriptior(m_device.get(), m_debug_buffer1.get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 2);
+        //Where are located the descriptors
+        m_debug_buffer1_descriptor = 2;
     }
 
     void OnWindowClosed(const CoreWindow&w, const CoreWindowEventArgs& a)
@@ -1101,6 +1153,13 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
+
+
+        m_debug_buffer1 = CreateDebugBuffer1(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+        //create render target views, that will be used for rendering
+        CreateDebugBuffer1Descriptior(m_device.get(), m_debug_buffer1.get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 2);
+        //Where are located the descriptors
+        m_debug_buffer1_descriptor = 2;
     }
 
     bool m_window_running = true;
@@ -1124,6 +1183,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
     winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];
     uint64_t                                    m_swap_chain_descriptors[2];
+
+    winrt::com_ptr<ID3D12Resource1>             m_debug_buffer1;
+    uint64_t                                    m_debug_buffer1_descriptor;
 
     uint32_t									m_back_buffer_width = 0;
     uint32_t									m_back_buffer_height = 0;
