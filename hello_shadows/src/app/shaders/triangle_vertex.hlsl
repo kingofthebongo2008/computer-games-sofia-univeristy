@@ -31,7 +31,7 @@ namespace lispsm
 		float cosFov = cos(c.m_fov_y / 2.0f);
 
 		float height = cosFov / sinFov;
-		float width = c.m_aspect * height;
+		float width = height / c.m_aspect;
 		float nearz = c.m_near;
 		float farz = c.m_far;
 		float range = farz / (farz - nearz);
@@ -60,8 +60,8 @@ namespace lispsm
 
 		r.m_aspect = 16.0f / 9.0f;
 		r.m_fov_y  = radians(75.0f);
-		r.m_near   = 1.0f;
-		r.m_far    = 64000.0f;
+		r.m_near   = -1.0f;
+		r.m_far	   = -64000.0f;
 
 		return r;
 	}
@@ -74,19 +74,20 @@ interpolated_value main(uint v : SV_VERTEXID)
 	interpolated_value r = (interpolated_value)0;
 	r.m_position = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
+	float z = 0.5f;
 	if (v == 0)
 	{
-		r.m_position    = float4(-16000, -16000, 16000, 1.0f);
+		r.m_position    = float4(-16000, -16000, z, 1.0f);
 	}
 
 	if (v == 1)
 	{
-		r.m_position    = float4(-16000, 16000, 16000, 1.0f);
+		r.m_position    = float4(-16000, 16000, z, 1.0f);
 	}
 
 	if (v == 2)
 	{
-		r.m_position    = float4(16000, 16000.0, 16000.0, 1.0f);
+		r.m_position    = float4(16000, 16000.0, z, 1.0f);
 	}
 
 	float4x4 perspective = lispsm::perspective_matrix(lispsm::make_perspective_transform());

@@ -767,6 +767,15 @@ namespace lispsm
         return min_point;
     }
 
+    float Pi()
+    {
+        return 3.14159265358979323846f;
+    }
+
+    float radians(float degrees)
+    {
+        return ((degrees) / 180.0f) * Pi();
+    }
 
 }
 
@@ -801,6 +810,7 @@ namespace storage_factors
         return ((ratio - 1) / (2 * tanf(theta) * cos * cos * cos));
     }
 
+
     
 }
 
@@ -819,14 +829,16 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     state.SampleMask				= UINT_MAX;
     state.RasterizerState			= CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 
+    state.RasterizerState.DepthClipEnable = FALSE;
     state.RasterizerState.CullMode	= D3D12_CULL_MODE_NONE;
     state.RasterizerState.FrontCounterClockwise = TRUE;
 
     state.PrimitiveTopologyType		= D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     state.NumRenderTargets			= 1;
-    state.RTVFormats[0]				= DXGI_FORMAT_B8G8R8A8_UNORM;
+    state.RTVFormats[0]				= DXGI_FORMAT_R32G32B32A32_FLOAT;
     state.SampleDesc.Count			= 1;
     state.BlendState				= CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+    
 
     state.DepthStencilState.DepthEnable = FALSE;
     state.DepthStencilState.StencilEnable = FALSE;
@@ -892,17 +904,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         point4          t0          = transform_point(view_, point4( p.m_value ));
 
 
-        DirectX::XMMATRIX m0        = DirectX::XMMatrixLookToLH({ 0,1200,10 }, { 0,0,20 }, { 0,1,0 });
-        DirectX::XMVECTOR v0        = DirectX::XMVector3Transform({ 0,0,16440.0f }, m0);
+        DirectX::XMMATRIX m0        = DirectX::XMMatrixPerspectiveFovLH(radians(75.0f), 1200.0f/900.0f , 1.0f, 64000.f );
+        DirectX::XMVECTOR v0        = DirectX::XMVector3Transform({ -16000, -16000, 96000 }, m0);
 
-        DirectX::XMMATRIX m01       = DirectX::XMMatrixInverse(0,m0);
-        DirectX::XMVECTOR veye      = DirectX::XMVector3Transform({ 0,0,0 }, m01);
-
-        DirectX::XMVECTOR v1        = DirectX::XMVectorAdd(v0, DirectX::XMVectorNegate(veye));
-        DirectX::XMVECTOR v2        = DirectX::XMVector3Transform(v1, m0);
-
-        DirectX::XMMATRIX m1        = DirectX::XMMatrixLookToLH({ 0,0,0 }, { 0,0,20 }, { 0,1,0 });
-        DirectX::XMVECTOR v3        = DirectX::XMVector3Transform(v1, m1);
+        
 
         m_activated					= v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
         m_debug						= CreateDebug();
@@ -972,9 +977,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 commandList->ResourceBarrier(1, &barrier);
             }
 
+            D3D12_CPU_DESCRIPTOR_HANDLE debug_buffer_1 = CpuView(m_device.get(), m_descriptorHeap.get()) + m_debug_buffer1_descriptor;
+
             //Mark the resources in the rasterizer output
             {
-                commandList->OMSetRenderTargets(1, &back_buffer, TRUE, nullptr);
+                commandList->OMSetRenderTargets(1, &debug_buffer_1, TRUE, nullptr);
             }
 
             //do the clear, fill the memory with a value
