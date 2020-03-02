@@ -171,6 +171,18 @@ static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapRendering(ID3D1
     return r;
 }
 
+static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapDepth(ID3D12Device1* device)
+{
+    winrt::com_ptr<ID3D12DescriptorHeap> r;
+    D3D12_DESCRIPTOR_HEAP_DESC d = {};
+
+    d.NumDescriptors = 2;
+    d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+    device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
+    return r;
+}
+
+
 //compute sizes
 static D3D12_RESOURCE_DESC DescribeSwapChain ( uint32_t width, uint32_t height)
 {
@@ -214,6 +226,54 @@ static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* de
     chain->GetBuffer(buffer, __uuidof(ID3D12Resource1), r.put_void());
     return r;
 }
+
+static winrt::com_ptr<ID3D12Resource1> CreateDepthResource(ID3D12Device1* device, uint32_t width, uint32_t height)
+{
+    D3D12_RESOURCE_DESC d = {};
+    d.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
+    d.DepthOrArraySize = 1;
+    d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    d.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    d.Format = DXGI_FORMAT_D32_FLOAT;
+    d.Height = height;
+    d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    d.MipLevels = 1;
+    d.SampleDesc.Count = 4;
+    d.SampleDesc.Quality = 0;
+    d.Width = width;
+
+    winrt::com_ptr<ID3D12Resource1>     r;
+    D3D12_HEAP_PROPERTIES p = {};
+    p.Type = D3D12_HEAP_TYPE_DEFAULT;
+    D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+
+    D3D12_CLEAR_VALUE v = {};
+    v.DepthStencil.Depth = 1.0f;
+    v.Format = DXGI_FORMAT_D32_FLOAT;
+
+    ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
+    return r;
+}
+
+//Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
+static void CreateDepthWriteDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+    D3D12_DEPTH_STENCIL_VIEW_DESC d = {};
+    d.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    d.Format = DXGI_FORMAT_D32_FLOAT;       //how we will view the resource during rendering
+    device->CreateDepthStencilView(resource, &d, handle);
+}
+
+static void CreateDepthReadDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+{
+    D3D12_DEPTH_STENCIL_VIEW_DESC d = {};
+    d.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    d.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH;
+    d.Format = DXGI_FORMAT_D32_FLOAT;               //how we will view the resource during rendering
+    device->CreateDepthStencilView(resource, &d, handle);
+}
+
+
 
 //compute sizes
 static D3D12_RESOURCE_DESC DescribeDebugBuffer(uint32_t width, uint32_t height)
@@ -916,7 +976,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_queue					    = CreateCommandQueue(m_device.get());
 
         m_descriptorHeap		    = CreateDescriptorHeap(m_device.get());
-
+        m_descriptorHeapDepth       = CreateDescriptorHeapDepth(m_device.get());
         m_descriptorHeapRendering   = CreateDescriptorHeapRendering(m_device.get());
 
         //if you have many threads that generate commands. 1 per thread per frame
@@ -1105,6 +1165,12 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         CreateDebugBuffer1Descriptior(m_device.get(), m_debug_buffer1.get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 2);
         //Where are located the descriptors
         m_debug_buffer1_descriptor = 2;
+
+        m_depth_buffer = CreateDepthResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+        m_depth_buffer->SetName(L"Depth Buffer");
+
+        CreateDepthWriteDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0);
+        CreateDepthReadDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 1);
     }
 
     void OnWindowClosed(const CoreWindow&w, const CoreWindowEventArgs& a)
@@ -1161,12 +1227,20 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_swap_chain_descriptors[0] = 0;
         m_swap_chain_descriptors[1] = 1;
 
-
         m_debug_buffer1 = CreateDebugBuffer1(m_device.get(), m_back_buffer_width, m_back_buffer_height);
         //create render target views, that will be used for rendering
         CreateDebugBuffer1Descriptior(m_device.get(), m_debug_buffer1.get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 2);
         //Where are located the descriptors
         m_debug_buffer1_descriptor = 2;
+
+        m_depth_buffer = CreateDepthResource(m_device.get(), m_back_buffer_width, m_back_buffer_height);
+        m_depth_buffer->SetName(L"Depth Buffer");
+
+        CreateDepthWriteDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0);
+        CreateDepthReadDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 1);
+
+        m_depth_descriptor[0] = 0;
+        m_depth_descriptor[1] = 1;
     }
 
     bool m_window_running = true;
@@ -1176,17 +1250,17 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     CoreApplicationView::Activated_revoker		m_activated;
     
     winrt::com_ptr <ID3D12Debug>                m_debug;
-    winrt::com_ptr <ID3D12Device1>				m_device;           //device for gpu resources
-    winrt::com_ptr <IDXGISwapChain3>			m_swap_chain;       //swap chain for 
+    winrt::com_ptr <ID3D12Device1>				m_device;                       //device for gpu resources
+    winrt::com_ptr <IDXGISwapChain3>			m_swap_chain;                   //swap chain for 
 
-    winrt::com_ptr <ID3D12Fence>        		m_fence;                     //fence for cpu/gpu synchronization
-    winrt::com_ptr <ID3D12CommandQueue>   		m_queue;                     //queue to the device
+    winrt::com_ptr <ID3D12Fence>        		m_fence;                        //fence for cpu/gpu synchronization
+    winrt::com_ptr <ID3D12CommandQueue>   		m_queue;                        //queue to the device
 
-    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeap;            //descriptor heap for the resources
+    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeap;               //descriptor heap for the resources
+    winrt::com_ptr <ID3D12DescriptorHeap>       m_descriptorHeapDepth;          //descriptor heap for the resources
+    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapRendering;      //descriptor heap for the resources
 
-    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapRendering;   //descriptor heap for the resources
-
-    std::mutex                                  m_blockRendering;   //block render thread for the swap chain resizes
+    std::mutex                                  m_blockRendering;               //block render thread for the swap chain resizes
 
     winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];
     uint64_t                                    m_swap_chain_descriptors[2];
@@ -1197,8 +1271,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     uint32_t									m_back_buffer_width = 0;
     uint32_t									m_back_buffer_height = 0;
 
-    winrt::com_ptr <ID3D12CommandAllocator>   	m_command_allocator[2];		//one per frame
-    winrt::com_ptr <ID3D12GraphicsCommandList1> m_command_list[2];			//one per frame
+    winrt::com_ptr<ID3D12Resource1>             m_depth_buffer;
+    uint64_t                                    m_depth_descriptor[2];
+
+    winrt::com_ptr <ID3D12CommandAllocator>   	m_command_allocator[2];		    //one per frame
+    winrt::com_ptr <ID3D12GraphicsCommandList1> m_command_list[2];			    //one per frame
 
     uint64_t                                    m_frame_index	= 0;
     uint64_t									m_fence_value	= 1;
