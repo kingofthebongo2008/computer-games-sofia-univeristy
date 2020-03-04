@@ -60,8 +60,8 @@ namespace lispsm
 
 		r.m_aspect = 16.0f / 9.0f;
 		r.m_fov_y  = radians(75.0f);
-		r.m_near   = -1.0f;
-		r.m_far	   = -64000.0f;
+		r.m_near   = 64000.0f;	// 1.0f;
+		r.m_far    = 1.0f;		// 64000.0f;
 
 		return r;
 	}
@@ -74,7 +74,7 @@ interpolated_value main(uint v : SV_VERTEXID)
 	interpolated_value r = (interpolated_value)0;
 	r.m_position = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
-	float z = 0.5f;
+	float z = 2.0f;// 0.5f;
 	if (v == 0)
 	{
 		r.m_position    = float4(-16000, -16000, z, 1.0f);

@@ -248,7 +248,7 @@ static winrt::com_ptr<ID3D12Resource1> CreateDepthResource(ID3D12Device1* device
     D3D12_RESOURCE_STATES       state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 
     D3D12_CLEAR_VALUE v = {};
-    v.DepthStencil.Depth = 1.0f;
+    v.DepthStencil.Depth = 0.0f;
     v.Format = DXGI_FORMAT_D32_FLOAT;
 
     ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
@@ -900,8 +900,10 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     state.BlendState				= CD3DX12_BLEND_DESC(D3D12_DEFAULT);
     
 
-    state.DepthStencilState.DepthEnable = FALSE;
-    state.DepthStencilState.StencilEnable = FALSE;
+    state.DepthStencilState.DepthEnable     = TRUE;
+    state.DepthStencilState.StencilEnable   = FALSE;
+    state.DepthStencilState.DepthWriteMask  = D3D12_DEPTH_WRITE_MASK_ALL;
+    state.DepthStencilState.DepthFunc       = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
 
     state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
     state.PS = { &g_triangle_pixel[0], sizeof(g_triangle_pixel) };
@@ -1052,7 +1054,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             }
 
             {
-                commandList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+                commandList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 0.0f, 0, 0, nullptr);
             }
 
 
