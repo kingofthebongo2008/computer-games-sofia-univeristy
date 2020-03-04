@@ -230,7 +230,7 @@ static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* de
 static winrt::com_ptr<ID3D12Resource1> CreateDepthResource(ID3D12Device1* device, uint32_t width, uint32_t height)
 {
     D3D12_RESOURCE_DESC d = {};
-    d.Alignment = D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT;
+    d.Alignment = 0;
     d.DepthOrArraySize = 1;
     d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
     d.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
@@ -238,7 +238,7 @@ static winrt::com_ptr<ID3D12Resource1> CreateDepthResource(ID3D12Device1* device
     d.Height = height;
     d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     d.MipLevels = 1;
-    d.SampleDesc.Count = 4;
+    d.SampleDesc.Count = 1;
     d.SampleDesc.Quality = 0;
     d.Width = width;
 
@@ -1171,6 +1171,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
         CreateDepthWriteDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0);
         CreateDepthReadDescriptor(m_device.get(), m_depth_buffer.get(), CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 1);
+
+        m_depth_descriptor[0] = 0;
+        m_depth_descriptor[1] = 1;
     }
 
     void OnWindowClosed(const CoreWindow&w, const CoreWindowEventArgs& a)
