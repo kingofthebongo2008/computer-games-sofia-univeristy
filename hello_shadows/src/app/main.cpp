@@ -1023,7 +1023,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             }
 
             //get the pointer to the gpu memory
-            D3D12_CPU_DESCRIPTOR_HANDLE back_buffer = CpuView(m_device.get(), m_descriptorHeap.get()) + m_swap_chain_descriptors[m_frame_index];
+            D3D12_CPU_DESCRIPTOR_HANDLE back_buffer  = CpuView(m_device.get(), m_descriptorHeap.get()) + m_swap_chain_descriptors[m_frame_index];
+            D3D12_CPU_DESCRIPTOR_HANDLE depth_buffer = CpuView(m_device.get(), m_descriptorHeapDepth.get()) + 0;
 
             //Transition resources for writing. flush caches
             {
@@ -1041,13 +1042,17 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
             //Mark the resources in the rasterizer output
             {
-                commandList->OMSetRenderTargets(1, &debug_buffer_1, TRUE, nullptr);
+                commandList->OMSetRenderTargets(1, &debug_buffer_1, TRUE, &depth_buffer);
             }
 
             //do the clear, fill the memory with a value
             {
                 FLOAT c[4] = { 0.0f, 0.f,0.f,0.f };
                 commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
+            }
+
+            {
+                commandList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
             }
 
 
