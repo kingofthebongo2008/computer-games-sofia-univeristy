@@ -1091,6 +1091,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             allocator->Reset();
             commandList->Reset(allocator, nullptr);
 
+            uint8_t* upload_buffer = m_upload[m_frame_index];
+
             XMVECTOR points[36];
             AABB     aabb;
 
@@ -1098,6 +1100,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             aabb.m_min = XMVectorSet(-1, -1, -1, 1);
 
             triangulate_aabb(aabb, &points[0]);
+
+            std::memcpy(upload_buffer, &points[0], sizeof(points));
 
 
 
