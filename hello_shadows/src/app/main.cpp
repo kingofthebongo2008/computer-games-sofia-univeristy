@@ -1317,8 +1317,8 @@ using namespace DirectX;
 
 struct AABB
 {
-    XMFLOAT4 m_min;
-    XMFLOAT4 m_max;
+    XMVECTOR m_min;
+    XMVECTOR m_max;
 };
 
 
@@ -1328,12 +1328,15 @@ XMGLOBALCONST XMVECTORU32 g_XMSelect0001 = { { { XM_SELECT_0, XM_SELECT_0, XM_SE
 XMGLOBALCONST XMVECTORU32 g_XMSelect0011 = { { { XM_SELECT_0, XM_SELECT_0, XM_SELECT_1, XM_SELECT_1 } } };
 
 
-XMMATRIX fitting_projection_matrix(const AABB& box)
+XMMATRIX fitting_projection_matrix(const AABB box)
 {
     XMMATRIX m;
 
-    XMVECTOR  min               = XMLoadFloat4(&box.m_min);
-    XMVECTOR  max               = XMLoadFloat4(&box.m_max);
+    //XMVECTOR  min               = XMLoadFloat4(&box.m_min);
+    //XMVECTOR  max               = XMLoadFloat4(&box.m_max);
+
+    XMVECTOR  min               = box.m_min;
+    XMVECTOR  max               = box.m_max;
 
     XMVECTOR  sum               = XMVectorAdd(max, min);
     XMVECTOR  extents           = XMVectorSubtract(max, min);
@@ -1513,6 +1516,12 @@ void clip3(XMVECTOR n, XMVECTOR v0, XMVECTOR v1, XMVECTOR v2, XMVECTOR* clipped_
     {
         v2 = XMVectorLerpV(v1, v2, XMVectorDivide(d1, XMVectorSubtract(d1, d2)));
 
+        *clipped_frustum++ = v0;
+        *clipped_frustum++ = v1;
+        *clipped_frustum++ = v2;
+        *clipped_frustum++ = v3;
+        *clipped_frustum_count += 4;
+
         //4 points
     }
     else
@@ -1521,21 +1530,126 @@ void clip3(XMVECTOR n, XMVECTOR v0, XMVECTOR v1, XMVECTOR v2, XMVECTOR* clipped_
         v2 = v3;
         v3 = v0;
 
+        *clipped_frustum++ = v0;
+        *clipped_frustum++ = v1;
+        *clipped_frustum++ = v2;
+        *clipped_frustum_count += 3;
         //3 points
     }
 }
 
-
-
-
-
-
-void compute_clipped_frustum(XMVECTOR* triangles, uint32_t triangle_count, XMVECTOR frustumPlanes[6], XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count)
+void compute_clipped_frustum(const XMVECTOR* triangles, uint32_t triangle_count, const XMVECTOR frustumPlanes[6], XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count)
 {
     *clipped_frustum_count = 0;
 
+}
 
+/*
+const VertexPositionColor cubeVertices[] = {
+    { { -1.0f, 1.0f, -1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Back Top Left
+    { { 1.0f, 1.0f, -1.0f, 1.0f }, { GetRandomColor(), GetRandomColor(), GetRandomColor() } },    // Back Top Right
+    { { 1.0f, 1.0f, 1.0f, 1.0f }, { GetRandomColor(), GetRandomColor(), GetRandomColor() } },    // Front Top Right
+    { { -1.0f, 1.0f, 1.0f, 1.0f }, { GetRandomColor(), GetRandomColor(), GetRandomColor() } },    // Front Top Left
 
+    { { -1.0f, -1.0f, -1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Back Bottom Left
+    { { 1.0f, -1.0f, -1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Back Bottom Right
+    { { 1.0f, -1.0f, 1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Front Bottom Right
+    { { -1.0f, -1.0f, 1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Front Bottom Left
+};
+
+const UINT cubeIndices[] =
+{
+    0, 1, 3,
+    1, 2, 3,
+
+    3, 2, 7,
+    6, 7, 2,
+
+    2, 1, 6,
+    5, 6, 1,
+
+    1, 0, 5,
+    4, 5, 0,
+
+    0, 3, 4,
+    7, 4, 3,
+
+    7, 6, 4,
+    5, 4, 6,
+};
+*/
+
+void triangulate_aabb( const AABB aabb, XMVECTOR* points )
+{
+    XMVECTOR center             = XMVectorMultiply(XMVectorAdd(aabb.m_max, aabb.m_min), XMVectorReplicate(0.5f));
+    XMVECTOR extents            = XMVectorSubtract(aabb.m_max, aabb.m_min);
+
+    XMVECTOR back_top_left      = XMVectorSet(-1, 1, -1, 1);
+    XMVECTOR back_top_right     = XMVectorSet( 1, 1, -1, 1);
+    XMVECTOR front_top_right    = XMVectorSet( 1, 1,  1, 1);
+    XMVECTOR front_top_left     = XMVectorSet(-1, 1,  1, 1);
+
+    XMVECTOR back_bottom_left   = XMVectorSet(-1, -1, -1, 1);
+    XMVECTOR back_bottom_right  = XMVectorSet( 1, -1, -1, 1);
+    XMVECTOR front_bottom_right = XMVectorSet( 1, -1,  1, 1);
+    XMVECTOR front_bottom_left  = XMVectorSet(-1, -1,  1, 1);
+
+    const XMVECTOR masks[8]           =
+    {
+        back_top_left, 
+        back_top_right, 
+        front_top_right, 
+        front_top_left, 
+
+        back_bottom_left,
+        back_bottom_right,
+        front_bottom_right,
+        front_bottom_left
+    };
+
+    const XMVECTOR aabb_points[8]          =
+    {
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[0])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[1])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[2])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[3])),
+        
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[4])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[5])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[6])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[7]))
+    };
+
+    const uint32_t indices[36] =
+    {
+        0, 1, 3,
+        1, 2, 3,
+
+        3, 2, 7,
+        6, 7, 2,
+
+        2, 1, 6,
+        5, 6, 1,
+
+        1, 0, 5,
+        4, 5, 0,
+
+        0, 3, 4,
+        7, 4, 3,
+
+        7, 6, 4,
+        5, 4, 6,
+    };
+
+    for (auto i = 0U; i < 36; ++i)
+    {
+        points[i] = aabb_points[ indices[i] ];
+    }
+}
+
+void compute_clipped_frustum(const AABB shadowCasters, const XMVECTOR frustumPlanes[6], XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count)
+{
+    *clipped_frustum_count = 0;
 
 
 }
@@ -1543,7 +1657,6 @@ void compute_clipped_frustum(XMVECTOR* triangles, uint32_t triangle_count, XMVEC
 void include_light_volume( AABB shadowCasters, XMVECTOR light_direction_ws, XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count)
 {
     
-
 }
 
 XMMATRIX compute_light_projection( XMMATRIX light_view, AABB shadowCasters, XMVECTOR frustumPlanes[6] )
@@ -1551,10 +1664,44 @@ XMMATRIX compute_light_projection( XMMATRIX light_view, AABB shadowCasters, XMVE
     //allocate buffer here
     //XMVECTOR clipped_frustum[512];
     //XMVECTOR clipped_frustum_count;
-
-
 }
 
+/*
+
+
+const VertexPositionColor cubeVertices[] = {
+    { { -1.0f, 1.0f, -1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Back Top Left
+    { { 1.0f, 1.0f, -1.0f, 1.0f }, { GetRandomColor(), GetRandomColor(), GetRandomColor() } },    // Back Top Right
+    { { 1.0f, 1.0f, 1.0f, 1.0f }, { GetRandomColor(), GetRandomColor(), GetRandomColor() } },    // Front Top Right
+    { { -1.0f, 1.0f, 1.0f, 1.0f }, { GetRandomColor(), GetRandomColor(), GetRandomColor() } },    // Front Top Left
+
+    { { -1.0f, -1.0f, -1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Back Bottom Left
+    { { 1.0f, -1.0f, -1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Back Bottom Right
+    { { 1.0f, -1.0f, 1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Front Bottom Right
+    { { -1.0f, -1.0f, 1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Front Bottom Left
+};
+
+const UINT cubeIndices[] =
+{
+    0, 1, 3,
+    1, 2, 3,
+
+    3, 2, 7,
+    6, 7, 2,
+
+    2, 1, 6,
+    5, 6, 1,
+
+    1, 0, 5,
+    4, 5, 0,
+
+    0, 3, 4,
+    7, 4, 3,
+
+    7, 6, 4,
+    5, 4, 6,
+};
+*/
 
 
 
