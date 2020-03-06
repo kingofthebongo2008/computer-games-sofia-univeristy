@@ -4,10 +4,12 @@
 
 #include "d3dx12.h"
 
+
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::ApplicationModel::Activation;
 using namespace Microsoft::WRL;
+using namespace DirectX;
 
 //There are many steps required for dx12 triangle to get on the screen
 //1. Swap Chain is needed to bind dx12 backbuffer output to the window management system
@@ -18,6 +20,13 @@ using namespace Microsoft::WRL;
 //6. For shaders. Pipeline State is needed to be setup
 //7. For commands submission allocator and command buffer is needed.
 
+struct AABB
+{
+    XMVECTOR m_min;
+    XMVECTOR m_max;
+};
+
+void triangulate_aabb(const AABB aabb, XMVECTOR* points);
 
 namespace sample
 {
@@ -1056,12 +1065,16 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_uploadResource[1]         = CreateUploadGeometry(m_device.get(), m_uploadHeap[0].get(), 4 * 1024 * 1024);
         m_geometry                  = CreateGeometry(m_device.get(), m_geometryHeap.get(), 4 * 1024 * 1024);
 
+
+        m_uploadResource[0]->Map(0, nullptr, reinterpret_cast<void**>(&m_upload[0]));
+        m_uploadResource[1]->Map(0, nullptr, reinterpret_cast<void**>(&m_upload[1]));
     }
 
     void Uninitialize() 
     {
 
     }
+
 
     void Run()
     {
@@ -1078,8 +1091,18 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             allocator->Reset();
             commandList->Reset(allocator, nullptr);
 
+            XMVECTOR points[36];
+            AABB     aabb;
 
-            ID3D12Heap* uploadHeap = m_uploadHeap[m_frame_index].get();
+            aabb.m_max = XMVectorSet(1,1,1,1);
+            aabb.m_min = XMVectorSet(-1, -1, -1, 1);
+
+            triangulate_aabb(aabb, &points[0]);
+
+
+
+            
+
             commandList->CopyResource(m_geometry.get(), m_uploadResource[m_frame_index].get());
 
 
@@ -1350,6 +1373,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     winrt::com_ptr <ID3D12Heap>   	            m_geometryHeap;                 //gpu heap
     winrt::com_ptr<ID3D12Resource1>             m_uploadResource[2];            //alias the whole upload heap
     winrt::com_ptr<ID3D12Resource1>             m_geometry;                     //alias the whole geometry heap
+    uint8_t*                                    m_upload[2];
 
     std::mutex                                  m_blockRendering;               //block render thread for the swap chain resizes
 
@@ -1400,12 +1424,6 @@ int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
 //7.
 
 using namespace DirectX;
-
-struct AABB
-{
-    XMVECTOR m_min;
-    XMVECTOR m_max;
-};
 
 
 XMGLOBALCONST XMVECTORU32 g_XMSelect0111 = { { { XM_SELECT_0, XM_SELECT_1, XM_SELECT_0, XM_SELECT_1 } } };
