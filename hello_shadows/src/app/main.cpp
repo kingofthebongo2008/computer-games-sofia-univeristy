@@ -812,7 +812,7 @@ namespace lispsm
         float min_norm_squared      = dot(min_difference, min_difference);
         point3 min_point            = frustum_points_ws[0];
 
-        for (uint32_t i = 0U; i < 7; ++i)
+        for (uint32_t i = 0U; i < 8; ++i)
         {
             vector3 difference      = sub(camera_position_ws, frustum_points_ws[i]);
             float   norm_squared    = dot(difference, difference);
@@ -869,9 +869,6 @@ namespace storage_factors
         float cos = cosf(theta);
         return ((ratio - 1) / (2 * tanf(theta) * cos * cos * cos));
     }
-
-
-    
 }
 
 //create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
@@ -903,7 +900,7 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     state.DepthStencilState.DepthEnable     = TRUE;
     state.DepthStencilState.StencilEnable   = FALSE;
     state.DepthStencilState.DepthWriteMask  = D3D12_DEPTH_WRITE_MASK_ALL;
-    state.DepthStencilState.DepthFunc       = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+    state.DepthStencilState.DepthFunc       = D3D12_COMPARISON_FUNC_GREATER;
 
     state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
     state.PS = { &g_triangle_pixel[0], sizeof(g_triangle_pixel) };
@@ -959,13 +956,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         c.m_near      = { 0.25f };
         c.m_far       = { 32000.f };
 
-        view_transform view_ = make_view_transform(c);
+        view_transform view_        = make_view_transform(c);
 
         point3              p(0.0f, 0.0f, 16440.0f);
 
         point4          t0          = transform_point(view_, point4( p.m_value ));
-
-
         DirectX::XMMATRIX m0        = DirectX::XMMatrixPerspectiveFovLH(radians(75.0f), 1200.0f/900.0f , 1.0f, 64000.f );
         DirectX::XMVECTOR v0        = DirectX::XMVector3Transform({ -16000, -16000, 96000 }, m0);
 
@@ -1303,3 +1298,280 @@ int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
     CoUninitialize();
     return 0;
 }
+
+
+
+
+
+//Step 1.
+
+//1.Get Frustum points in ws from depth
+//2.Get Shadow Casters which is is a box around the frustum tbd
+//3.Include light volume in frustum points, 
+//4.Get Light View Transform, add Lispsm Perspective view transform just z and y swapped with reversed directions
+//5.Project all frustum points in this new space and find the closest point to the camera in this view frustum and do a new light view direction
+//6.Do the lispsm perspective transform frame
+//7.
+
+using namespace DirectX;
+
+struct AABB
+{
+    XMFLOAT4 m_min;
+    XMFLOAT4 m_max;
+};
+
+
+XMGLOBALCONST XMVECTORU32 g_XMSelect0111 = { { { XM_SELECT_0, XM_SELECT_1, XM_SELECT_0, XM_SELECT_1 } } };
+XMGLOBALCONST XMVECTORU32 g_XMSelect1101 = { { { XM_SELECT_1, XM_SELECT_1, XM_SELECT_1, XM_SELECT_0 } } };
+XMGLOBALCONST XMVECTORU32 g_XMSelect0001 = { { { XM_SELECT_0, XM_SELECT_0, XM_SELECT_0, XM_SELECT_1 } } };
+XMGLOBALCONST XMVECTORU32 g_XMSelect0011 = { { { XM_SELECT_0, XM_SELECT_0, XM_SELECT_1, XM_SELECT_1 } } };
+
+
+XMMATRIX fitting_projection_matrix(const AABB& box)
+{
+    XMMATRIX m;
+
+    XMVECTOR  min               = XMLoadFloat4(&box.m_min);
+    XMVECTOR  max               = XMLoadFloat4(&box.m_max);
+
+    XMVECTOR  sum               = XMVectorAdd(max, min);
+    XMVECTOR  extents           = XMVectorSubtract(max, min);
+    XMVECTOR  two               = XMVectorReplicate(2.0f);
+
+    XMVECTOR  r_scale           = XMVectorDivide(two, extents);
+    XMVECTOR  r_translation0    = XMVectorDivide(sum, extents);
+    XMVECTOR  r_translation1    = XMVectorNegate(r_translation0);
+
+    //g_XMOne
+    //g_XMZero
+    XMVECTOR r0                 = XMVectorSelect(r_scale, g_XMZero, g_XMSelect0111);
+    XMVECTOR r1                 = XMVectorSelect(r_scale, g_XMZero, g_XMSelect1011);
+    XMVECTOR r2                 = XMVectorSelect(r_scale, g_XMZero, g_XMSelect1101);
+    XMVECTOR r3                 = XMVectorSelect(r_scale, g_XMOne,  g_XMSelect0001);
+
+    m.r[0]                      = r0;
+    m.r[1]                      = r1;
+    m.r[2]                      = r2;
+    m.r[3]                      = r3;
+
+    /*
+
+    m.x[0][0] = 2.0f / (box.Max()[0] - box.Min()[0]);
+    m.x[0][1] = .0f;
+    m.x[0][2] = .0f;
+    m.x[0][3] = .0f;
+
+    m.x[1][0] = .0f;
+    m.x[1][1] = 2.0f / (box.Max()[1] - box.Min()[1]);
+    m.x[1][2] = .0f;
+    m.x[1][3] = .0f;
+
+    m.x[2][0] = .0f;
+    m.x[2][1] = .0f;
+    m.x[2][2] = 2.0f / (box.Max()[2] - box.Min()[2]);
+    m.x[2][3] = .0f;
+
+    m.x[3][0] = -(box.Max()[0] + box.Min()[0]) / (box.Max()[0] - box.Min()[0]);
+    m.x[3][1] = -(box.Max()[1] + box.Min()[1]) / (box.Max()[1] - box.Min()[1]);
+    m.x[3][2] = -(box.Max()[2] + box.Min()[2]) / (box.Max()[2] - box.Min()[2]);
+    m.x[3][3] = 1.0f;
+
+    //m.x[3][0] = m.x[3][1] = m.x[3][2] = .0f; m.x[3][3] = 1.0f;
+
+    */
+
+    return m;
+}
+
+XMVECTOR compute_light_up_vector(XMVECTOR camera_direction_ws, XMVECTOR light_direction_ws)
+{
+    //right handed
+
+    // left is the normalized vector perpendicular to lightDir and viewDir
+    // this means left is the normalvector of the yz-plane from the paper
+    XMVECTOR left_ws = XMVector3Cross(light_direction_ws, camera_direction_ws);
+
+    // we now can calculate the rotated(in the yz-plane) viewDir vector
+    // and use it as up vector in further transformations
+    XMVECTOR up_ws   = XMVector3Cross(left_ws, light_direction_ws);
+
+    return up_ws;
+}
+
+//y points towards the light
+//z is roughly along the camera view direction
+//x is orthogonal
+//xz in the shadow plane
+//inputs are expected to be normalized
+XMMATRIX light_view_matrix( XMVECTOR camera_direction_ws, XMVECTOR camera_position_ws, XMVECTOR light_direction_ws)
+{
+    //right handed
+    XMVECTOR up = compute_light_up_vector(camera_direction_ws, light_direction_ws);
+    XMMATRIX m  = XMMatrixLookToRH(camera_position_ws, light_direction_ws, up);
+    return m;
+}
+
+namespace
+{
+    bool above0(int32_t mask)
+    {
+        return (mask & 0x1) != 0;
+    }
+
+    bool above1(int32_t mask)
+    {
+        return (mask & 0x2) != 0;
+    }
+
+    bool above2(int32_t mask)
+    {
+        return (mask & 0x4) != 0;
+    }
+
+    bool above3(int32_t mask)
+    {
+        return (mask & 0x8) != 0;
+    }
+}
+
+void clip3(XMVECTOR n, XMVECTOR v0, XMVECTOR v1, XMVECTOR v2, XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count )
+{
+    //Distances to the plane (this is an array parallel // to v[], stored as a vec3)
+    //XMVECTOR dist = vec3(dot(v0, n), dot(v1, n), dot(v2, n));
+
+    XMVECTOR v3;
+    XMVECTOR d0             = XMVector3Dot(n, v0);
+    XMVECTOR d1             = XMVector3Dot(n, v1);
+    XMVECTOR d2             = XMVector3Dot(n, v2);
+
+    XMVECTOR clipEpsilon    = XMVectorNegate(XMVectorReplicate(0.00001f));
+    XMVECTOR clipEpsilon2   = XMVectorReplicate(0.01f);
+    
+    XMVECTOR r0             = d0;
+    XMVECTOR r1             = XMVectorSelect(r0, d1, g_XMSelect0111);
+    XMVECTOR r2             = XMVectorSelect(r1, d2, g_XMSelect0011);
+    XMVECTOR r3             = XMVectorSelect(r2, g_XMZero, g_XMSelect1110);
+    XMVECTOR dist           = r3;
+
+    //all clipped
+    if (!XMComparisonAnyTrue(XMVector3GreaterOrEqualR(dist, clipEpsilon2)))
+    {
+        return;
+    }
+
+    //none clipped
+    if (XMComparisonAllTrue(XMVector3GreaterOrEqualR(dist, clipEpsilon)))
+    {
+        *clipped_frustum++ = v0;
+        *clipped_frustum++ = v1;
+        *clipped_frustum++ = v2;
+        *clipped_frustum_count += 3;
+    }
+
+    // There are either 1 or 2 vertices above the clipping plane .
+    XMVECTOR abovex  = XMVectorGreaterOrEqual(r3, g_XMZero);
+    int32_t  above   = _mm_movemask_ps(abovex);
+    bool nextIsAbove;
+
+    // Find the CCW - most vertex above the plane .
+    if (above1(above) && !above0(above) )
+    {
+        // Cycle once CCW . Use v3 as a temp
+        nextIsAbove = above2(above);
+        v3 = v0; v0 = v1; v1 = v2; v2 = v3;
+
+        //dist = dist.yzx;
+        dist = XMVectorSwizzle<1, 2, 0, 3>(dist);
+
+        XMVECTOR temp = d0;
+        d0 = d1;
+        d1 = d2;
+        d2 = temp;
+        
+    } else if (above2(above) && !above1(above))
+    {
+        // Cycle once CW . Use v3 as a temp .
+        nextIsAbove = above0(above);
+        v3 = v2; v2 = v1; v1 = v0; v0 = v3;
+        //dist = dist.zxy;
+        dist = XMVectorSwizzle<2, 0, 1, 3>(dist);
+
+        XMVECTOR temp = d0;
+        d0 = d2;
+        d2 = d1;
+        d1 = temp;
+    }
+    else
+    {
+        nextIsAbove = above1(above);
+    }
+
+    v3 = XMVectorLerpV(v0, v2, XMVectorDivide(d0, XMVectorSubtract(d0, d2)));
+
+    if (nextIsAbove)
+    {
+        v2 = XMVectorLerpV(v1, v2, XMVectorDivide(d1, XMVectorSubtract(d1, d2)));
+
+        //4 points
+    }
+    else
+    {
+        v1 = XMVectorLerpV(v0, v1, XMVectorDivide(d0, XMVectorSubtract(d0, d1)));
+        v2 = v3;
+        v3 = v0;
+
+        //3 points
+    }
+}
+
+
+
+
+
+
+void compute_clipped_frustum(XMVECTOR* triangles, uint32_t triangle_count, XMVECTOR frustumPlanes[6], XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count)
+{
+    *clipped_frustum_count = 0;
+
+
+
+
+
+}
+
+void include_light_volume( AABB shadowCasters, XMVECTOR light_direction_ws, XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count)
+{
+    
+
+}
+
+XMMATRIX compute_light_projection( XMMATRIX light_view, AABB shadowCasters, XMVECTOR frustumPlanes[6] )
+{
+    //allocate buffer here
+    //XMVECTOR clipped_frustum[512];
+    //XMVECTOR clipped_frustum_count;
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
