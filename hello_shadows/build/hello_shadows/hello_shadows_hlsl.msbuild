@@ -28,6 +28,24 @@
       <ShaderModel>rootsig_1.1</ShaderModel>
       <EntryPointName>MyRS1</EntryPointName>
     </FxCompile>
+
+    <FxCompile Include="..\..\src\app\shaders\aabb_vertex.hlsl">
+      <ShaderType>Vertex</ShaderType>
+      <ShaderModel>5.0</ShaderModel>
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+
+    <FxCompile Include="..\..\src\app\shaders\aabb_pixel.hlsl">
+      <VariableName>g_%(Filename)</VariableName>
+      <HeaderFileOutput>$(IntermediateOutputPath)\%(Filename).h</HeaderFileOutput>
+      <ObjectFileOutput />
+      <ShaderType>Pixel</ShaderType>
+      <ShaderModel>5.1</ShaderModel>
+    </FxCompile>
+
   </ItemGroup>
 
 

@@ -51,6 +51,12 @@
     <FxCompile Include="..\..\src\app\shaders\default_graphics_signature.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\src\app\shaders\aabb_vertex.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\app\shaders\aabb_pixel.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
