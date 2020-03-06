@@ -273,8 +273,6 @@ static void CreateDepthReadDescriptor(ID3D12Device1* device, ID3D12Resource1* re
     device->CreateDepthStencilView(resource, &d, handle);
 }
 
-
-
 //compute sizes
 static D3D12_RESOURCE_DESC DescribeDebugBuffer(uint32_t width, uint32_t height)
 {
@@ -310,6 +308,66 @@ static winrt::com_ptr<ID3D12Resource1> CreateDebugBuffer1(ID3D12Device1* device,
     return r;
 }
 
+static winrt::com_ptr<ID3D12Heap> CreateUploadHeap(ID3D12Device1* device)
+{
+    winrt::com_ptr<ID3D12Heap>     r;
+    D3D12_HEAP_DESC p = {};
+
+    p.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
+    p.SizeInBytes     = 4 * 1024 * 1024;
+
+    ThrowIfFailed(device->CreateHeap(&p, __uuidof(ID3D12Heap), r.put_void()));
+    return r;
+}
+
+static winrt::com_ptr<ID3D12Heap> CreateGeometryHeap(ID3D12Device1* device)
+{
+    winrt::com_ptr<ID3D12Heap>     r;
+    D3D12_HEAP_DESC p = {};
+
+    p.Properties.Type   = D3D12_HEAP_TYPE_DEFAULT;
+    p.SizeInBytes       = 4 * 1024 * 1024;
+
+    ThrowIfFailed(device->CreateHeap(&p, __uuidof(ID3D12Heap), r.put_void()));
+    return r;
+}
+
+static winrt::com_ptr<ID3D12Resource1> CreateGeometry(ID3D12Device1* device, ID3D12Heap* heap, size_t size)
+{
+    winrt::com_ptr<ID3D12Resource1>     r;
+    D3D12_RESOURCE_DESC d = {};
+
+    d.Width = (size + 3) & (~3);
+    d.Height = 1;
+    d.DepthOrArraySize = 1;
+    d.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    d.Format = DXGI_FORMAT_UNKNOWN;
+    d.MipLevels = 1;
+    d.SampleDesc = { 1,0 };
+    d.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+    ThrowIfFailed(device->CreatePlacedResource(heap, 0, &d, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+    return r;
+}
+
+static winrt::com_ptr<ID3D12Resource1> CreateUploadGeometry(ID3D12Device1* device, ID3D12Heap* heap, size_t size)
+{
+    winrt::com_ptr<ID3D12Resource1>     r;
+    D3D12_RESOURCE_DESC d = {};
+
+    d.Width = (size + 3) & (~3);
+    d.Height = 1;
+    d.DepthOrArraySize = 1;
+    d.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    d.Format = DXGI_FORMAT_UNKNOWN;
+    d.MipLevels = 1;
+    d.SampleDesc = { 1,0 };
+    d.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+    ThrowIfFailed(device->CreatePlacedResource(heap, 0, &d, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, __uuidof(ID3D12Resource1), r.put_void()));
+    return r;
+}
+
 //Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
 static void CreateDebugBuffer1Descriptior(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
@@ -318,7 +376,6 @@ static void CreateDebugBuffer1Descriptior(ID3D12Device1* device, ID3D12Resource1
     d.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;       //how we will view the resource during rendering
     device->CreateRenderTargetView(resource, &d, handle);
 }
-
 
 //Create a gpu metadata that describes the swap chain, type, format. it will be used by the gpu interpret the data in the swap chain(reading/writing).
 static void CreateSwapChainDescriptor(ID3D12Device1* device, ID3D12Resource1* resource, D3D12_CPU_DESCRIPTOR_HANDLE handle )
@@ -897,6 +954,7 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     state.BlendState				= CD3DX12_BLEND_DESC(D3D12_DEFAULT);
     
 
+    state.DSVFormat                         = DXGI_FORMAT_D32_FLOAT;
     state.DepthStencilState.DepthEnable     = TRUE;
     state.DepthStencilState.StencilEnable   = FALSE;
     state.DepthStencilState.DepthWriteMask  = D3D12_DEPTH_WRITE_MASK_ALL;
@@ -964,8 +1022,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         DirectX::XMMATRIX m0        = DirectX::XMMatrixPerspectiveFovLH(radians(75.0f), 1200.0f/900.0f , 1.0f, 64000.f );
         DirectX::XMVECTOR v0        = DirectX::XMVector3Transform({ -16000, -16000, 96000 }, m0);
 
-        
-
         m_activated					= v.Activated(winrt::auto_revoke, { this, &ViewProvider::OnActivated });
         m_debug						= CreateDebug();
         m_device					= CreateDevice();
@@ -991,6 +1047,15 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         {
             ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
         }
+
+        m_uploadHeap[0]             = CreateUploadHeap(m_device.get());
+        m_uploadHeap[1]             = CreateUploadHeap(m_device.get());
+        m_geometryHeap              = CreateGeometryHeap(m_device.get());
+
+        m_uploadResource[0]         = CreateUploadGeometry(m_device.get(), m_uploadHeap[0].get(), 4 * 1024 * 1024);
+        m_uploadResource[1]         = CreateUploadGeometry(m_device.get(), m_uploadHeap[0].get(), 4 * 1024 * 1024);
+        m_geometry                  = CreateGeometry(m_device.get(), m_geometryHeap.get(), 4 * 1024 * 1024);
+
     }
 
     void Uninitialize() 
@@ -1013,11 +1078,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             allocator->Reset();
             commandList->Reset(allocator, nullptr);
 
-            // Set Descriptor heaps
-            {
-                //ID3D12DescriptorHeap* heaps[] = { m_descriptorHeap.get()};
-                //commandList->SetDescriptorHeaps(1, heaps);
-            }
+
+            ID3D12Heap* uploadHeap = m_uploadHeap[m_frame_index].get();
+            commandList->CopyResource(m_geometry.get(), m_uploadResource[m_frame_index].get());
+
 
             //get the pointer to the gpu memory
             D3D12_CPU_DESCRIPTOR_HANDLE back_buffer  = CpuView(m_device.get(), m_descriptorHeap.get()) + m_swap_chain_descriptors[m_frame_index];
@@ -1025,15 +1089,25 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
             //Transition resources for writing. flush caches
             {
-                D3D12_RESOURCE_BARRIER barrier = {};
+                D3D12_RESOURCE_BARRIER barrier[2] = {};
 
-                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                barrier.Transition.pResource = m_swap_chain_buffers[m_frame_index].get();
-                barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-                barrier.Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
-                barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-                commandList->ResourceBarrier(1, &barrier);
+                barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier[0].Transition.pResource = m_swap_chain_buffers[m_frame_index].get();
+                barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+                barrier[0].Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+                barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier[1].Transition.pResource     = m_geometry.get();
+                barrier[1].Transition.StateBefore   = D3D12_RESOURCE_STATE_COPY_DEST;
+                barrier[1].Transition.StateAfter    = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+                barrier[1].Transition.Subresource   = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+
+                commandList->ResourceBarrier(2, &barrier[0]);
             }
+
+
 
             D3D12_CPU_DESCRIPTOR_HANDLE debug_buffer_1 = CpuView(m_device.get(), m_descriptorHeap.get()) + m_debug_buffer1_descriptor;
 
@@ -1086,18 +1160,25 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 //draw the triangle
                 commandList->DrawInstanced(3, 1, 0, 0);
             }
-            
 
             //Transition resources for presenting, flush the gpu caches
             {
-                D3D12_RESOURCE_BARRIER barrier = {};
+                D3D12_RESOURCE_BARRIER barrier[2] = {};
 
-                barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                barrier.Transition.pResource = m_swap_chain_buffers[m_frame_index].get();
-                barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
-                barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-                barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-                commandList->ResourceBarrier(1, &barrier);
+                barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier[0].Transition.pResource = m_swap_chain_buffers[m_frame_index].get();
+                barrier[0].Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+                barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+                barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier[1].Transition.pResource = m_geometry.get();
+                barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+                barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+                barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+
+
+                commandList->ResourceBarrier(2, &barrier[0]);
             }
             
             commandList->Close();   //close the list
@@ -1264,6 +1345,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeap;               //descriptor heap for the resources
     winrt::com_ptr <ID3D12DescriptorHeap>       m_descriptorHeapDepth;          //descriptor heap for the resources
     winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapRendering;      //descriptor heap for the resources
+
+    winrt::com_ptr <ID3D12Heap>   	            m_uploadHeap[2];                //upload heap
+    winrt::com_ptr <ID3D12Heap>   	            m_geometryHeap;                 //gpu heap
+    winrt::com_ptr<ID3D12Resource1>             m_uploadResource[2];            //alias the whole upload heap
+    winrt::com_ptr<ID3D12Resource1>             m_geometry;                     //alias the whole geometry heap
 
     std::mutex                                  m_blockRendering;               //block render thread for the swap chain resizes
 
