@@ -1091,24 +1091,21 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             allocator->Reset();
             commandList->Reset(allocator, nullptr);
 
-            uint8_t* upload_buffer = m_upload[m_frame_index];
+            //Upload
 
-            XMVECTOR points[36];
-            AABB     aabb;
+            {
+                uint8_t* upload_buffer = m_upload[m_frame_index];
+                XMVECTOR points[36];
+                AABB     aabb;
 
-            aabb.m_max = XMVectorSet(1,1,1,1);
-            aabb.m_min = XMVectorSet(-1, -1, -1, 1);
+                aabb.m_max = XMVectorSet(1, 1, 1, 1);
+                aabb.m_min = XMVectorSet(-1, -1, -1, 1);
 
-            triangulate_aabb(aabb, &points[0]);
-
-            std::memcpy(upload_buffer, &points[0], sizeof(points));
-
-
-
-            
+                triangulate_aabb(aabb, &points[0]);
+                std::memcpy(upload_buffer, &points[0], sizeof(points));
+            }
 
             commandList->CopyResource(m_geometry.get(), m_uploadResource[m_frame_index].get());
-
 
             //get the pointer to the gpu memory
             D3D12_CPU_DESCRIPTOR_HANDLE back_buffer  = CpuView(m_device.get(), m_descriptorHeap.get()) + m_swap_chain_descriptors[m_frame_index];
@@ -1130,11 +1127,16 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 barrier[1].Transition.StateAfter    = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
                 barrier[1].Transition.Subresource   = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-
                 commandList->ResourceBarrier(2, &barrier[0]);
             }
 
-
+            {
+                D3D12_VERTEX_BUFFER_VIEW v = {};
+                v.BufferLocation = m_geometry->GetGPUVirtualAddress();
+                v.SizeInBytes   = 4 * 1024 * 1024;
+                v.StrideInBytes = 12;
+                commandList->IASetVertexBuffers(0, 1, &v);
+            }
 
             D3D12_CPU_DESCRIPTOR_HANDLE debug_buffer_1 = CpuView(m_device.get(), m_descriptorHeap.get()) + m_debug_buffer1_descriptor;
 
