@@ -5,6 +5,7 @@
 #include "d3dx12.h"
 
 
+using namespace winrt::Windows::UI::Input;
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::ApplicationModel::Activation;
@@ -1211,6 +1212,14 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
         m_uploadResource[0]->Map(0, nullptr, reinterpret_cast<void**>(&m_upload[0]));
         m_uploadResource[1]->Map(0, nullptr, reinterpret_cast<void**>(&m_upload[1]));
+
+        {
+            DirectX::XMVECTOR up = XMVectorSet(0, 1, 0, 0);
+            DirectX::XMVECTOR forward = XMVectorSet(0, 0, 1, 0);
+            DirectX::XMVECTOR position = XMVectorSet(0, 0, -10, 0);
+
+            m_view = XMMatrixLookToLH(position, forward, up);
+        }
     }
 
     void Uninitialize() 
@@ -1252,16 +1261,34 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
             uint64_t frame_offset = 0;
             {
+                using namespace DirectX;
+
                 FrameConstants frame;
 
-                DirectX::XMMATRIX p         = DirectX::XMMatrixPerspectiveFovLH(lispsm::radians(75.0f), (float) m_back_buffer_width / (float)m_back_buffer_height, 64000.0f, 1.f);
-                DirectX::XMVECTOR up        = DirectX::XMVectorSet(0, 1, 0, 0);
-                DirectX::XMVECTOR forward   = DirectX::XMVectorSet(0, 0, 1, 0);
-                DirectX::XMVECTOR position  = DirectX::XMVectorSet(0, 0, -10, 0);
+                XMMATRIX p          = XMMatrixPerspectiveFovLH(lispsm::radians(75.0f), (float) m_back_buffer_width / (float)m_back_buffer_height, 64000.0f, 1.f);
+                XMMATRIX horizontal = XMMatrixIdentity();
+                XMMATRIX vertical   = XMMatrixIdentity();
 
-                DirectX::XMMATRIX v         = DirectX::XMMatrixLookToLH(position, forward, up);
+                XMVECTOR up         = m_view.r[1];
+                XMVECTOR forward    = m_view.r[2];
 
-                frame.m_view                = XMMatrixTranspose(v);
+
+
+                if (m_mode == 1)
+                {
+                    float radians_x = m_x - m_begin_x < 0 ? 2.0f : -2.0f;
+                    float radians_y = m_y - m_begin_y > 0 ? 2.0f : -2.0f;
+                    horizontal = XMMatrixRotationAxis(up, lispsm::radians(radians_x));
+                    vertical   = XMMatrixRotationAxis(XMVector3Cross(forward, up), lispsm::radians(radians_y));
+                }
+                else
+                {
+                    horizontal                 = XMMatrixRotationAxis(up, lispsm::radians(0.f));
+                    vertical                   = XMMatrixRotationAxis(XMVector3Cross(up, forward), lispsm::radians(0.f));
+                }
+
+                m_view                      = XMMatrixMultiply(vertical, XMMatrixMultiply(horizontal, m_view));
+                frame.m_view                = XMMatrixTranspose(m_view);
                 frame.m_projection          = XMMatrixTranspose(p);
 
                 upload_position             = align(upload_position, 256);
@@ -1414,6 +1441,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     {
         m_closed			    = w.Closed(winrt::auto_revoke, { this, &ViewProvider::OnWindowClosed });
         m_size_changed		    = w.SizeChanged(winrt::auto_revoke, { this, &ViewProvider::OnWindowSizeChanged });
+        m_pointer_moved         = w.PointerMoved(winrt::auto_revoke, { this, &ViewProvider::OnPointerMoved });
+        m_pointer_pressed       = w.PointerPressed(winrt::auto_revoke, { this, &ViewProvider::OnPointerPressed });
+        m_pointer_released      = w.PointerReleased(winrt::auto_revoke, { this, &ViewProvider::OnPointerReleased });
 
         m_swap_chain		    = CreateSwapChain(w, m_queue.get());
         m_frame_index           = m_swap_chain->GetCurrentBackBufferIndex();
@@ -1526,10 +1556,47 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_depth_descriptor[1] = 1;
     }
 
+    void OnPointerMoved(const CoreWindow& w, const PointerEventArgs& a)
+    {
+        const auto&& point = a.CurrentPoint().Position();
+        m_x = point.X;
+        m_y = point.Y;
+        
+    }
+
+    void OnPointerPressed(const CoreWindow& w, const PointerEventArgs& a)
+    {
+        const auto&& point = a.CurrentPoint().Position();
+        m_begin_x = point.X;
+        m_begin_y = point.Y;
+        m_mode = 1;
+    }
+
+    void OnPointerReleased(const CoreWindow& w, const PointerEventArgs& a)
+    {
+        m_begin_x = 0;
+        m_begin_y = 0;
+        m_x       = 0;
+        m_y       = 0;
+        m_mode    = 0;
+    }
+    
     bool m_window_running = true;
 
     CoreWindow::Closed_revoker					m_closed;
     CoreWindow::SizeChanged_revoker				m_size_changed;
+    CoreWindow::PointerMoved_revoker			m_pointer_moved;
+    CoreWindow::PointerPressed_revoker			m_pointer_pressed;
+    CoreWindow::PointerReleased_revoker			m_pointer_released;
+
+    float                                       m_begin_x = 0;
+    float                                       m_begin_y = 0;
+    float                                       m_x = 0;
+    float                                       m_y = 0;
+    uint32_t                                    m_mode = 0;
+    DirectX::XMMATRIX                           m_view;
+
+
     CoreApplicationView::Activated_revoker		m_activated;
     
     winrt::com_ptr <ID3D12Debug>                m_debug;
