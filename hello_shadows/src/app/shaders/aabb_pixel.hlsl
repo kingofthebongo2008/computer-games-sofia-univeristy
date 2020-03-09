@@ -9,5 +9,7 @@ struct interpolated_value
 [RootSignature( MyRS1 ) ]
 float4 main(interpolated_value v) : SV_TARGET0
 {
-    return float4(1,0,0,1);
+    float   alpha = 1;
+    float3  color = float3(1, 0, 0) * alpha;
+    return float4(color, alpha);
 }

@@ -1081,10 +1081,24 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateAabbPipelineState(ID3D12Devic
     state.NumRenderTargets = 1;
     state.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
     state.SampleDesc.Count = 1;
-    state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+
+    state.BlendState.AlphaToCoverageEnable          = FALSE;
+    state.BlendState.IndependentBlendEnable         = FALSE;
+    
+    state.BlendState.RenderTarget[0].BlendEnable    = TRUE;
+    state.BlendState.RenderTarget[0].LogicOpEnable  = FALSE;
+    state.BlendState.RenderTarget[0].SrcBlend       = D3D12_BLEND_ONE;
+    state.BlendState.RenderTarget[0].DestBlend      = D3D12_BLEND_INV_SRC_ALPHA;
+    state.BlendState.RenderTarget[0].BlendOp        = D3D12_BLEND_OP_ADD;
+    state.BlendState.RenderTarget[0].SrcBlendAlpha  = D3D12_BLEND_ONE;
+    state.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+    state.BlendState.RenderTarget[0].BlendOpAlpha   = D3D12_BLEND_OP_ADD;
+    state.BlendState.RenderTarget[0].LogicOp        = D3D12_LOGIC_OP_NOOP;
+    state.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
 
     state.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-    state.DepthStencilState.DepthEnable = TRUE;
+    state.DepthStencilState.DepthEnable = FALSE;
     state.DepthStencilState.StencilEnable = FALSE;
     state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
     state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_GREATER;
