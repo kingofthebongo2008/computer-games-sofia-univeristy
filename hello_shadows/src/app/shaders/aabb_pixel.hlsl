@@ -9,5 +9,5 @@ struct interpolated_value
 [RootSignature( MyRS1 ) ]
 float4 main(interpolated_value v) : SV_TARGET0
 {
-	return float4(v.m_position_.xyz / v.m_position_.w, v.m_position_.w);
+    return float4(1,0,0,1);
 }

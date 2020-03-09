@@ -26,7 +26,22 @@ struct AABB
     XMVECTOR m_max;
 };
 
+struct FrameConstants
+{
+    XMMATRIX m_view;
+    XMMATRIX m_projection;
+};
+
+
 void triangulate_aabb(const AABB aabb, XMVECTOR* points);
+
+namespace
+{
+    uint64_t align(uint64_t v, uint64_t a)
+    {
+        return (v + a - 1) & (~(a - 1));
+    }
+}
 
 namespace sample
 {
@@ -1059,7 +1074,7 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateAabbPipelineState(ID3D12Devic
     state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 
     state.RasterizerState.DepthClipEnable = FALSE;
-    state.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    state.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
     state.RasterizerState.FrontCounterClockwise = TRUE;
 
     state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
@@ -1189,7 +1204,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
     }
 
-
     void Run()
     {
         while (m_window_running)
@@ -1205,10 +1219,12 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             allocator->Reset();
             commandList->Reset(allocator, nullptr);
 
-            //Upload
+            uint8_t* upload_buffer = m_upload[m_frame_index];
+            uint64_t upload_position = 0;
 
+            //Upload
             {
-                uint8_t* upload_buffer = m_upload[m_frame_index];
+                
                 XMVECTOR points[36];
                 AABB     aabb;
 
@@ -1217,6 +1233,28 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
                 triangulate_aabb(aabb, &points[0]);
                 std::memcpy(upload_buffer, &points[0], sizeof(points));
+                upload_position += sizeof(points);
+            }
+
+            uint64_t frame_offset = 0;
+            {
+                FrameConstants frame;
+
+                DirectX::XMMATRIX p         = DirectX::XMMatrixPerspectiveFovLH(lispsm::radians(75.0f), (float) m_back_buffer_width / (float)m_back_buffer_height, 64000.0f, 1.f);
+                DirectX::XMVECTOR up        = DirectX::XMVectorSet(0, 1, 0, 0);
+                DirectX::XMVECTOR forward   = DirectX::XMVectorSet(0, 0, 1, 0);
+                DirectX::XMVECTOR position  = DirectX::XMVectorSet(0, 0, -10, 0);
+
+                DirectX::XMMATRIX v         = DirectX::XMMatrixLookToLH(position, forward, up);
+
+                frame.m_view                = XMMatrixTranspose(v);
+                frame.m_projection          = XMMatrixTranspose(p);
+
+                upload_position             = align(upload_position, 256);
+                frame_offset                = upload_position;
+
+                std::memcpy(upload_buffer + upload_position, &frame, sizeof(frame));
+                upload_position += sizeof(frame);
             }
 
             commandList->CopyResource(m_geometry.get(), m_uploadResource[m_frame_index].get());
@@ -1229,7 +1267,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             {
                 D3D12_RESOURCE_BARRIER barrier[2] = {};
 
-                barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier[0].Type                     = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
                 barrier[0].Transition.pResource     = m_swap_chain_buffers[m_frame_index].get();
                 barrier[0].Transition.StateBefore   = D3D12_RESOURCE_STATE_PRESENT;
                 barrier[0].Transition.StateAfter    = D3D12_RESOURCE_STATE_RENDER_TARGET;
@@ -1296,6 +1334,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 {
                     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                 }
+
+                //commandList->SetGraphicsRootConstantBufferView(0, m_uploadResource[m_frame_index]->GetGPUVirtualAddress() + frame_offset);
+                commandList->SetGraphicsRootConstantBufferView(0, m_geometry->GetGPUVirtualAddress() + frame_offset);
 
                 //draw the triangle
                 commandList->DrawInstanced(36, 1, 0, 0);
