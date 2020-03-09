@@ -1077,8 +1077,17 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateAabbPipelineState(ID3D12Devic
     state.VS = { &g_aabb_vertex[0], sizeof(g_aabb_vertex) };
     state.PS = { &g_aabb_pixel[0], sizeof(g_aabb_pixel) };
 
-    winrt::com_ptr<ID3D12PipelineState> r;
+    // Vertex struct holding position and color information.
+    const D3D12_INPUT_ELEMENT_DESC d[] =
+    {
+        { "POSITION",    0, DXGI_FORMAT_R32G32B32A32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+    };
 
+
+    state.InputLayout.NumElements = 1;
+    state.InputLayout.pInputElementDescs = &d[0];
+
+    winrt::com_ptr<ID3D12PipelineState> r;
     ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
     return r;
 }
@@ -1221,12 +1230,12 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 D3D12_RESOURCE_BARRIER barrier[2] = {};
 
                 barrier[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-                barrier[0].Transition.pResource = m_swap_chain_buffers[m_frame_index].get();
-                barrier[0].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
-                barrier[0].Transition.StateAfter  = D3D12_RESOURCE_STATE_RENDER_TARGET;
-                barrier[0].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+                barrier[0].Transition.pResource     = m_swap_chain_buffers[m_frame_index].get();
+                barrier[0].Transition.StateBefore   = D3D12_RESOURCE_STATE_PRESENT;
+                barrier[0].Transition.StateAfter    = D3D12_RESOURCE_STATE_RENDER_TARGET;
+                barrier[0].Transition.Subresource   = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
-                barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+                barrier[1].Type                     = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
                 barrier[1].Transition.pResource     = m_geometry.get();
                 barrier[1].Transition.StateBefore   = D3D12_RESOURCE_STATE_COPY_DEST;
                 barrier[1].Transition.StateAfter    = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
@@ -1239,15 +1248,13 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 D3D12_VERTEX_BUFFER_VIEW v = {};
                 v.BufferLocation = m_geometry->GetGPUVirtualAddress();
                 v.SizeInBytes   = 4 * 1024 * 1024;
-                v.StrideInBytes = 12;
+                v.StrideInBytes = 16;
                 commandList->IASetVertexBuffers(0, 1, &v);
             }
 
-            D3D12_CPU_DESCRIPTOR_HANDLE debug_buffer_1 = CpuView(m_device.get(), m_descriptorHeapRTV.get()) + m_debug_buffer1_descriptor;
-
             //Mark the resources in the rasterizer output
             {
-                commandList->OMSetRenderTargets(1, &debug_buffer_1, TRUE, &depth_buffer);
+                commandList->OMSetRenderTargets(1, &back_buffer, TRUE, &depth_buffer);
             }
 
             //do the clear, fill the memory with a value
@@ -1260,14 +1267,13 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 commandList->ClearDepthStencilView(depth_buffer, D3D12_CLEAR_FLAG_DEPTH, 0.0f, 0, 0, nullptr);
             }
 
-
             {
                 //set the type of the parameters that we will use in the shader
                 commandList->SetGraphicsRootSignature(m_root_signature.get());
 
                 //set the raster pipeline state as a whole, it was prebuilt before
-                commandList->SetPipelineState(m_triangle_state.get());
-                
+                commandList->SetPipelineState(m_aabb_state.get());
+
                 //set the scissor test separately (which parts of the view port will survive)
                 {
                     D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
@@ -1292,8 +1298,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 }
 
                 //draw the triangle
-                commandList->DrawInstanced(3, 1, 0, 0);
+                commandList->DrawInstanced(36, 1, 0, 0);
             }
+
 
             //Transition resources for presenting, flush the gpu caches
             {
@@ -1345,6 +1352,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     {
         m_root_signature = CreateRootSignature(m_device.get());
         m_triangle_state = CreateTrianglePipelineState(m_device.get(), m_root_signature.get());
+        m_aabb_state     = CreateAabbPipelineState(m_device.get(), m_root_signature.get());
     }
 
     void SetWindow(const CoreWindow& w)
@@ -1391,14 +1399,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
         m_depth_descriptor[0] = 0;
         m_depth_descriptor[1] = 1;
-
-
-        /*
-        //dsa
-        winrt::com_ptr<ID3D12Resource1>             m_frame_buffer;
-        uint32_t                                    m_frame_buffer_srv;
-        uint32_t                                    m_frame_buffer_uav;
-        */
     }
 
     void OnWindowClosed(const CoreWindow&w, const CoreWindowEventArgs& a)
@@ -1522,6 +1522,9 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     //Rendering
     winrt::com_ptr< ID3D12RootSignature>		m_root_signature;
     winrt::com_ptr< ID3D12PipelineState>		m_triangle_state;
+
+    winrt::com_ptr< ID3D12PipelineState>		m_aabb_state;
+
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )

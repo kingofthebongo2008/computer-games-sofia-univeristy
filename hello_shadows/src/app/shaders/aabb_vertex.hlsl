@@ -7,7 +7,8 @@ struct vertex_input
 
 struct interpolated_value
 {
-	float4 m_position : SV_POSITION;
+	float4 m_position     : SV_POSITION;
+	float4 m_position_    : TEXCOORD0;
 };
 
 [RootSignature( MyRS1 ) ]
