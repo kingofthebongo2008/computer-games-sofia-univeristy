@@ -33,8 +33,8 @@ struct FrameConstants
     XMMATRIX m_projection;
 };
 
-
 void triangulate_aabb(const AABB aabb, XMVECTOR* points);
+void aabb_points(const AABB aabb, XMVECTOR* points);
 
 namespace
 {
@@ -1311,21 +1311,22 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
             uint8_t* upload_buffer = m_upload[m_frame_index];
             uint64_t upload_position = 0;
+            
+            AABB     aabb;
+            aabb.m_max = XMVectorSet(1, 1, 1, 1);
+            aabb.m_min = XMVectorSet(-1, -1, -1, 1);
 
             //Upload
+            //AABB
             {
                 
                 XMVECTOR points[36];
-                AABB     aabb;
-
-                aabb.m_max = XMVectorSet(1, 1, 1, 1);
-                aabb.m_min = XMVectorSet(-1, -1, -1, 1);
-
                 triangulate_aabb(aabb, &points[0]);
-                std::memcpy(upload_buffer, &points[0], sizeof(points));
+                std::memcpy(upload_buffer + upload_position, &points[0], sizeof(points));
                 upload_position += sizeof(points);
             }
 
+            //Frame constants
             uint64_t frame_offset = 0;
             {
                 using namespace DirectX;
@@ -1405,6 +1406,20 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 upload_position += sizeof(frame);
             }
 
+
+            uint64_t spheres_offset = 0;
+
+            {
+                XMVECTOR points[8];
+                aabb_points(aabb, &points[0]);
+                
+                upload_position = align(upload_position, 16);
+                spheres_offset  = upload_position;
+
+                std::memcpy(upload_buffer + upload_position, &points[0], sizeof(points));
+                upload_position += sizeof(points);
+            }
+
             commandList->CopyResource(m_geometry.get(), m_uploadResource[m_frame_index].get());
 
             //get the pointer to the gpu memory
@@ -1457,9 +1472,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 //set the type of the parameters that we will use in the shader
                 commandList->SetGraphicsRootSignature(m_root_signature.get());
 
-                //set the raster pipeline state as a whole, it was prebuilt before
-                commandList->SetPipelineState(m_aabb_state.get());
-
                 //set the scissor test separately (which parts of the view port will survive)
                 {
                     D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
@@ -1478,16 +1490,23 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                     commandList->RSSetViewports(1, &v);
                 }
 
-                //set the types of the triangles we will use
-                {
-                    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-                }
-
                 //commandList->SetGraphicsRootConstantBufferView(0, m_uploadResource[m_frame_index]->GetGPUVirtualAddress() + frame_offset);
                 commandList->SetGraphicsRootConstantBufferView(0, m_geometry->GetGPUVirtualAddress() + frame_offset);
 
-                //draw the triangle
-                commandList->DrawInstanced(36, 1, 0, 0);
+                //draw aabb
+                {
+                    //set the raster pipeline state as a whole, it was prebuilt before
+                    commandList->SetPipelineState(m_aabb_state.get());
+                    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                    commandList->DrawInstanced(36, 1, 0, 0);
+                }
+
+                //set the types of the triangles we will use
+                {
+                    commandList->SetPipelineState(m_spheres_state.get());
+                    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+                    commandList->DrawInstanced(8, 1, spheres_offset / 16, 0);
+                }
             }
 
 
@@ -2071,6 +2090,53 @@ void triangulate_aabb( const AABB aabb, XMVECTOR* points )
     for (auto i = 0U; i < 36; ++i)
     {
         points[i] = aabb_points[ indices[i] ];
+    }
+}
+
+void aabb_points(const AABB aabb, XMVECTOR* points)
+{
+    XMVECTOR center = XMVectorMultiply(XMVectorAdd(aabb.m_max, aabb.m_min), XMVectorReplicate(0.5f));
+    XMVECTOR extents = XMVectorSubtract(aabb.m_max, aabb.m_min);
+
+    XMVECTOR back_top_left = XMVectorSet(-1, 1, -1, 1);
+    XMVECTOR back_top_right = XMVectorSet(1, 1, -1, 1);
+    XMVECTOR front_top_right = XMVectorSet(1, 1, 1, 1);
+    XMVECTOR front_top_left = XMVectorSet(-1, 1, 1, 1);
+
+    XMVECTOR back_bottom_left = XMVectorSet(-1, -1, -1, 1);
+    XMVECTOR back_bottom_right = XMVectorSet(1, -1, -1, 1);
+    XMVECTOR front_bottom_right = XMVectorSet(1, -1, 1, 1);
+    XMVECTOR front_bottom_left = XMVectorSet(-1, -1, 1, 1);
+
+    const XMVECTOR masks[8] =
+    {
+        back_top_left,
+        back_top_right,
+        front_top_right,
+        front_top_left,
+
+        back_bottom_left,
+        back_bottom_right,
+        front_bottom_right,
+        front_bottom_left
+    };
+
+    const XMVECTOR aabb_points[8] =
+    {
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[0])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[1])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[2])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[3])),
+
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[4])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[5])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[6])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[7]))
+    };
+
+    for (auto i = 0U; i < 8; ++i)
+    {
+        points[i] = aabb_points[i];
     }
 }
 
