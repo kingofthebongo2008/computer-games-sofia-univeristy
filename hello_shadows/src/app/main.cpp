@@ -1269,25 +1269,65 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 XMMATRIX horizontal = XMMatrixIdentity();
                 XMMATRIX vertical   = XMMatrixIdentity();
 
-                XMVECTOR up         = m_view.r[1];
-                XMVECTOR forward    = m_view.r[2];
-
-
+                XMVECTOR left                = m_view.r[0];
+                XMVECTOR up                  = m_view.r[1];
+                XMVECTOR forward             = m_view.r[2];
+                XMVECTOR translation         = m_view.r[3];
+                XMVECTOR position            = XMVectorNegate(m_view.r[3]);
+                XMVECTOR position_negative   = XMVectorNegate(m_view.r[3]);
+                XMMATRIX translate_negative  = XMMatrixTranslationFromVector(position_negative);
+                XMMATRIX translate           = XMMatrixTranslationFromVector(position);
 
                 if (m_mode == 1)
                 {
-                    float radians_x = m_x - m_begin_x < 0 ? 2.0f : -2.0f;
-                    float radians_y = m_y - m_begin_y > 0 ? 2.0f : -2.0f;
-                    horizontal = XMMatrixRotationAxis(up, lispsm::radians(radians_x));
-                    vertical   = XMMatrixRotationAxis(XMVector3Cross(forward, up), lispsm::radians(radians_y));
+                    if (std::max( abs(m_x - m_begin_x), abs(m_y - m_begin_y) ) > 0)
+                    {
+                        float radians_x = m_x - m_begin_x < 0 ? 2.0f : -2.0f;
+                        if (m_x - m_begin_x == 0.0f)
+                        {
+                            radians_x = 0.0f;
+                        }
+
+                        //radians_x = 0.0f;
+                        
+                        float radians_y = m_y - m_begin_y > 0 ? 2.0f : -2.0f;
+                        if (m_y - m_begin_y == 0.0f)
+                        {
+                            radians_y = 0.0f;
+                        }
+
+                        //horizontal  = XMMatrixRotationAxis(up, lispsm::radians(radians_x));
+                        //vertical    = XMMatrixRotationAxis(XMVector3Cross(forward, up), lispsm::radians(radians_y));
+                        //vertical    = XMMatrixRotationAxis(XMVectorNegate(left), lispsm::radians(radians_y));
+
+                        XMVECTOR rotation = XMVectorSet(-m_y + m_begin_y,  -m_x + m_begin_x, 0, 0);
+                        XMVECTOR n        = XMVector4Normalize(rotation);
+                        
+                        horizontal        = XMMatrixRotationAxis(n, lispsm::radians(2));
+
+
+                        m_begin_x = m_x;
+                        m_begin_y = m_y;
+                    }
                 }
                 else
                 {
-                    horizontal                 = XMMatrixRotationAxis(up, lispsm::radians(0.f));
-                    vertical                   = XMMatrixRotationAxis(XMVector3Cross(up, forward), lispsm::radians(0.f));
+                    //horizontal                 = XMMatrixRotationAxis(up, lispsm::radians(0.f));
+                    //vertical                   = XMMatrixRotationAxis(XMVector3Cross(up, forward), lispsm::radians(0.f));
                 }
 
-                m_view                      = XMMatrixMultiply(vertical, XMMatrixMultiply(horizontal, m_view));
+                XMMATRIX view;
+
+                view.r[0] = left;
+                view.r[1] = up;
+                view.r[2] = forward;
+                view.r[3] = XMVectorSet(0, 0, 0, 1);
+
+                view = XMMatrixMultiply(horizontal, view);
+
+                view.r[3] = translation;
+
+                m_view = view;// XMMatrixMultiply(vertical, XMMatrixMultiply(horizontal, m_view));
                 frame.m_view                = XMMatrixTranspose(m_view);
                 frame.m_projection          = XMMatrixTranspose(p);
 
