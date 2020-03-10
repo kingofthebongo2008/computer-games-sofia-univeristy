@@ -1123,6 +1123,73 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateAabbPipelineState(ID3D12Devic
 }
 
 
+//create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
+//It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
+static winrt::com_ptr< ID3D12PipelineState>	 CreateSpheresPipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
+{
+    static
+    #include <spheres_pixel.h>
+
+    static
+    #include <spheres_vertex.h>
+
+    static
+    #include <spheres_geometry.h>
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+    state.pRootSignature = root;
+    state.SampleMask = UINT_MAX;
+    state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
+
+    state.RasterizerState.DepthClipEnable = FALSE;
+    state.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
+    state.RasterizerState.FrontCounterClockwise = TRUE;
+
+    state.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+    state.NumRenderTargets = 1;
+    state.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+    state.SampleDesc.Count = 1;
+
+    state.BlendState.AlphaToCoverageEnable = FALSE;
+    state.BlendState.IndependentBlendEnable = FALSE;
+
+    state.BlendState.RenderTarget[0].BlendEnable = FALSE;
+    state.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
+    state.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_ONE;
+    state.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+    state.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+    state.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
+    state.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+    state.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+    state.BlendState.RenderTarget[0].LogicOp = D3D12_LOGIC_OP_NOOP;
+    state.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+    state.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+    state.DepthStencilState.DepthEnable = TRUE;
+    state.DepthStencilState.StencilEnable = FALSE;
+    state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+    state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_GREATER;
+
+    state.VS = { &g_spheres_vertex[0],      sizeof(g_spheres_vertex) };
+    state.PS = { &g_spheres_pixel[0],       sizeof(g_spheres_pixel)   };
+    state.GS = { &g_spheres_geometry[0],    sizeof(g_spheres_geometry) };
+
+    // Vertex struct holding position and color information.
+    const D3D12_INPUT_ELEMENT_DESC d[] =
+    {
+        { "POSITION",    0, DXGI_FORMAT_R32G32B32A32_FLOAT,    0, D3D12_APPEND_ALIGNED_ELEMENT, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
+    };
+
+
+    state.InputLayout.NumElements = 1;
+    state.InputLayout.pInputElementDescs = &d[0];
+
+    winrt::com_ptr<ID3D12PipelineState> r;
+    ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
+    return r;
+}
+
+
 class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFrameworkViewSource>
 {
     public:
@@ -1475,6 +1542,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         m_root_signature = CreateRootSignature(m_device.get());
         m_triangle_state = CreateTrianglePipelineState(m_device.get(), m_root_signature.get());
         m_aabb_state     = CreateAabbPipelineState(m_device.get(), m_root_signature.get());
+        m_spheres_state  = CreateSpheresPipelineState(m_device.get(), m_root_signature.get());
     }
 
     void SetWindow(const CoreWindow& w)
@@ -1686,7 +1754,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     winrt::com_ptr< ID3D12PipelineState>		m_triangle_state;
 
     winrt::com_ptr< ID3D12PipelineState>		m_aabb_state;
-
+    winrt::com_ptr< ID3D12PipelineState>		m_spheres_state;
 };
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
@@ -1934,42 +2002,9 @@ void compute_clipped_frustum(const XMVECTOR* triangles, uint32_t triangle_count,
 {
     *clipped_frustum_count = 0;
 
+
+
 }
-
-/*
-const VertexPositionColor cubeVertices[] = {
-    { { -1.0f, 1.0f, -1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Back Top Left
-    { { 1.0f, 1.0f, -1.0f, 1.0f }, { GetRandomColor(), GetRandomColor(), GetRandomColor() } },    // Back Top Right
-    { { 1.0f, 1.0f, 1.0f, 1.0f }, { GetRandomColor(), GetRandomColor(), GetRandomColor() } },    // Front Top Right
-    { { -1.0f, 1.0f, 1.0f, 1.0f }, { GetRandomColor(), GetRandomColor(), GetRandomColor() } },    // Front Top Left
-
-    { { -1.0f, -1.0f, -1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Back Bottom Left
-    { { 1.0f, -1.0f, -1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Back Bottom Right
-    { { 1.0f, -1.0f, 1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Front Bottom Right
-    { { -1.0f, -1.0f, 1.0f, 1.0f }, { GetRandomColor(),GetRandomColor(), GetRandomColor() } },    // Front Bottom Left
-};
-
-const UINT cubeIndices[] =
-{
-    0, 1, 3,
-    1, 2, 3,
-
-    3, 2, 7,
-    6, 7, 2,
-
-    2, 1, 6,
-    5, 6, 1,
-
-    1, 0, 5,
-    4, 5, 0,
-
-    0, 3, 4,
-    7, 4, 3,
-
-    7, 6, 4,
-    5, 4, 6,
-};
-*/
 
 void triangulate_aabb( const AABB aabb, XMVECTOR* points )
 {
@@ -2042,8 +2077,6 @@ void triangulate_aabb( const AABB aabb, XMVECTOR* points )
 void compute_clipped_frustum(const AABB shadowCasters, const XMVECTOR frustumPlanes[6], XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count)
 {
     *clipped_frustum_count = 0;
-
-
 }
 
 void include_light_volume( AABB shadowCasters, XMVECTOR light_direction_ws, XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count)

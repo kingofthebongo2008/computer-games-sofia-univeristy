@@ -57,6 +57,15 @@
     <FxCompile Include="..\..\src\app\shaders\aabb_pixel.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="..\..\src\app\shaders\spheres_geometry.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\app\shaders\spheres_pixel.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="..\..\src\app\shaders\spheres_vertex.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
