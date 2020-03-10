@@ -1,4 +1,5 @@
 #include "default_signature.hlsli"
+#include "constants.fxh"
 
 struct interpolated_value
 {
@@ -13,17 +14,11 @@ struct vertex_input
 	float4 m_position_os  : POSITION;
 };
 
-cbuffer g_constants		  : register(b0)
-{
-	float4x4			  m_view;
-	float4x4			  m_projection;
-};
-
 [maxvertexcount(6)]
 void    main(point vertex_input input[1], inout TriangleStream<interpolated_value> outputStream )
 {
-	float3	camera_position = 0;
-	float halfWidth			= 0.1;
+	float3	camera_position = m_camera_position.xyz;// -float3 (m_view[0].w, m_view[1].w, m_view[2].w);
+	float halfWidth			= 0.5;
 
 	float3 forward			= normalize(input[0].m_position_os.xyz - camera_position);
 	float3 up				= float3(0.0f, 1.0f, 0.0f);
@@ -50,29 +45,28 @@ void    main(point vertex_input input[1], inout TriangleStream<interpolated_valu
 	interpolated_value v2;
 	interpolated_value v3;
 
-	v0.m_position = mul(mul(float4(vert[0], 1.0f), m_view), m_projection);
-	v1.m_position = mul(mul(float4(vert[1], 1.0f), m_view), m_projection);
-	v2.m_position = mul(mul(float4(vert[2], 1.0f), m_view), m_projection);
-	v3.m_position = mul(mul(float4(vert[3], 1.0f), m_view), m_projection);
+	v0.m_position	= mul(mul(float4(vert[0], 1.0f), m_view), m_projection);
+	v1.m_position	= mul(mul(float4(vert[1], 1.0f), m_view), m_projection);
+	v2.m_position	= mul(mul(float4(vert[2], 1.0f), m_view), m_projection);
+	v3.m_position	= mul(mul(float4(vert[3], 1.0f), m_view), m_projection);
 
 	v0.m_clip_space = texCoord[0];
 	v1.m_clip_space = texCoord[1];
 	v2.m_clip_space = texCoord[2];
 	v3.m_clip_space = texCoord[3];
 
-	outputStream.Append(v0);
 	outputStream.Append(v1);
+	outputStream.Append(v0);
 	outputStream.Append(v3);
 	outputStream.RestartStrip();
 	outputStream.Append(v3);
-	outputStream.Append(v1);
+	outputStream.Append(v0);
 	outputStream.Append(v2);
 
 	/*
 	vertex_attributes o0;
 	vertex_attributes o1;
 	vertex_attributes o2;
-
 	o0.m_position	= float4(0.0f, 0.5f, 0.5f, 1);
 	o0.m_color		= float3(1.0f, 0.0f, 0.0f);
 	o1.m_position	= float4(-0.5f, 0.0f, 0.5f, 1);

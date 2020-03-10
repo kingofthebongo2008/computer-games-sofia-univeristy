@@ -1,4 +1,5 @@
 #include "default_signature.hlsli"
+#include "constants.fxh"
 
 struct interpolated_value
 {

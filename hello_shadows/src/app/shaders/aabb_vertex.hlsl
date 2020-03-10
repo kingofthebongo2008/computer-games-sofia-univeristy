@@ -1,4 +1,5 @@
 #include "default_signature.hlsli"
+#include "constants.fxh"
 
 struct vertex_input
 {
@@ -9,12 +10,6 @@ struct interpolated_value
 {
 	float4 m_position     : SV_POSITION;
 	float4 m_position_    : TEXCOORD0;
-};
-
-cbuffer g_constants : register(b0)
-{
-	float4x4 m_view;
-	float4x4 m_projection;
 };
 
 

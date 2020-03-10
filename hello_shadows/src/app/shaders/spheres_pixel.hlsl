@@ -16,8 +16,8 @@ float4 main(interpolated_value v) : SV_TARGET0
     float r2      = dot(n.xy, n.xy);
 
     // if the texel is not inside the sphere
-    if (r2 > 1.0f)
-        discard;
+    //if (r2 > 1.0f)
+      //  discard;
 
     return float4(color, alpha);
 }

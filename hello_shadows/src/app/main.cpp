@@ -31,6 +31,7 @@ struct FrameConstants
 {
     XMMATRIX m_view;
     XMMATRIX m_projection;
+    XMVECTOR m_position;
 };
 
 void triangulate_aabb(const AABB aabb, XMVECTOR* points);
@@ -1165,7 +1166,7 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateSpheresPipelineState(ID3D12De
     state.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
     state.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-    state.DepthStencilState.DepthEnable = TRUE;
+    state.DepthStencilState.DepthEnable = FALSE;
     state.DepthStencilState.StencilEnable = FALSE;
     state.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
     state.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_GREATER;
@@ -1398,6 +1399,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 m_view = view;// XMMatrixMultiply(vertical, XMMatrixMultiply(horizontal, m_view));
                 frame.m_view                = XMMatrixTranspose(m_view);
                 frame.m_projection          = XMMatrixTranspose(p);
+                frame.m_position            = position;
 
                 upload_position             = align(upload_position, 256);
                 frame_offset                = upload_position;
