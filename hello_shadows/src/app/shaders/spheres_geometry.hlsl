@@ -20,7 +20,7 @@ float3 sphere_position(int i, int j, int horizontal_segments, int vertical_segme
 	const float pi			= 3.141592654f;
 	const float two_pi		= 6.283185307f;
 	const float pi_div_two	= 1.570796327f;
-	const float radius		= 0.2;
+	const float radius		= 0.1;
 
 	//int  j					= vertex_id % horizontal_segments;
 	//int  i					= vertex_id / horizontal_segments;
@@ -61,7 +61,7 @@ void    main(point vertex_input input[1], inout TriangleStream<interpolated_valu
 	float halfWidth			= 0.5;
 
 	uint segment_id			 = input[0].m_vertex_id;
-	uint subdivision_count	 = 21;// subdivision_count + 1;
+	uint subdivision_count	 = 5 + 1;// subdivision_count + 1;
 	uint vertical_segments	 = subdivision_count;
 	uint horizontal_segments  = subdivision_count * 2;
 
