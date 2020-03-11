@@ -1505,9 +1505,15 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
                 //set the types of the triangles we will use
                 {
+                    int subdivision_count       = 21;// subdivision_count + 1;
+                    int vertical_segments       = subdivision_count;
+                    int horizontal_segments     = subdivision_count * 2;
+                    int vertex_count            = (horizontal_segments + 1) * (vertical_segments + 1);
+
+
                     commandList->SetPipelineState(m_spheres_state.get());
                     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-                    commandList->DrawInstanced(8, 1, spheres_offset / 16, 0);
+                    commandList->DrawInstanced(vertex_count, 1, spheres_offset / 16, 0);
                 }
             }
 
