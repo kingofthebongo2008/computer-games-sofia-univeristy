@@ -1441,7 +1441,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 barrier[1].Type                     = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
                 barrier[1].Transition.pResource     = m_geometry.get();
                 barrier[1].Transition.StateBefore   = D3D12_RESOURCE_STATE_COPY_DEST;
-                barrier[1].Transition.StateAfter    = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+                barrier[1].Transition.StateAfter    = D3D12_RESOURCE_STATE_GENERIC_READ;
                 barrier[1].Transition.Subresource   = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
                 commandList->ResourceBarrier(2, &barrier[0]);
@@ -1494,6 +1494,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
                 //commandList->SetGraphicsRootConstantBufferView(0, m_uploadResource[m_frame_index]->GetGPUVirtualAddress() + frame_offset);
                 commandList->SetGraphicsRootConstantBufferView(0, m_geometry->GetGPUVirtualAddress() + frame_offset);
+                commandList->SetGraphicsRootShaderResourceView(1, m_geometry->GetGPUVirtualAddress());
 
                 //draw aabb
                 {
@@ -1510,13 +1511,16 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                     int horizontal_segments     = subdivision_count * 2;
                     int vertex_count            = (horizontal_segments + 1) * (vertical_segments + 1);
 
-
                     commandList->SetPipelineState(m_spheres_state.get());
                     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-                    commandList->DrawInstanced(vertex_count, 1, spheres_offset / 16, 0);
+
+                    for (auto i = 0; i < 8; ++i)
+                    {
+                        commandList->SetGraphicsRoot32BitConstant(2, spheres_offset + i * sizeof(XMVECTOR), 0);
+                        commandList->DrawInstanced(vertex_count, 1, spheres_offset / 16, 0);
+                    }
                 }
             }
-
 
             //Transition resources for presenting, flush the gpu caches
             {
@@ -1530,7 +1534,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
                 barrier[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
                 barrier[1].Transition.pResource = m_geometry.get();
-                barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+                barrier[1].Transition.StateBefore = D3D12_RESOURCE_STATE_GENERIC_READ;
                 barrier[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
                 barrier[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 

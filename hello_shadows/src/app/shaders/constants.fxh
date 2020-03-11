@@ -1,7 +1,7 @@
 #ifndef __constants_h__
 #define __constants_h__
 
-cbuffer g_constants		  : register(b0)
+cbuffer g_constants		  : register(b1)
 {
 	float4x4			  m_view;
 	float4x4			  m_projection;
