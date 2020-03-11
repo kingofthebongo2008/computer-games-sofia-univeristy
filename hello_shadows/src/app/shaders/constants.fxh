@@ -8,4 +8,9 @@ cbuffer g_constants		  : register(b1)
 	float4				  m_camera_position;
 };
 
+cbuffer g_constants		  : register(b0)
+{
+	uint m_draw_argument;
+};
+
 #endif
