@@ -13,12 +13,15 @@ struct interpolated_value
 	uint   m_vertex_id	  : ID;
 };
 
+ByteAddressBuffer Geometry : register(t0);
+
+
 [RootSignature( MyRS1 ) ]
 interpolated_value main(in vertex_input v, in uint vid : SV_VERTEXID)
 {
 	interpolated_value r = (interpolated_value)0;
-	r.m_position		 = mul(mul(v.m_position, m_view), m_projection);
-	r.m_position_os		 = float3(2, 2, 2);// v.m_position;
+	r.m_position		 = 0;
+	r.m_position_os		 = asfloat(Geometry.Load3(912));
 	r.m_vertex_id		 = vid;
 
 	return r;
