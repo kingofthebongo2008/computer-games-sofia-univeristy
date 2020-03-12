@@ -870,7 +870,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
 
             uint64_t spheres_offset = 0;
-            uint64_t frustum_offset = 0;
 
             {
                 XMVECTOR points[8];
@@ -878,32 +877,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 
                 upload_position = align(upload_position, 16);
                 spheres_offset  = upload_position;
-
-                std::memcpy(upload_buffer + upload_position, &points[0], sizeof(points));
-                upload_position += sizeof(points);
-            }
-
-
-            
-
-            {
-                XMMATRIX p = XMMatrixPerspectiveFovLH(lispsm::radians(75.0f), (float)m_back_buffer_width / (float)m_back_buffer_height, 10.0f, 1.f);
-
-                BoundingFrustum f;
-                BoundingFrustum::CreateFromMatrix(f, p);
-                XMFLOAT3   corners[8];
-
-                f.GetCorners(corners);
-
-                XMVECTOR points[8];
-                
-                for (int i = 0; i < 8; ++i)
-                {
-                    points[i] = XMLoadFloat3(&corners[i]);
-                }
-
-                upload_position = align(upload_position, 16);
-                frustum_offset = upload_position;
 
                 std::memcpy(upload_buffer + upload_position, &points[0], sizeof(points));
                 upload_position += sizeof(points);
@@ -1006,26 +979,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                         commandList->SetGraphicsRoot32BitConstant(2, spheres_offset + i * sizeof(XMVECTOR), 0);
                         commandList->SetGraphicsRoot32BitConstant(2, 0xFF0000FF, 1);
                         commandList->SetGraphicsRoot32BitConstant(2, subdivision_count, 2);
-                        commandList->DrawInstanced(vertex_count, 1, 0, 0);
-                    }
-                }
-
-
-                {
-                    int subdivision_count = 5 + 1;// subdivision_count + 1;
-                    int vertical_segments = subdivision_count;
-                    int horizontal_segments = subdivision_count * 2;
-                    int vertex_count = (horizontal_segments + 1) * (vertical_segments + 1);
-
-                    commandList->SetPipelineState(m_spheres_state.get());
-                    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
-
-                    for (auto i = 0; i < 8; ++i)
-                    {
-                        commandList->SetGraphicsRoot32BitConstant(2, frustum_offset + i * sizeof(XMVECTOR), 0);
-                        commandList->SetGraphicsRoot32BitConstant(2, 0xFF00FF00, 1);
-                        commandList->SetGraphicsRoot32BitConstant(2, subdivision_count, 2);
-                        commandList->DrawInstanced(vertex_count, 1, 0, 0);
+                        commandList->DrawInstanced(vertex_count, 1, spheres_offset / 16, 0);
                     }
                 }
             }
@@ -1688,6 +1642,561 @@ XMMATRIX compute_light_projection( XMMATRIX light_view, AABB shadowCasters, XMVE
 
 
 
+namespace lispsm1
+{
+    struct float4
+    {
+        float x;
+        float y;
+        float z;
+        float w;
+
+        float4()
+        {
+
+        }
+
+        float4(float v0, float v1, float v2, float v3)
+        {
+            x = v0;
+            y = v1;
+            z = v2;
+            w = v3;
+        }
+    };
+
+    struct matrix44
+    {
+        float4 r[4];
+    };
+
+
+    struct float3
+    {
+        float x;
+        float y;
+        float z;
+
+        float3()
+        {
+
+        }
+
+        float3(float v0, float v1, float v2)
+        {
+            x = v0;
+            y = v1;
+            z = v2;
+        }
+    };
+
+    struct float2
+    {
+        float x;
+        float y;
+
+        float2()
+        {
+
+        }
+
+        float2(float v0, float v1)
+        {
+            x = v0;
+            y = v1;
+        }
+    };
+
+    struct vector4
+    {
+        float4 m_value;
+
+        vector4() {}
+        vector4(float  v0, float  v1, float  v2, float  v3) { m_value.x = v0; m_value.y = v1; m_value.z = v2; m_value.w = v3; }
+        vector4(float4 v) { m_value = v; }
+        vector4(float3 v)
+        {
+            m_value.x = v.x;
+            m_value.y = v.y;
+            m_value.z = v.z;
+            m_value.w = 0.0;
+        }
+    };
+
+    struct vector3
+    {
+        float3 m_value;
+
+        vector3() {}
+        vector3(float  v0, float  v1, float  v2) { m_value.x = v0; m_value.y = v1; m_value.z = v2; }
+        vector3(float3 v) { m_value = v; }
+        vector3(float2 v)
+        {
+            m_value.x = v.x;
+            m_value.y = v.y;
+            m_value.z = 0.0;
+        }
+    };
+
+    struct point4
+    {
+        float4 m_value;
+
+        point4() {}
+        point4(float  v0, float  v1, float  v2, float  v3) { m_value.x = v0; m_value.y = v1; m_value.z = v2; m_value.w = v3; }
+        point4(float4 v) { m_value = v; }
+        point4(float3 v)
+        {
+            m_value.x = v.x;
+            m_value.y = v.y;
+            m_value.z = v.z;
+            m_value.w = 0.0;
+        }
+    };
+
+    struct point3
+    {
+        float3 m_value;
+
+        point3() {}
+        point3(float  v0, float  v1, float  v2) { m_value.x = v0; m_value.y = v1; m_value.z = v2; }
+        point3(float3 v) { m_value = v; }
+        point3(float2 v)
+        {
+            m_value.x = v.x;
+            m_value.y = v.y;
+            m_value.z = 0.0f;
+        }
+    };
+
+    vector4 make_vector4(vector3 v)
+    {
+        vector4 r;
+
+        r.m_value.x = r.m_value.x;
+        r.m_value.y = r.m_value.y;
+        r.m_value.z = r.m_value.z;
+        r.m_value.w = 0.0f;
+        return r;
+    }
+
+    vector3 unit_x()
+    {
+        vector3 v;
+        v.m_value.x = 1.0f;
+        v.m_value.y = 0.0f;
+        v.m_value.z = 0.0f;
+        return v;
+    }
+
+    vector3 unit_y()
+    {
+        vector3 v;
+        v.m_value.x = 0.0f;
+        v.m_value.y = 1.0f;
+        v.m_value.z = 0.0f;
+        return v;
+    }
+
+    vector3 unit_z()
+    {
+        vector3 v;
+        v.m_value.x = 0.0f;
+        v.m_value.y = 0.0f;
+        v.m_value.z = 1.0f;
+        return v;
+    }
+
+    vector3 mul(vector3 v, float scalar)
+    {
+        vector3 r;
+
+        r.m_value.x = v.m_value.x * scalar;
+        r.m_value.y = v.m_value.y * scalar;
+        r.m_value.z = v.m_value.z * scalar;
+
+        return r;
+    }
+
+    vector3 add(vector3 v0, vector3 v1)
+    {
+        vector3 r;
+
+        r.m_value.x = v0.m_value.x + v1.m_value.x;
+        r.m_value.y = v0.m_value.y + v1.m_value.y;
+        r.m_value.z = v0.m_value.z + v1.m_value.z;
+        return r;
+    }
+
+    point3 add(point3 v0, vector3 v1)
+    {
+        point3 r;
+
+        r.m_value.x = v0.m_value.x + v1.m_value.x;
+        r.m_value.y = v0.m_value.y + v1.m_value.y;
+        r.m_value.z = v0.m_value.z + v1.m_value.z;
+
+        return r;
+    }
+
+    vector3 sub(point3 v0, point3 v1)
+    {
+        vector3 v;
+
+        v.m_value.x = v0.m_value.x - v0.m_value.x;
+        v.m_value.y = v0.m_value.y - v0.m_value.y;
+        v.m_value.z = v0.m_value.z - v0.m_value.z;
+        return v;
+    }
+
+    vector3 negate(vector3 v0)
+    {
+        vector3 r;
+
+        r.m_value.x = -v0.m_value.x;
+        r.m_value.y = -v0.m_value.y;
+        r.m_value.z = -v0.m_value.z;
+        return r;
+    }
+
+    vector3 subtract(vector3 v0, vector3 v1)
+    {
+        return add(v0, negate(v1));
+    }
+
+    float dot(vector3 v0, vector3 v1)
+    {
+        return v0.m_value.x * v1.m_value.x + v0.m_value.y * v1.m_value.y + v0.m_value.z * v1.m_value.z;
+    }
+
+    vector3 normalize(vector3 v)
+    {
+        float norm = dot(v, v);
+        return mul(v, 1.0f / norm);
+    }
+
+    vector3 cross(vector3 v0, vector3 v1)
+    {
+        vector3 r;
+
+        float ax = v0.m_value.x;
+        float ay = v0.m_value.y;
+        float az = v0.m_value.z;
+
+        float bx = v1.m_value.x;
+        float by = v1.m_value.y;
+        float bz = v1.m_value.z;
+
+
+        r.m_value.x = ay * bz - az * by;
+        r.m_value.y = az * bx - ax * bz;
+        r.m_value.z = ax * by - ay * bx;
+
+        return r;
+    }
+
+    point3 zero()
+    {
+        point3 v;
+        v.m_value.x = 0.0f;
+        v.m_value.y = 0.0f;
+        v.m_value.z = 0.0f;
+        return v;
+    }
+
+    struct aabb
+    {
+        float3 m_min;
+        float3 m_max;
+    };
+
+    struct distance
+    {
+        float m_value;
+    };
+
+    struct camera
+    {
+        point3      m_position;
+        distance    m_near;
+        vector3     m_direction;
+        distance    m_far;
+        vector3     m_up;
+    };
+
+    struct radian
+    {
+        float m_value;
+    };
+
+    struct degree
+    {
+        float m_value;
+    };
+
+    struct ratio
+    {
+        float m_value;
+    };
+
+    struct ortho_camera : camera
+    {
+        float m_left;
+        float m_right;
+        float m_top;
+        float m_bottom;
+    };
+
+    struct perspective_camera : camera
+    {
+        ratio  m_aspect;
+        radian m_fov_y;
+    };
+
+    vector3 up(const camera c)
+    {
+        return c.m_up;
+    }
+
+    vector3 forward(const camera c)
+    {
+        return c.m_direction;
+    }
+
+    vector3 right(const camera c)
+    {
+        return cross(up(c), forward(c));
+    }
+
+    point3 position(const camera c)
+    {
+        return c.m_position;
+    }
+
+    float project(vector3 v, point3 p)
+    {
+        vector3 v0;
+        v0.m_value.x = p.m_value.x;
+        v0.m_value.y = p.m_value.y;
+        v0.m_value.z = p.m_value.z;
+        return dot(v, v0);
+    }
+
+    struct view_transform
+    {
+        matrix44 m_matrix;
+    };
+
+    struct perspective_transform
+    {
+        matrix44 m_matrix;
+    };
+
+    view_transform make_view_transform(const camera c)
+    {
+        matrix44 r;
+
+        vector3 translation;
+
+        vector3 right_ = right(c);
+        vector3 up_ = up(c);
+        vector3 forward_ = forward(c);
+
+        translation.m_value.x = project(right_, position(c));
+        translation.m_value.y = project(up_, position(c));
+        translation.m_value.z = project(forward_, position(c));
+        translation = negate(translation);
+
+        r.r[0] = float4(right_.m_value.x, right_.m_value.y, right_.m_value.z, 0.0);
+        r.r[1] = float4(up_.m_value.x, up_.m_value.y, up_.m_value.z, 0.0);
+        r.r[2] = float4(forward_.m_value.x, forward_.m_value.y, forward_.m_value.z, 0.0);
+        r.r[3] = float4(translation.m_value.x, translation.m_value.y, translation.m_value.z, 1.0);
+
+        view_transform t;
+        t.m_matrix = r;
+        return t;
+    }
+
+    matrix44 perspective_matrix(const perspective_camera c)
+    {
+        matrix44 r;
+
+        float sinFov = sinf(c.m_fov_y.m_value / 2.0f);
+        float cosFov = cosf(c.m_fov_y.m_value / 2.0f);
+
+        float height = cosFov / sinFov;
+        float width = c.m_aspect.m_value * height;
+        float nearz = c.m_near.m_value;
+        float farz = c.m_far.m_value;
+        float range = farz / (farz - nearz);
+
+        r.r[0] = float4(width, 0, 0, 0);
+        r.r[1] = float4(0, height, 0, 0);
+        r.r[2] = float4(0, 0, range, 0);
+        r.r[3] = float4(0, 0, -range * nearz, 0);
+
+        return r;
+    }
+
+    perspective_transform make_perspective_transform(const perspective_camera c)
+    {
+        matrix44 r;
+        perspective_transform t;
+        t.m_matrix = r;
+        return t;
+    }
+
+    matrix44 perspective_matrix(const ortho_camera c)
+    {
+        matrix44 r;
+
+        return r;
+    }
+
+    point4 transform_point(view_transform m, point4 p)
+    {
+        point4  r;
+        point4  p0;
+        float4  v = m.m_matrix.r[3];
+
+        p0.m_value.x = p.m_value.x;
+        p0.m_value.y = p.m_value.y;
+        p0.m_value.z = p.m_value.z;
+        p0.m_value.w = 1.0;
+
+        r.m_value.x = m.m_matrix.r[0].x * p0.m_value.x + m.m_matrix.r[1].x * p0.m_value.y + m.m_matrix.r[2].x * p0.m_value.z + m.m_matrix.r[3].x * p0.m_value.w;
+        r.m_value.y = m.m_matrix.r[0].y * p0.m_value.x + m.m_matrix.r[1].y * p0.m_value.y + m.m_matrix.r[2].y * p0.m_value.z + m.m_matrix.r[3].y * p0.m_value.w;
+        r.m_value.z = m.m_matrix.r[0].z * p0.m_value.x + m.m_matrix.r[1].z * p0.m_value.y + m.m_matrix.r[2].z * p0.m_value.z + m.m_matrix.r[3].z * p0.m_value.w;
+
+        return r;
+    }
+
+    point3 transform(matrix44 m, point3 p)
+    {
+        return { 0,1,0 };
+    }
+
+    vector3 project_view_direction_in_light_space(matrix44 light, point3 closest_point_to_camera_ws, vector3 camera_dir_ws)
+    {
+        point3  b = closest_point_to_camera_ws;
+        point3  e = add(closest_point_to_camera_ws, camera_dir_ws);
+
+        point3  b_ls = transform(light, b);
+        point3  e_ls = transform(light, e);
+
+        vector3 projected_dir = sub(e_ls, b_ls);
+        projected_dir.m_value.y = 0;
+
+        return normalize(projected_dir);
+    }
+
+    point3 get_closest_point(point3 frustum_points_ws[8], point3 camera_position_ws)
+    {
+        vector3 min_difference = sub(camera_position_ws, frustum_points_ws[0]);
+        float min_norm_squared = dot(min_difference, min_difference);
+        point3 min_point = frustum_points_ws[0];
+
+        for (uint32_t i = 0U; i < 8; ++i)
+        {
+            vector3 difference = sub(camera_position_ws, frustum_points_ws[i]);
+            float   norm_squared = dot(difference, difference);
+
+            if (norm_squared < min_norm_squared)
+            {
+                min_norm_squared = norm_squared;
+                min_point = frustum_points_ws[i];
+            }
+        }
+
+        return min_point;
+    }
+
+    float Pi()
+    {
+        return 3.14159265358979323846f;
+    }
+
+    float radians(float degrees)
+    {
+        return ((degrees) / 180.0f) * Pi();
+    }
+
+}
+
+namespace storage_factors1
+{
+    float r_end_b_t(float theta)
+    {
+        return 1.0f / cos(theta);
+    }
+
+    float r_side_b_s(float theta)
+    {
+        return 1.0f / cos(theta);
+    }
+
+    float r_side_b_t(float theta, float n_e, float f_e)
+    {
+        return logf(f_e / n_e) / (2.0f * tanf(theta) * cosf(theta) * cosf(theta));
+    }
+
+    float uniform(float theta, float n_e, float f_e)
+    {
+        float ratio = f_e / n_e;
+        float cos = cosf(theta);
+        return ratio * ((ratio - 1) / (2 * tanf(theta) * cos * cos * cos));
+    }
+
+    float perspective(float theta, float n_e, float f_e)
+    {
+        float ratio = f_e / n_e;
+        float cos = cosf(theta);
+        return ((ratio - 1) / (2 * tanf(theta) * cos * cos * cos));
+    }
+}
+
+/*
+        float theta                 = 0.785398185f;
+        float n_e                   = 0.25f;
+        float f_e                   = 32000.f;
+
+        float r_end_t               = storage_factors::r_end_b_t(theta);
+        float r_end_s               = storage_factors::r_end_b_t(theta);
+
+        float r_side_s              = storage_factors::r_side_b_s(theta);
+        float r_side_t              = storage_factors::r_side_b_t(theta, n_e, f_e);
+
+        float uniform               = storage_factors::uniform(theta, n_e, f_e);
+        float storage               = sqrtf(uniform);
+
+        float perspective           = storage_factors::perspective(theta, n_e, f_e);
+        float storage_p             = sqrtf(perspective);
+
+        float n_opt                 = n_e + sqrtf(n_e * f_e);
+
+
+        using namespace lispsm;
+
+        vector3 up      = unit_y();
+        vector3 forward = unit_z();
+        vector3 right   = cross(up, forward);
+
+        camera c;
+
+        c.m_up        = up;
+        c.m_direction = forward;
+        c.m_position = { 0.0,1200.0,10.0f };
+        c.m_near      = { 0.25f };
+        c.m_far       = { 32000.f };
+
+        view_transform view_        = make_view_transform(c);
+
+        point3              p(0.0f, 0.0f, 16440.0f);
+
+        point4          t0          = transform_point(view_, point4( p.m_value ));
+        DirectX::XMMATRIX m0        = DirectX::XMMatrixPerspectiveFovLH(radians(75.0f), 1200.0f/900.0f , 1.0f, 64000.f );
+        DirectX::XMVECTOR v0        = DirectX::XMVector3Transform({ -16000, -16000, 96000 }, m0);
+*/
 
 
 

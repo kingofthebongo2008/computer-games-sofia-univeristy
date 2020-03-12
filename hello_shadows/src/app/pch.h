@@ -30,6 +30,9 @@
 #include <winrt/Windows.UI.Input.h>
 #include <winrt/Windows.UI.ViewManagement.h>
 
+#include <DirectXMath.h>
+#include <DirectXCollision.h>
+
 
 
 

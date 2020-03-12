@@ -91,7 +91,7 @@ namespace sample
         winrt::Windows::Foundation::Rect bounds = window.Bounds();
         result.m_logical_size.Width  = bounds.Width;
         result.m_logical_size.Height = bounds.Height;
-
+            
         float f;
 
         result.m_native_orientation = fromWinrt(currentDisplayInformation.NativeOrientation());
