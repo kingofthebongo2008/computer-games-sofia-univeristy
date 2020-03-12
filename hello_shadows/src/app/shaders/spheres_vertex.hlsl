@@ -21,7 +21,7 @@ interpolated_value main(in vertex_input v, in uint vid : SV_VERTEXID)
 {
 	interpolated_value r = (interpolated_value)0;
 	r.m_position		 = 0;
-	r.m_position_os		 = asfloat(Geometry.Load3(m_draw_argument));
+	r.m_position_os		 = asfloat(Geometry.Load3(m_draw_argument0));
 	r.m_vertex_id		 = vid;
 
 	return r;

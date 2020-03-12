@@ -10,7 +10,10 @@ cbuffer g_constants		  : register(b1)
 
 cbuffer g_constants		  : register(b0)
 {
-	uint m_draw_argument;
+	uint m_draw_argument0;
+	uint m_draw_argument1;
+	uint m_draw_argument2;
+	uint m_draw_argument3;
 };
 
 #endif

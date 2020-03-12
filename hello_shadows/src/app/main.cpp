@@ -1517,6 +1517,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                     for (auto i = 0; i < 8; ++i)
                     {
                         commandList->SetGraphicsRoot32BitConstant(2, spheres_offset + i * sizeof(XMVECTOR), 0);
+                        commandList->SetGraphicsRoot32BitConstant(2, 0xFF0000FF, 1);
                         commandList->DrawInstanced(vertex_count, 1, spheres_offset / 16, 0);
                     }
                 }

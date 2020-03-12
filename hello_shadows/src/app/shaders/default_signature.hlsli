@@ -3,7 +3,7 @@
 #define MyRS1 "RootFlags( ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT ), " \
               "CBV(b1, space = 0), " \
               "SRV(t0), " \
-	      "RootConstants(num32BitConstants=1, b0), " \
+	      "RootConstants(num32BitConstants=4, b0), " \
               "UAV(u0), " \
               "DescriptorTable( CBV(b2, numDescriptors = 5))," \
               "DescriptorTable( UAV(u1, numDescriptors = 2))," \
