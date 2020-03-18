@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="packages\assimp.4.1.0\build\native\assimp.props" Condition="Exists('packages\assimp.4.1.0\build\native\assimp.props')" />
   <Import Project="packages\uc-serialization.1.0.47\build\native\uc-serialization.props" Condition="Exists('packages\uc-serialization.1.0.47\build\native\uc-serialization.props')" />
   <Import Project="packages\Microsoft.Windows.CppWinRT.2.0.190425.5\build\native\Microsoft.Windows.CppWinRT.props" Condition="Exists('packages\Microsoft.Windows.CppWinRT.2.0.190425.5\build\native\Microsoft.Windows.CppWinRT.props')" />
   <PropertyGroup Label="Globals">
@@ -33,6 +34,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -64,6 +66,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AssimpImporter.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
@@ -83,6 +86,7 @@
     <Image Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AssimpImporter.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
@@ -92,6 +96,7 @@
   <ImportGroup Label="ExtensionTargets">
     <Import Project="packages\Microsoft.Windows.CppWinRT.2.0.190425.5\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('packages\Microsoft.Windows.CppWinRT.2.0.190425.5\build\native\Microsoft.Windows.CppWinRT.targets')" />
     <Import Project="packages\uc-serialization.1.0.47\build\native\uc-serialization.targets" Condition="Exists('packages\uc-serialization.1.0.47\build\native\uc-serialization.targets')" />
+    <Import Project="packages\assimp.4.1.0\build\native\assimp.targets" Condition="Exists('packages\assimp.4.1.0\build\native\assimp.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -101,5 +106,7 @@
     <Error Condition="!Exists('packages\Microsoft.Windows.CppWinRT.2.0.190425.5\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\Microsoft.Windows.CppWinRT.2.0.190425.5\build\native\Microsoft.Windows.CppWinRT.targets'))" />
     <Error Condition="!Exists('packages\uc-serialization.1.0.47\build\native\uc-serialization.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\uc-serialization.1.0.47\build\native\uc-serialization.props'))" />
     <Error Condition="!Exists('packages\uc-serialization.1.0.47\build\native\uc-serialization.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\uc-serialization.1.0.47\build\native\uc-serialization.targets'))" />
+    <Error Condition="!Exists('packages\assimp.4.1.0\build\native\assimp.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\assimp.4.1.0\build\native\assimp.props'))" />
+    <Error Condition="!Exists('packages\assimp.4.1.0\build\native\assimp.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\assimp.4.1.0\build\native\assimp.targets'))" />
   </Target>
 </Project>

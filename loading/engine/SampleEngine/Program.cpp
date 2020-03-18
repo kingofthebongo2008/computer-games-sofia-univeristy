@@ -6,6 +6,7 @@
 #include <uc/lip/lip.h>
 #include <uc/lip/tools_time_utils.h>
 
+#include "AssimpImporter.h"
 
 using namespace winrt;
 
@@ -99,10 +100,16 @@ namespace
 	}
 }
 
-
 int main()
 {
-	std::wcout << "Packaging Animals..." << "\n";
+    AssimpImporter        importer;
+    AssimpImporter::Model model;
+    importer.ImportModel("sanMiguel.obj", &model);
+
+
+    
+    /*
+    std::wcout << "Packaging Animals..." << "\n";
 	std::vector<uint8_t> blob = package_animals();
 
 	std::wcout << "Restoring.." << "\n";
@@ -116,6 +123,7 @@ int main()
 
 		bs->~animals();
 	}
+    */
 
 	return 0;
 }
