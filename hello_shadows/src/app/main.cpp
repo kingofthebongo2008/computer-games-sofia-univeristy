@@ -417,8 +417,9 @@ static winrt::com_ptr<ID3D12Heap> CreateUploadHeap(ID3D12Device1* device)
     winrt::com_ptr<ID3D12Heap>     r;
     D3D12_HEAP_DESC p = {};
 
-    p.Properties.Type = D3D12_HEAP_TYPE_UPLOAD;
-    p.SizeInBytes     = 4 * 1024 * 1024;
+    p.Properties.Type   = D3D12_HEAP_TYPE_UPLOAD;
+    p.SizeInBytes       = 4 * 1024 * 1024;
+    p.Flags             = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
 
     ThrowIfFailed(device->CreateHeap(&p, __uuidof(ID3D12Heap), r.put_void()));
     return r;
@@ -431,6 +432,7 @@ static winrt::com_ptr<ID3D12Heap> CreateGeometryHeap(ID3D12Device1* device)
 
     p.Properties.Type   = D3D12_HEAP_TYPE_DEFAULT;
     p.SizeInBytes       = 4 * 1024 * 1024;
+    p.Flags             = D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS;
 
     ThrowIfFailed(device->CreateHeap(&p, __uuidof(ID3D12Heap), r.put_void()));
     return r;
