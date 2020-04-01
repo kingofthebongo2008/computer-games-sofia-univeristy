@@ -4,6 +4,21 @@
 <ItemGroup>	
 <ClInclude Include = "..\..\src\app\build_window_environment.h"/>	
 <ClInclude Include = "..\..\src\app\d3dx12.h"/>	
+<ClInclude Include = "..\..\src\app\defines.h"/>	
+<ClInclude Include = "..\..\src\app\functions.h"/>	
+<ClInclude Include = "..\..\src\app\functions_misc.h"/>	
+<ClInclude Include = "..\..\src\app\geometry.h"/>	
+<ClInclude Include = "..\..\src\app\geometry_convex_clipping.h"/>	
+<ClInclude Include = "..\..\src\app\geometry_functions.h"/>	
+<ClInclude Include = "..\..\src\app\geometry_transforms.h"/>	
+<ClInclude Include = "..\..\src\app\graphics.h"/>	
+<ClInclude Include = "..\..\src\app\half.h"/>	
+<ClInclude Include = "..\..\src\app\math.h"/>	
+<ClInclude Include = "..\..\src\app\matrix.h"/>	
+<ClInclude Include = "..\..\src\app\memory.h"/>	
 <ClInclude Include = "..\..\src\app\pch.h"/>	
+<ClInclude Include = "..\..\src\app\quaternion.h"/>	
+<ClInclude Include = "..\..\src\app\scenes\scenes_material_texture.h"/>	
+<ClInclude Include = "..\..\src\app\vector.h"/>	
 <ClInclude Include = "..\..\src\app\window_environment.h"/>
 </ItemGroup></Project> 

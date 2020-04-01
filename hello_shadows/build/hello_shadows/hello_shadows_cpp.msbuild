@@ -6,6 +6,10 @@
 </ItemGroup>
 <ItemGroup>	
 <ClCompile Include = "..\..\src\app\build_window_environment.cpp" />	
+<ClCompile Include = "..\..\src\app\functions.cpp" />	
+<ClCompile Include = "..\..\src\app\geometry_convex_clipping.cpp" />	
+<ClCompile Include = "..\..\src\app\half.cpp" />	
 <ClCompile Include = "..\..\src\app\main.cpp" />	
+<ClCompile Include = "..\..\src\app\scenes\scenes_material_texture.cpp" />	
 <ClCompile Include = "..\..\src\app\window_environment.cpp" />
 </ItemGroup></Project> 

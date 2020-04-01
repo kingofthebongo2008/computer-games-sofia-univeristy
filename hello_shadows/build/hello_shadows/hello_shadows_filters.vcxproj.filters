@@ -4,11 +4,27 @@
 <ItemGroup>
 <Filter Include = "src"/>
 <Filter Include = "src\app"/>
+<Filter Include = "src\app\scenes"/>
 </ItemGroup>
 <ItemGroup>	
 <ClInclude Include = "..\..\src\app\build_window_environment.h"><Filter>src\app</Filter></ClInclude>	
 <ClInclude Include = "..\..\src\app\d3dx12.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\defines.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\functions.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\functions_misc.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\geometry.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\geometry_convex_clipping.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\geometry_functions.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\geometry_transforms.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\graphics.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\half.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\math.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\matrix.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\memory.h"><Filter>src\app</Filter></ClInclude>	
 <ClInclude Include = "..\..\src\app\pch.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\quaternion.h"><Filter>src\app</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\scenes\scenes_material_texture.h"><Filter>src\app\scenes</Filter></ClInclude>	
+<ClInclude Include = "..\..\src\app\vector.h"><Filter>src\app</Filter></ClInclude>	
 <ClInclude Include = "..\..\src\app\window_environment.h"><Filter>src\app</Filter></ClInclude>
 </ItemGroup>
 <ItemGroup>
@@ -21,9 +37,14 @@
 <ItemGroup>
 <Filter Include = "src"/>
 <Filter Include = "src\app"/>
+<Filter Include = "src\app\scenes"/>
 </ItemGroup>
 <ItemGroup>	
 <ClCompile Include = "..\..\src\app\build_window_environment.cpp"><Filter>src\app</Filter></ClCompile>	
+<ClCompile Include = "..\..\src\app\functions.cpp"><Filter>src\app</Filter></ClCompile>	
+<ClCompile Include = "..\..\src\app\geometry_convex_clipping.cpp"><Filter>src\app</Filter></ClCompile>	
+<ClCompile Include = "..\..\src\app\half.cpp"><Filter>src\app</Filter></ClCompile>	
 <ClCompile Include = "..\..\src\app\main.cpp"><Filter>src\app</Filter></ClCompile>	
+<ClCompile Include = "..\..\src\app\scenes\scenes_material_texture.cpp"><Filter>src\app\scenes</Filter></ClCompile>	
 <ClCompile Include = "..\..\src\app\window_environment.cpp"><Filter>src\app</Filter></ClCompile>
 </ItemGroup></Project> 

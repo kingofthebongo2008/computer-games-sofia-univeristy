@@ -49,6 +49,7 @@ namespace lispsm
 
 void triangulate_aabb(const AABB aabb, XMVECTOR* points);
 void aabb_points(const AABB aabb, XMVECTOR* points);
+void clip3(XMVECTOR n, XMVECTOR v0, XMVECTOR v1, XMVECTOR v2, XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count);
 
 namespace
 {
@@ -778,12 +779,11 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             AABB     aabb;
             aabb.m_max = XMVectorSet(1, 1, 1, 1);
             aabb.m_min = XMVectorSet(-1, -1, -1, 1);
+            XMVECTOR points[36];
 
             //Upload
             //AABB
             {
-                
-                XMVECTOR points[36];
                 triangulate_aabb(aabb, &points[0]);
                 std::memcpy(upload_buffer + upload_position, &points[0], sizeof(points));
                 upload_position += sizeof(points);
@@ -873,6 +873,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
             uint64_t spheres_offset = 0;
             uint64_t frustum_offset = 0;
+            uint64_t clipped_frustum_offset = 0;
+            uint32_t clipped_frustum_count = 0;
 
             {
                 XMVECTOR points[8];
@@ -884,9 +886,6 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 std::memcpy(upload_buffer + upload_position, &points[0], sizeof(points));
                 upload_position += sizeof(points);
             }
-
-
-            
 
             {
                 XMMATRIX p = XMMatrixPerspectiveFovLH(lispsm::radians(75.0f), (float)m_back_buffer_width / (float)m_back_buffer_height, 10.0f, 1.f);
@@ -909,6 +908,44 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
 
                 std::memcpy(upload_buffer + upload_position, &points[0], sizeof(points));
                 upload_position += sizeof(points);
+            }
+
+
+            {
+                XMMATRIX p = XMMatrixPerspectiveFovRH(lispsm::radians(75.0f), (float)m_back_buffer_width / (float)m_back_buffer_height, 10.0f, 1.f);
+
+                BoundingFrustum f;
+                BoundingFrustum::CreateFromMatrix(f, p);
+                XMVECTOR   planes[6];
+                f.GetPlanes(&planes[0], &planes[1], &planes[2], &planes[3], &planes[4], &planes[5]);
+
+                XMVECTOR   negate = XMVectorSet(1.0f, 1.0f, 1.0f, -1);
+
+                planes[1] = planes[1] * negate;
+                //planes[5] = planes[5] * negate;
+
+                XMVECTOR clipped_frustum[512];
+                clipped_frustum_count = 0;
+
+               
+                for (auto i = 0; i < 12; ++i)
+                {
+                    clip3(planes[0], points[i * 3],  points[i * 3 + 1], points[i * 3 + 2], &clipped_frustum[0], &clipped_frustum_count);
+                    clip3(planes[1], points[i * 3],  points[i * 3 + 1],  points[i * 3 + 2], &clipped_frustum[0], &clipped_frustum_count);
+                    clip3(planes[2], points[i * 3],  points[i * 3 + 1],  points[i * 3 + 2], &clipped_frustum[0], &clipped_frustum_count);
+
+                    clip3(planes[3], points[i * 3],  points[i * 3 + 1],  points[i * 3 + 2], &clipped_frustum[0], &clipped_frustum_count);
+                    clip3(planes[4], points[i * 3],  points[i * 3 + 1],  points[i * 3 + 2], &clipped_frustum[0], &clipped_frustum_count);
+                    clip3(planes[5], points[i * 3],  points[i * 3 + 1],  points[i * 3 + 2], &clipped_frustum[0], &clipped_frustum_count);
+                }
+                
+
+                upload_position = align(upload_position, 16);
+                clipped_frustum_offset = upload_position;
+
+                std::memcpy(upload_buffer + upload_position, &clipped_frustum[0], clipped_frustum_count * sizeof(XMVECTOR));
+                upload_position += clipped_frustum_count * sizeof(XMVECTOR);
+               
             }
 
             commandList->CopyResource(m_geometry.get(), m_uploadResource[m_frame_index].get());
@@ -1030,6 +1067,26 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                         commandList->DrawInstanced(vertex_count, 1, 0, 0);
                     }
                 }
+
+                {
+                    int subdivision_count = 5 + 1;// subdivision_count + 1;
+                    int vertical_segments = subdivision_count;
+                    int horizontal_segments = subdivision_count * 2;
+                    int vertex_count = (horizontal_segments + 1) * (vertical_segments + 1);
+
+                    commandList->SetPipelineState(m_spheres_state.get());
+                    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+                    for (auto i = 0; i < clipped_frustum_count; ++i)
+                    {
+                        commandList->SetGraphicsRoot32BitConstant(2, clipped_frustum_offset + i * sizeof(XMVECTOR), 0);
+                        commandList->SetGraphicsRoot32BitConstant(2, 0xFFFFFF00, 1);
+                        commandList->SetGraphicsRoot32BitConstant(2, subdivision_count, 2);
+                        commandList->DrawInstanced(vertex_count, 1, 0, 0);
+                    }
+                }
+
+                
             }
 
             //Transition resources for presenting, flush the gpu caches
@@ -1433,21 +1490,18 @@ namespace
         return (mask & 0x4) != 0;
     }
 
-    bool above3(int32_t mask)
-    {
-        return (mask & 0x8) != 0;
-    }
+
 }
 
-void clip3(XMVECTOR n, XMVECTOR v0, XMVECTOR v1, XMVECTOR v2, XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count )
+void clip3(XMVECTOR n, XMVECTOR v0, XMVECTOR v1, XMVECTOR v2, XMVECTOR* clipped_frustum_, uint32_t* clipped_frustum_count )
 {
     //Distances to the plane (this is an array parallel // to v[], stored as a vec3)
     //XMVECTOR dist = vec3(dot(v0, n), dot(v1, n), dot(v2, n));
 
     XMVECTOR v3;
-    XMVECTOR d0             = XMVector3Dot(n, v0);
-    XMVECTOR d1             = XMVector3Dot(n, v1);
-    XMVECTOR d2             = XMVector3Dot(n, v2);
+    XMVECTOR d0             = XMVector4Dot(n, v0);
+    XMVECTOR d1             = XMVector4Dot(n, v1);
+    XMVECTOR d2             = XMVector4Dot(n, v2);
 
     XMVECTOR clipEpsilon    = XMVectorNegate(XMVectorReplicate(0.00001f));
     XMVECTOR clipEpsilon2   = XMVectorReplicate(0.01f);
@@ -1455,7 +1509,7 @@ void clip3(XMVECTOR n, XMVECTOR v0, XMVECTOR v1, XMVECTOR v2, XMVECTOR* clipped_
     XMVECTOR r0             = d0;
     XMVECTOR r1             = XMVectorSelect(r0, d1, g_XMSelect0111);
     XMVECTOR r2             = XMVectorSelect(r1, d2, g_XMSelect0011);
-    XMVECTOR r3             = XMVectorSelect(r2, g_XMZero, g_XMSelect1110);
+    XMVECTOR r3             = XMVectorSelect(g_XMZero, r2, g_XMSelect1110);
     XMVECTOR dist           = r3;
 
     //all clipped
@@ -1464,6 +1518,8 @@ void clip3(XMVECTOR n, XMVECTOR v0, XMVECTOR v1, XMVECTOR v2, XMVECTOR* clipped_
         return;
     }
 
+    XMVECTOR* clipped_frustum = clipped_frustum_ + *clipped_frustum_count;
+
     //none clipped
     if (XMComparisonAllTrue(XMVector3GreaterOrEqualR(dist, clipEpsilon)))
     {
@@ -1471,6 +1527,7 @@ void clip3(XMVECTOR n, XMVECTOR v0, XMVECTOR v1, XMVECTOR v2, XMVECTOR* clipped_
         *clipped_frustum++ = v1;
         *clipped_frustum++ = v2;
         *clipped_frustum_count += 3;
+        return;
     }
 
     // There are either 1 or 2 vertices above the clipping plane .
