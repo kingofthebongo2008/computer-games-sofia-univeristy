@@ -17,7 +17,7 @@ ByteAddressBuffer Geometry : register(t0);
 
 
 [RootSignature( MyRS1 ) ]
-interpolated_value main(in vertex_input v, in uint vid : SV_VERTEXID)
+interpolated_value main(in uint vid : SV_VERTEXID)
 {
 	interpolated_value r = (interpolated_value)0;
 	r.m_position		 = 0;

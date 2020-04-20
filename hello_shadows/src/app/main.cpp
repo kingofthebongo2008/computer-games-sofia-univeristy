@@ -721,6 +721,90 @@ float iTriangle(XMVECTOR ro, XMVECTOR rd, float rayn, float rayf, XMVECTOR v0, X
     }
 }
 
+XMFLOAT3 operator+(const XMFLOAT3 a, const XMFLOAT3 b)
+{
+    XMFLOAT3 r;
+    r.x = a.x + b.x;
+    r.y = a.y + b.y;
+    r.z = a.z + b.z;
+    return r;
+}
+
+XMFLOAT3 operator*(const XMFLOAT3 a, const float t)
+{
+    XMFLOAT3 r;
+    r.x = a.x * t;
+    r.y = a.y * t;
+    r.z = a.z * t;
+    return r;
+}
+
+
+// OutVD > 0 means ray is back-facing the plane
+// returns false if there is no intersection because ray is perpedicular to plane
+bool ray_to_plane(const XMFLOAT3& RayOrig, const XMFLOAT3& RayDir, const XMFLOAT4& Plane, float* OutT, float* OutVD)
+{
+    *OutVD = Plane.x * RayDir.x + Plane.y * RayDir.y + Plane.z * RayDir.z;
+    if (*OutVD == 0.0f)
+        return false;
+    *OutT = -(Plane.x * RayOrig.x + Plane.y * RayOrig.y + Plane.z * RayOrig.z + Plane.w) / *OutVD;
+    return true;
+}
+
+
+void calc_plane_aabb_intersection_points(const XMFLOAT4& plane,
+    const XMFLOAT3& aabb_min, const XMFLOAT3& aabb_max,
+    XMFLOAT3* out_points, unsigned& out_point_count)
+{
+    out_point_count = 0;
+    float vd, t;
+
+    // Test edges along X axis, pointing right.
+    XMFLOAT3 dir = XMFLOAT3(aabb_max.x - aabb_min.x, 0.f, 0.f);
+    XMFLOAT3 orig = aabb_min;
+    if (ray_to_plane(orig, dir, plane, &t, &vd) && t >= 0.f && t <= 1.f)
+        out_points[out_point_count++] = orig + dir * t;
+    orig = XMFLOAT3(aabb_min.x, aabb_max.y, aabb_min.z);
+    if (ray_to_plane(orig, dir, plane, &t, &vd) && t >= 0.f && t <= 1.f)
+        out_points[out_point_count++] = orig + dir * t;
+    orig = XMFLOAT3(aabb_min.x, aabb_min.y, aabb_max.z);
+    if (ray_to_plane(orig, dir, plane, &t, &vd) && t >= 0.f && t <= 1.f)
+        out_points[out_point_count++] = orig + dir * t;
+    orig = XMFLOAT3(aabb_min.x, aabb_max.y, aabb_max.z);
+    if (ray_to_plane(orig, dir, plane, &t, &vd) && t >= 0.f && t <= 1.f)
+        out_points[out_point_count++] = orig + dir * t;
+
+    // Test edges along Y axis, pointing up.
+    dir = XMFLOAT3(0.f, aabb_max.y - aabb_min.y, 0.f);
+    orig = XMFLOAT3(aabb_min.x, aabb_min.y, aabb_min.z);
+    if (ray_to_plane(orig, dir, plane, &t, &vd) && t >= 0.f && t <= 1.f)
+        out_points[out_point_count++] = orig + dir * t;
+    orig = XMFLOAT3(aabb_max.x, aabb_min.y, aabb_min.z);
+    if (ray_to_plane(orig, dir, plane, &t, &vd) && t >= 0.f && t <= 1.f)
+        out_points[out_point_count++] = orig + dir * t;
+    orig = XMFLOAT3(aabb_min.x, aabb_min.y, aabb_max.z);
+    if (ray_to_plane(orig, dir, plane, &t, &vd) && t >= 0.f && t <= 1.f)
+        out_points[out_point_count++] = orig + dir * t;
+    orig = XMFLOAT3(aabb_max.x, aabb_min.y, aabb_max.z);
+    if (ray_to_plane(orig, dir, plane, &t, &vd) && t >= 0.f && t <= 1.f)
+        out_points[out_point_count++] = orig + dir * t;
+
+    // Test edges along Z axis, pointing forward.
+    dir = XMFLOAT3(0.f, 0.f, aabb_max.z - aabb_min.z);
+    orig = XMFLOAT3(aabb_min.x, aabb_min.y, aabb_min.z);
+    if (ray_to_plane(orig, dir, plane, &t, &vd) && t >= 0.f && t <= 1.f)
+        out_points[out_point_count++] = orig + dir * t;
+    orig = XMFLOAT3(aabb_max.x, aabb_min.y, aabb_min.z);
+    if (ray_to_plane(orig, dir, plane, &t, &vd) && t >= 0.f && t <= 1.f)
+        out_points[out_point_count++] = orig + dir * t;
+    orig = XMFLOAT3(aabb_min.x, aabb_max.y, aabb_min.z);
+    if (ray_to_plane(orig, dir, plane, &t, &vd) && t >= 0.f && t <= 1.f)
+        out_points[out_point_count++] = orig + dir * t;
+    orig = XMFLOAT3(aabb_max.x, aabb_max.y, aabb_min.z);
+    if (ray_to_plane(orig, dir, plane, &t, &vd) && t >= 0.f && t <= 1.f)
+        out_points[out_point_count++] = orig + dir * t;
+}
+
 
 
 class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFrameworkViewSource>
@@ -951,177 +1035,32 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 BoundingFrustum::CreateFromMatrix(f, p);
                 XMVECTOR clipped_frustum[512];
                 clipped_frustum_count = 0;
-                XMVECTOR vertices[8];
-                uint32_t indices[36];
-                triangulate_aabb(aabb, &vertices[0], &indices[0]);
-
-                XMVECTOR frustumVertices[8];
-                XMFLOAT3 points[8];
-                
-                f.GetCorners(&points[0]);
-
-                /*
-
-                4->0
-                5->1
-                1->2
-                0->3
-
-                7->4
-                6->5
-                2->6
-                3->7
-
-                */
-
-                
-                /*
-                frustumVertices[0] = XMVectorSelect(XMLoadFloat3(&points[4]), XMVectorSplatOne(), g_XMSelect0001);
-                frustumVertices[1] = XMVectorSelect(XMLoadFloat3(&points[5]), XMVectorSplatOne(), g_XMSelect0001);
-                frustumVertices[2] = XMVectorSelect(XMLoadFloat3(&points[1]), XMVectorSplatOne(), g_XMSelect0001);
-                frustumVertices[3] = XMVectorSelect(XMLoadFloat3(&points[0]), XMVectorSplatOne(), g_XMSelect0001);
-
-                frustumVertices[4] = XMVectorSelect(XMLoadFloat3(&points[7]), XMVectorSplatOne(), g_XMSelect0001);
-                frustumVertices[5] = XMVectorSelect(XMLoadFloat3(&points[6]), XMVectorSplatOne(), g_XMSelect0001);
-                frustumVertices[6] = XMVectorSelect(XMLoadFloat3(&points[2]), XMVectorSplatOne(), g_XMSelect0001);
-                frustumVertices[7] = XMVectorSelect(XMLoadFloat3(&points[3]), XMVectorSplatOne(), g_XMSelect0001);
-                */
-
-                
-                frustumVertices[0] = XMVectorSelect(XMLoadFloat3(&points[0]), XMVectorSplatOne(), g_XMSelect0001);
-                frustumVertices[1] = XMVectorSelect(XMLoadFloat3(&points[1]), XMVectorSplatOne(), g_XMSelect0001);
-                frustumVertices[2] = XMVectorSelect(XMLoadFloat3(&points[2]), XMVectorSplatOne(), g_XMSelect0001);
-                frustumVertices[3] = XMVectorSelect(XMLoadFloat3(&points[3]), XMVectorSplatOne(), g_XMSelect0001);
-
-                frustumVertices[4] = XMVectorSelect(XMLoadFloat3(&points[4]), XMVectorSplatOne(), g_XMSelect0001);
-                frustumVertices[5] = XMVectorSelect(XMLoadFloat3(&points[5]), XMVectorSplatOne(), g_XMSelect0001);
-                frustumVertices[6] = XMVectorSelect(XMLoadFloat3(&points[6]), XMVectorSplatOne(), g_XMSelect0001);
-                frustumVertices[7] = XMVectorSelect(XMLoadFloat3(&points[7]), XMVectorSplatOne(), g_XMSelect0001);
-                
-
-                // Returns 8 corners position of bounding frustum.
-                //     Near    Far
-                //    0----1  4----5
-                //    |    |  |    |
-                //    |    |  |    |
-                //    3----2  7----6
-
-                for (auto t0 = 0; t0 < 12; ++t0)
-                {
-                    auto i00 = t0 * 3;
-                    auto i01 = t0 * 3 + 1;
-                    auto i02 = t0 * 3 + 2;
-
-                    XMVECTOR v00 = frustumVertices[indices[i00]];
-                    XMVECTOR v01 = frustumVertices[indices[i01]];
-                    XMVECTOR v02 = frustumVertices[indices[i02]];
-
-                    XMVECTOR e00 = XMVector3Normalize(XMVectorSubtract(v01, v00));
-                    XMVECTOR e01 = XMVector3Normalize(XMVectorSubtract(v02, v01));
-                    XMVECTOR e02 = XMVector3Normalize(XMVectorSubtract(v00, v02));
-
-                    clipped_frustum[clipped_frustum_count++] = XMVectorAdd(v00, e00);
-                    clipped_frustum[clipped_frustum_count++] = XMVectorAdd(v01, e01);
-                    clipped_frustum[clipped_frustum_count++] = XMVectorAdd(v02, e02);
-
-                    for (auto t1 = 0; t1 < 12; ++t1)
-                    {
-                        auto i10 = t1 * 3;
-                        auto i11 = t1 * 3 + 1;
-                        auto i12 = t1 * 3 + 2;
-
-                        XMVECTOR v10 = vertices[indices[i10]];
-                        XMVECTOR v11 = vertices[indices[i11]];
-                        XMVECTOR v12 = vertices[indices[i12]];
-
-                        /*
-                        if (float distance = iTriangle(v00, e00, 0.0001f, 100000.0f, v10, v11, v12) != g_MaxDistance)
-                        {
-                            XMVECTOR scale                           = XMVectorSet(distance, distance, distance, 0);
-                            XMVECTOR n                               = XMVector3Normalize(e00);
-                            clipped_frustum[clipped_frustum_count++] = XMVectorMultiplyAdd(scale, n, v00);
-                        }
-
-                        if (float distance = iTriangle(v01, e01, 0.0001f, 100000.0f, v10, v11, v12) != g_MaxDistance)
-                        {
-                            XMVECTOR scale = XMVectorSet(distance, distance, distance, 0);
-                            XMVECTOR n = XMVector3Normalize(e01);
-                            clipped_frustum[clipped_frustum_count++] = XMVectorMultiplyAdd(scale, n, v01);
-                        }
-
-                        if (float distance = iTriangle(v02, e02, 0.0001f, 100000.0f, v10, v11, v12) != g_MaxDistance)
-                        {
-                            XMVECTOR scale = XMVectorSet(distance, distance, distance, 0);
-                            XMVECTOR n = XMVector3Normalize(e02);
-                            clipped_frustum[clipped_frustum_count++] = XMVectorMultiplyAdd(scale, n, v02);
-                        }
-                        */
-                    }
-                }
-
-                upload_position         = align(upload_position, 16);
-                clipped_frustum_offset  = upload_position;
-
-                std::memcpy(upload_buffer + upload_position, &clipped_frustum[0], clipped_frustum_count * sizeof(XMVECTOR));
-                upload_position += clipped_frustum_count * sizeof(XMVECTOR);
-            }
-
-
-            //Clip
-            /*
-            {
-                XMMATRIX p = XMMatrixPerspectiveFovLH(lispsm::radians(75.0f), (float)m_back_buffer_width / (float)m_back_buffer_height, 1.0f, 10.f);
-
-                BoundingFrustum f;
-                BoundingFrustum::CreateFromMatrix(f, p);
-                XMVECTOR clipped_frustum[512];
+                XMFLOAT3 clipped_points[512];
                 clipped_frustum_count = 0;
-                XMVECTOR vertices[8];
-                uint32_t indices[36];
-                triangulate_aabb(aabb, &vertices[0], &indices[0]);
+               
+                XMFLOAT3 bmin;
+                XMFLOAT3 bmax;
+                XMFLOAT4 plane;
 
-            
-                for (auto t0 = 0; t0 < 12; ++t0)
+                XMVECTOR nearPlane;
+
+                f.GetPlanes(&nearPlane, nullptr, nullptr,nullptr, nullptr, nullptr);
+
+                XMStoreFloat3(&bmin, aabb.m_min);
+                XMStoreFloat3(&bmax, aabb.m_max);
+                XMStoreFloat4(&plane, nearPlane);
+
+                calc_plane_aabb_intersection_points(plane, bmin, bmax, &clipped_points[0], clipped_frustum_count);
+
+                for (auto i = 0; i < clipped_frustum_count; ++i)
                 {
-                    auto i00 = t0 * 3;
-                    auto i01 = t0 * 3 + 1;
-                    auto i02 = t0 * 3 + 2;
+                    XMFLOAT3 p = clipped_points[i];
+                    XMFLOAT4 v = { p.x, p.y, p.z, 1.0f };
+                    //XMFLOAT4 v = { 1.0, 1.0, 1.0, 1.0f };
 
-                    XMVECTOR v00 = vertices[indices[i00]];
-                    XMVECTOR v01 = vertices[indices[i01]];
-                    XMVECTOR v02 = vertices[indices[i02]];
-
-                    XMVECTOR e00 = XMVector3Normalize(XMVectorSubtract(v01, v00));
-                    XMVECTOR e01 = XMVector3Normalize(XMVectorSubtract(v02, v01));
-                    XMVECTOR e02 = XMVector3Normalize(XMVectorSubtract(v00, v02));
-
-
-                    float   d0;
-                    float   d1;
-                    float   d2;
-
-                    if (f.Intersects(v00, e00, d0))
-                    {
-                        XMVECTOR scale = XMVectorSet(d0, d0, d0, 0);
-                        XMVECTOR n = XMVector3Normalize(e00);
-                        clipped_frustum[clipped_frustum_count++] = XMVectorMultiplyAdd(scale, n, v00);
-                    }
-
-                    if (f.Intersects(v01, e01, d1))
-                    {
-                        XMVECTOR scale = XMVectorSet(d1, d1, d1, 0);
-                        XMVECTOR n = XMVector3Normalize(e01);
-                        clipped_frustum[clipped_frustum_count++] = XMVectorMultiplyAdd(scale, n, v01);
-                    }
-
-                    if (f.Intersects(v02, e02, d2))
-                    {
-                        XMVECTOR scale  = XMVectorSet(d2, d2, d2, 0);
-                        XMVECTOR n      = XMVector3Normalize(e02);
-                        clipped_frustum[clipped_frustum_count++] = XMVectorMultiplyAdd(scale, n, v02);
-                    }
-
+                    clipped_frustum[i] = XMLoadFloat4(&v);
                 }
+
 
                 upload_position         = align(upload_position, 16);
                 clipped_frustum_offset  = upload_position;
@@ -1129,7 +1068,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 std::memcpy(upload_buffer + upload_position, &clipped_frustum[0], clipped_frustum_count * sizeof(XMVECTOR));
                 upload_position += clipped_frustum_count * sizeof(XMVECTOR);
             }
-            */
+
 
             commandList->CopyResource(m_geometry.get(), m_uploadResource[m_frame_index].get());
 
@@ -1660,6 +1599,7 @@ void triangulate_aabb( const AABB aabb, XMVECTOR* points )
 {
     XMVECTOR center             = XMVectorMultiply(XMVectorAdd(aabb.m_max, aabb.m_min), XMVectorReplicate(0.5f));
     XMVECTOR extents            = XMVectorSubtract(aabb.m_max, aabb.m_min);
+    XMVECTOR extents2           = XMVectorScale(extents, 0.5f);
 
     XMVECTOR back_top_left      = XMVectorSet(-1, 1, -1, 1);
     XMVECTOR back_top_right     = XMVectorSet( 1, 1, -1, 1);
@@ -1686,15 +1626,15 @@ void triangulate_aabb( const AABB aabb, XMVECTOR* points )
 
     const XMVECTOR aabb_points[8]          =
     {
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[0])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[1])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[2])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[3])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[0])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[1])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[2])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[3])),
         
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[4])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[5])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[6])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[7]))
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[4])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[5])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[6])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[7]))
     };
 
     const uint32_t indices[36] =
@@ -1728,6 +1668,7 @@ void triangulate_aabb(const AABB aabb, XMVECTOR* vertices, uint32_t* indices)
 {
     XMVECTOR center = XMVectorMultiply(XMVectorAdd(aabb.m_max, aabb.m_min), XMVectorReplicate(0.5f));
     XMVECTOR extents = XMVectorSubtract(aabb.m_max, aabb.m_min);
+    XMVECTOR extents2 = XMVectorScale(extents, 0.5f);
 
     XMVECTOR back_top_left = XMVectorSet(-1, 1, -1, 1);
     XMVECTOR back_top_right = XMVectorSet(1, 1, -1, 1);
@@ -1754,15 +1695,15 @@ void triangulate_aabb(const AABB aabb, XMVECTOR* vertices, uint32_t* indices)
 
     const XMVECTOR aabb_points[8] =
     {
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[0])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[1])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[2])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[3])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[0])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[1])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[2])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[3])),
 
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[4])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[5])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[6])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[7]))
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[4])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[5])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[6])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[7]))
     };
 
     const uint32_t aabb_indices[36] =
@@ -1793,7 +1734,8 @@ void triangulate_aabb(const AABB aabb, XMVECTOR* vertices, uint32_t* indices)
 void aabb_points(const AABB aabb, XMVECTOR* points)
 {
     XMVECTOR center = XMVectorMultiply(XMVectorAdd(aabb.m_max, aabb.m_min), XMVectorReplicate(0.5f));
-    XMVECTOR extents = XMVectorSubtract(aabb.m_max, aabb.m_min);
+    XMVECTOR extents  = XMVectorSubtract(aabb.m_max, aabb.m_min);
+    XMVECTOR extents2 = XMVectorScale(extents, 0.5f);
 
     XMVECTOR back_top_left = XMVectorSet(-1, 1, -1, 1);
     XMVECTOR back_top_right = XMVectorSet(1, 1, -1, 1);
@@ -1820,15 +1762,15 @@ void aabb_points(const AABB aabb, XMVECTOR* points)
 
     const XMVECTOR aabb_points[8] =
     {
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[0])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[1])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[2])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[3])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[0])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[1])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[2])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[3])),
 
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[4])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[5])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[6])),
-        XMVectorAdd(center, XMVectorMultiply(extents, masks[7]))
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[4])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[5])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[6])),
+        XMVectorAdd(center, XMVectorMultiply(extents2, masks[7]))
     };
 
     for (auto i = 0U; i < 8; ++i)
