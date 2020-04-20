@@ -48,8 +48,11 @@ namespace lispsm
 }
 
 void triangulate_aabb(const AABB aabb, XMVECTOR* points);
+void triangulate_aabb(const AABB aabb, XMVECTOR* points, uint32_t* indices);
 void aabb_points(const AABB aabb, XMVECTOR* points);
 void clip3(XMVECTOR n, XMVECTOR v0, XMVECTOR v1, XMVECTOR v2, XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count);
+
+XMGLOBALCONST XMVECTORU32 g_XMSelect0001 = { { { XM_SELECT_0, XM_SELECT_0, XM_SELECT_0, XM_SELECT_1 } } };
 
 namespace
 {
@@ -693,6 +696,32 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateSpheresPipelineState(ID3D12De
     return r;
 }
 
+float g_MaxDistance = 100000.0f;
+
+float iTriangle(XMVECTOR ro, XMVECTOR rd, float rayn, float rayf, XMVECTOR v0, XMVECTOR v1, XMVECTOR v2 )
+{
+    XMVECTOR v1v0 = XMVectorSubtract(v1, v0);
+    XMVECTOR v2v0 = XMVectorSubtract(v2, v0);
+    XMVECTOR rov0 = XMVectorSubtract(ro, v0);
+
+    XMVECTOR  n     = XMVector3Cross(v1v0, v2v0);
+    XMVECTOR  q     = XMVector3Cross(rov0, rd);
+    float d = 1.0f / XMVectorGetX(XMVector3Dot(rd, n));
+    float u = d * XMVectorGetX(XMVector3Dot(XMVectorNegate(q), v2v0));
+    float v = d * XMVectorGetX(XMVector3Dot(q, v1v0));
+    float t = d * XMVectorGetX(XMVector3Dot(XMVectorNegate(n), rov0));
+
+    if ((u < 0.) || (v < 0.) || (u + v) > 1. || t < rayn || t > rayf)
+    {
+        return g_MaxDistance;
+    }
+    else
+    {
+        return t;
+    }
+}
+
+
 
 class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFrameworkViewSource>
 {
@@ -747,7 +776,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
         {
             DirectX::XMVECTOR up = XMVectorSet(0, 1, 0, 0);
             DirectX::XMVECTOR forward = XMVectorSet(0, 0, 1, 0);
-            DirectX::XMVECTOR position = XMVectorSet(0, 0, -10, 0);
+            DirectX::XMVECTOR position = XMVectorSet(0, 0, -20, 0);
 
             m_view = XMMatrixLookToLH(position, forward, up);
         }
@@ -757,6 +786,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     {
 
     }
+    
+    
 
     void Run()
     {
@@ -777,8 +808,8 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             uint64_t upload_position = 0;
             
             AABB     aabb;
-            aabb.m_max = XMVectorSet(1, 1, 1, 1);
-            aabb.m_min = XMVectorSet(-1, -1, -1, 1);
+            aabb.m_max = XMVectorSet(2, 2, 2, 1);
+            aabb.m_min = XMVectorSet(-2, -2, -2, 1);
             XMVECTOR points[36];
 
             //Upload
@@ -888,7 +919,7 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             }
 
             {
-                XMMATRIX p = XMMatrixPerspectiveFovLH(lispsm::radians(75.0f), (float)m_back_buffer_width / (float)m_back_buffer_height, 10.0f, 1.f);
+                XMMATRIX p = XMMatrixPerspectiveFovLH(lispsm::radians(75.0f), (float)m_back_buffer_width / (float)m_back_buffer_height, 1.0f, 10.f);
 
                 BoundingFrustum f;
                 BoundingFrustum::CreateFromMatrix(f, p);
@@ -911,42 +942,194 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             }
 
 
+            //Clip
+            
             {
-                XMMATRIX p = XMMatrixPerspectiveFovRH(lispsm::radians(75.0f), (float)m_back_buffer_width / (float)m_back_buffer_height, 10.0f, 1.f);
+                XMMATRIX p = XMMatrixPerspectiveFovLH(lispsm::radians(75.0f), (float)m_back_buffer_width / (float)m_back_buffer_height, 1.0f, 10.f);
 
                 BoundingFrustum f;
                 BoundingFrustum::CreateFromMatrix(f, p);
-                XMVECTOR   planes[6];
-                f.GetPlanes(&planes[0], &planes[1], &planes[2], &planes[3], &planes[4], &planes[5]);
-
-                XMVECTOR   negate = XMVectorSet(1.0f, 1.0f, 1.0f, -1);
-
-                planes[1] = planes[1] * negate;
-                //planes[5] = planes[5] * negate;
-
                 XMVECTOR clipped_frustum[512];
                 clipped_frustum_count = 0;
+                XMVECTOR vertices[8];
+                uint32_t indices[36];
+                triangulate_aabb(aabb, &vertices[0], &indices[0]);
 
-               
-                for (auto i = 0; i < 12; ++i)
-                {
-                    clip3(planes[0], points[i * 3],  points[i * 3 + 1], points[i * 3 + 2], &clipped_frustum[0], &clipped_frustum_count);
-                    clip3(planes[1], points[i * 3],  points[i * 3 + 1],  points[i * 3 + 2], &clipped_frustum[0], &clipped_frustum_count);
-                    clip3(planes[2], points[i * 3],  points[i * 3 + 1],  points[i * 3 + 2], &clipped_frustum[0], &clipped_frustum_count);
+                XMVECTOR frustumVertices[8];
+                XMFLOAT3 points[8];
+                
+                f.GetCorners(&points[0]);
 
-                    clip3(planes[3], points[i * 3],  points[i * 3 + 1],  points[i * 3 + 2], &clipped_frustum[0], &clipped_frustum_count);
-                    clip3(planes[4], points[i * 3],  points[i * 3 + 1],  points[i * 3 + 2], &clipped_frustum[0], &clipped_frustum_count);
-                    clip3(planes[5], points[i * 3],  points[i * 3 + 1],  points[i * 3 + 2], &clipped_frustum[0], &clipped_frustum_count);
-                }
+                /*
+
+                4->0
+                5->1
+                1->2
+                0->3
+
+                7->4
+                6->5
+                2->6
+                3->7
+
+                */
+
+                
+                /*
+                frustumVertices[0] = XMVectorSelect(XMLoadFloat3(&points[4]), XMVectorSplatOne(), g_XMSelect0001);
+                frustumVertices[1] = XMVectorSelect(XMLoadFloat3(&points[5]), XMVectorSplatOne(), g_XMSelect0001);
+                frustumVertices[2] = XMVectorSelect(XMLoadFloat3(&points[1]), XMVectorSplatOne(), g_XMSelect0001);
+                frustumVertices[3] = XMVectorSelect(XMLoadFloat3(&points[0]), XMVectorSplatOne(), g_XMSelect0001);
+
+                frustumVertices[4] = XMVectorSelect(XMLoadFloat3(&points[7]), XMVectorSplatOne(), g_XMSelect0001);
+                frustumVertices[5] = XMVectorSelect(XMLoadFloat3(&points[6]), XMVectorSplatOne(), g_XMSelect0001);
+                frustumVertices[6] = XMVectorSelect(XMLoadFloat3(&points[2]), XMVectorSplatOne(), g_XMSelect0001);
+                frustumVertices[7] = XMVectorSelect(XMLoadFloat3(&points[3]), XMVectorSplatOne(), g_XMSelect0001);
+                */
+
+                
+                frustumVertices[0] = XMVectorSelect(XMLoadFloat3(&points[0]), XMVectorSplatOne(), g_XMSelect0001);
+                frustumVertices[1] = XMVectorSelect(XMLoadFloat3(&points[1]), XMVectorSplatOne(), g_XMSelect0001);
+                frustumVertices[2] = XMVectorSelect(XMLoadFloat3(&points[2]), XMVectorSplatOne(), g_XMSelect0001);
+                frustumVertices[3] = XMVectorSelect(XMLoadFloat3(&points[3]), XMVectorSplatOne(), g_XMSelect0001);
+
+                frustumVertices[4] = XMVectorSelect(XMLoadFloat3(&points[4]), XMVectorSplatOne(), g_XMSelect0001);
+                frustumVertices[5] = XMVectorSelect(XMLoadFloat3(&points[5]), XMVectorSplatOne(), g_XMSelect0001);
+                frustumVertices[6] = XMVectorSelect(XMLoadFloat3(&points[6]), XMVectorSplatOne(), g_XMSelect0001);
+                frustumVertices[7] = XMVectorSelect(XMLoadFloat3(&points[7]), XMVectorSplatOne(), g_XMSelect0001);
                 
 
-                upload_position = align(upload_position, 16);
-                clipped_frustum_offset = upload_position;
+                // Returns 8 corners position of bounding frustum.
+                //     Near    Far
+                //    0----1  4----5
+                //    |    |  |    |
+                //    |    |  |    |
+                //    3----2  7----6
+
+                for (auto t0 = 0; t0 < 12; ++t0)
+                {
+                    auto i00 = t0 * 3;
+                    auto i01 = t0 * 3 + 1;
+                    auto i02 = t0 * 3 + 2;
+
+                    XMVECTOR v00 = frustumVertices[indices[i00]];
+                    XMVECTOR v01 = frustumVertices[indices[i01]];
+                    XMVECTOR v02 = frustumVertices[indices[i02]];
+
+                    XMVECTOR e00 = XMVector3Normalize(XMVectorSubtract(v01, v00));
+                    XMVECTOR e01 = XMVector3Normalize(XMVectorSubtract(v02, v01));
+                    XMVECTOR e02 = XMVector3Normalize(XMVectorSubtract(v00, v02));
+
+                    clipped_frustum[clipped_frustum_count++] = XMVectorAdd(v00, e00);
+                    clipped_frustum[clipped_frustum_count++] = XMVectorAdd(v01, e01);
+                    clipped_frustum[clipped_frustum_count++] = XMVectorAdd(v02, e02);
+
+                    for (auto t1 = 0; t1 < 12; ++t1)
+                    {
+                        auto i10 = t1 * 3;
+                        auto i11 = t1 * 3 + 1;
+                        auto i12 = t1 * 3 + 2;
+
+                        XMVECTOR v10 = vertices[indices[i10]];
+                        XMVECTOR v11 = vertices[indices[i11]];
+                        XMVECTOR v12 = vertices[indices[i12]];
+
+                        /*
+                        if (float distance = iTriangle(v00, e00, 0.0001f, 100000.0f, v10, v11, v12) != g_MaxDistance)
+                        {
+                            XMVECTOR scale                           = XMVectorSet(distance, distance, distance, 0);
+                            XMVECTOR n                               = XMVector3Normalize(e00);
+                            clipped_frustum[clipped_frustum_count++] = XMVectorMultiplyAdd(scale, n, v00);
+                        }
+
+                        if (float distance = iTriangle(v01, e01, 0.0001f, 100000.0f, v10, v11, v12) != g_MaxDistance)
+                        {
+                            XMVECTOR scale = XMVectorSet(distance, distance, distance, 0);
+                            XMVECTOR n = XMVector3Normalize(e01);
+                            clipped_frustum[clipped_frustum_count++] = XMVectorMultiplyAdd(scale, n, v01);
+                        }
+
+                        if (float distance = iTriangle(v02, e02, 0.0001f, 100000.0f, v10, v11, v12) != g_MaxDistance)
+                        {
+                            XMVECTOR scale = XMVectorSet(distance, distance, distance, 0);
+                            XMVECTOR n = XMVector3Normalize(e02);
+                            clipped_frustum[clipped_frustum_count++] = XMVectorMultiplyAdd(scale, n, v02);
+                        }
+                        */
+                    }
+                }
+
+                upload_position         = align(upload_position, 16);
+                clipped_frustum_offset  = upload_position;
 
                 std::memcpy(upload_buffer + upload_position, &clipped_frustum[0], clipped_frustum_count * sizeof(XMVECTOR));
                 upload_position += clipped_frustum_count * sizeof(XMVECTOR);
-               
             }
+
+
+            //Clip
+            /*
+            {
+                XMMATRIX p = XMMatrixPerspectiveFovLH(lispsm::radians(75.0f), (float)m_back_buffer_width / (float)m_back_buffer_height, 1.0f, 10.f);
+
+                BoundingFrustum f;
+                BoundingFrustum::CreateFromMatrix(f, p);
+                XMVECTOR clipped_frustum[512];
+                clipped_frustum_count = 0;
+                XMVECTOR vertices[8];
+                uint32_t indices[36];
+                triangulate_aabb(aabb, &vertices[0], &indices[0]);
+
+            
+                for (auto t0 = 0; t0 < 12; ++t0)
+                {
+                    auto i00 = t0 * 3;
+                    auto i01 = t0 * 3 + 1;
+                    auto i02 = t0 * 3 + 2;
+
+                    XMVECTOR v00 = vertices[indices[i00]];
+                    XMVECTOR v01 = vertices[indices[i01]];
+                    XMVECTOR v02 = vertices[indices[i02]];
+
+                    XMVECTOR e00 = XMVector3Normalize(XMVectorSubtract(v01, v00));
+                    XMVECTOR e01 = XMVector3Normalize(XMVectorSubtract(v02, v01));
+                    XMVECTOR e02 = XMVector3Normalize(XMVectorSubtract(v00, v02));
+
+
+                    float   d0;
+                    float   d1;
+                    float   d2;
+
+                    if (f.Intersects(v00, e00, d0))
+                    {
+                        XMVECTOR scale = XMVectorSet(d0, d0, d0, 0);
+                        XMVECTOR n = XMVector3Normalize(e00);
+                        clipped_frustum[clipped_frustum_count++] = XMVectorMultiplyAdd(scale, n, v00);
+                    }
+
+                    if (f.Intersects(v01, e01, d1))
+                    {
+                        XMVECTOR scale = XMVectorSet(d1, d1, d1, 0);
+                        XMVECTOR n = XMVector3Normalize(e01);
+                        clipped_frustum[clipped_frustum_count++] = XMVectorMultiplyAdd(scale, n, v01);
+                    }
+
+                    if (f.Intersects(v02, e02, d2))
+                    {
+                        XMVECTOR scale  = XMVectorSet(d2, d2, d2, 0);
+                        XMVECTOR n      = XMVector3Normalize(e02);
+                        clipped_frustum[clipped_frustum_count++] = XMVectorMultiplyAdd(scale, n, v02);
+                    }
+
+                }
+
+                upload_position         = align(upload_position, 16);
+                clipped_frustum_offset  = upload_position;
+
+                std::memcpy(upload_buffer + upload_position, &clipped_frustum[0], clipped_frustum_count * sizeof(XMVECTOR));
+                upload_position += clipped_frustum_count * sizeof(XMVECTOR);
+            }
+            */
 
             commandList->CopyResource(m_geometry.get(), m_uploadResource[m_frame_index].get());
 
@@ -1382,7 +1565,7 @@ using namespace DirectX;
 
 XMGLOBALCONST XMVECTORU32 g_XMSelect0111 = { { { XM_SELECT_0, XM_SELECT_1, XM_SELECT_0, XM_SELECT_1 } } };
 XMGLOBALCONST XMVECTORU32 g_XMSelect1101 = { { { XM_SELECT_1, XM_SELECT_1, XM_SELECT_1, XM_SELECT_0 } } };
-XMGLOBALCONST XMVECTORU32 g_XMSelect0001 = { { { XM_SELECT_0, XM_SELECT_0, XM_SELECT_0, XM_SELECT_1 } } };
+//XMGLOBALCONST XMVECTORU32 g_XMSelect0001 = { { { XM_SELECT_0, XM_SELECT_0, XM_SELECT_0, XM_SELECT_1 } } };
 XMGLOBALCONST XMVECTORU32 g_XMSelect0011 = { { { XM_SELECT_0, XM_SELECT_0, XM_SELECT_1, XM_SELECT_1 } } };
 
 
@@ -1473,135 +1656,6 @@ XMMATRIX light_view_matrix( XMVECTOR camera_direction_ws, XMVECTOR camera_positi
     return m;
 }
 
-namespace
-{
-    bool above0(int32_t mask)
-    {
-        return (mask & 0x1) != 0;
-    }
-
-    bool above1(int32_t mask)
-    {
-        return (mask & 0x2) != 0;
-    }
-
-    bool above2(int32_t mask)
-    {
-        return (mask & 0x4) != 0;
-    }
-
-
-}
-
-void clip3(XMVECTOR n, XMVECTOR v0, XMVECTOR v1, XMVECTOR v2, XMVECTOR* clipped_frustum_, uint32_t* clipped_frustum_count )
-{
-    //Distances to the plane (this is an array parallel // to v[], stored as a vec3)
-    //XMVECTOR dist = vec3(dot(v0, n), dot(v1, n), dot(v2, n));
-
-    XMVECTOR v3;
-    XMVECTOR d0             = XMVector4Dot(n, v0);
-    XMVECTOR d1             = XMVector4Dot(n, v1);
-    XMVECTOR d2             = XMVector4Dot(n, v2);
-
-    XMVECTOR clipEpsilon    = XMVectorNegate(XMVectorReplicate(0.00001f));
-    XMVECTOR clipEpsilon2   = XMVectorReplicate(0.01f);
-    
-    XMVECTOR r0             = d0;
-    XMVECTOR r1             = XMVectorSelect(r0, d1, g_XMSelect0111);
-    XMVECTOR r2             = XMVectorSelect(r1, d2, g_XMSelect0011);
-    XMVECTOR r3             = XMVectorSelect(g_XMZero, r2, g_XMSelect1110);
-    XMVECTOR dist           = r3;
-
-    //all clipped
-    if (!XMComparisonAnyTrue(XMVector3GreaterOrEqualR(dist, clipEpsilon2)))
-    {
-        return;
-    }
-
-    XMVECTOR* clipped_frustum = clipped_frustum_ + *clipped_frustum_count;
-
-    //none clipped
-    if (XMComparisonAllTrue(XMVector3GreaterOrEqualR(dist, clipEpsilon)))
-    {
-        *clipped_frustum++ = v0;
-        *clipped_frustum++ = v1;
-        *clipped_frustum++ = v2;
-        *clipped_frustum_count += 3;
-        return;
-    }
-
-    // There are either 1 or 2 vertices above the clipping plane .
-    XMVECTOR abovex  = XMVectorGreaterOrEqual(r3, g_XMZero);
-    int32_t  above   = _mm_movemask_ps(abovex);
-    bool nextIsAbove;
-
-    // Find the CCW - most vertex above the plane .
-    if (above1(above) && !above0(above) )
-    {
-        // Cycle once CCW . Use v3 as a temp
-        nextIsAbove = above2(above);
-        v3 = v0; v0 = v1; v1 = v2; v2 = v3;
-
-        //dist = dist.yzx;
-        dist = XMVectorSwizzle<1, 2, 0, 3>(dist);
-
-        XMVECTOR temp = d0;
-        d0 = d1;
-        d1 = d2;
-        d2 = temp;
-        
-    } else if (above2(above) && !above1(above))
-    {
-        // Cycle once CW . Use v3 as a temp .
-        nextIsAbove = above0(above);
-        v3 = v2; v2 = v1; v1 = v0; v0 = v3;
-        //dist = dist.zxy;
-        dist = XMVectorSwizzle<2, 0, 1, 3>(dist);
-
-        XMVECTOR temp = d0;
-        d0 = d2;
-        d2 = d1;
-        d1 = temp;
-    }
-    else
-    {
-        nextIsAbove = above1(above);
-    }
-
-    v3 = XMVectorLerpV(v0, v2, XMVectorDivide(d0, XMVectorSubtract(d0, d2)));
-
-    if (nextIsAbove)
-    {
-        v2 = XMVectorLerpV(v1, v2, XMVectorDivide(d1, XMVectorSubtract(d1, d2)));
-
-        *clipped_frustum++ = v0;
-        *clipped_frustum++ = v1;
-        *clipped_frustum++ = v2;
-        *clipped_frustum++ = v3;
-        *clipped_frustum_count += 4;
-
-        //4 points
-    }
-    else
-    {
-        v1 = XMVectorLerpV(v0, v1, XMVectorDivide(d0, XMVectorSubtract(d0, d1)));
-        v2 = v3;
-        v3 = v0;
-
-        *clipped_frustum++ = v0;
-        *clipped_frustum++ = v1;
-        *clipped_frustum++ = v2;
-        *clipped_frustum_count += 3;
-        //3 points
-    }
-}
-
-void compute_clipped_frustum(const XMVECTOR* triangles, uint32_t triangle_count, const XMVECTOR frustumPlanes[6], XMVECTOR* clipped_frustum, uint32_t* clipped_frustum_count)
-{
-    *clipped_frustum_count = 0;
-
-}
-
 void triangulate_aabb( const AABB aabb, XMVECTOR* points )
 {
     XMVECTOR center             = XMVectorMultiply(XMVectorAdd(aabb.m_max, aabb.m_min), XMVectorReplicate(0.5f));
@@ -1670,6 +1724,72 @@ void triangulate_aabb( const AABB aabb, XMVECTOR* points )
     }
 }
 
+void triangulate_aabb(const AABB aabb, XMVECTOR* vertices, uint32_t* indices)
+{
+    XMVECTOR center = XMVectorMultiply(XMVectorAdd(aabb.m_max, aabb.m_min), XMVectorReplicate(0.5f));
+    XMVECTOR extents = XMVectorSubtract(aabb.m_max, aabb.m_min);
+
+    XMVECTOR back_top_left = XMVectorSet(-1, 1, -1, 1);
+    XMVECTOR back_top_right = XMVectorSet(1, 1, -1, 1);
+    XMVECTOR front_top_right = XMVectorSet(1, 1, 1, 1);
+    XMVECTOR front_top_left = XMVectorSet(-1, 1, 1, 1);
+
+    XMVECTOR back_bottom_left = XMVectorSet(-1, -1, -1, 1);
+    XMVECTOR back_bottom_right = XMVectorSet(1, -1, -1, 1);
+    XMVECTOR front_bottom_right = XMVectorSet(1, -1, 1, 1);
+    XMVECTOR front_bottom_left = XMVectorSet(-1, -1, 1, 1);
+
+    const XMVECTOR masks[8] =
+    {
+        back_top_left,
+        back_top_right,
+        front_top_right,
+        front_top_left,
+
+        back_bottom_left,
+        back_bottom_right,
+        front_bottom_right,
+        front_bottom_left
+    };
+
+    const XMVECTOR aabb_points[8] =
+    {
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[0])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[1])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[2])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[3])),
+
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[4])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[5])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[6])),
+        XMVectorAdd(center, XMVectorMultiply(extents, masks[7]))
+    };
+
+    const uint32_t aabb_indices[36] =
+    {
+        0, 1, 3,
+        1, 2, 3,
+
+        3, 2, 7,
+        6, 7, 2,
+
+        2, 1, 6,
+        5, 6, 1,
+
+        1, 0, 5,
+        4, 5, 0,
+
+        0, 3, 4,
+        7, 4, 3,
+
+        7, 6, 4,
+        5, 4, 6,
+    };
+
+    std::memcpy(vertices, aabb_points, sizeof(aabb_points));
+    std::memcpy(indices, aabb_indices, sizeof(aabb_indices));
+}
+
 void aabb_points(const AABB aabb, XMVECTOR* points)
 {
     XMVECTOR center = XMVectorMultiply(XMVectorAdd(aabb.m_max, aabb.m_min), XMVectorReplicate(0.5f));
@@ -1733,6 +1853,8 @@ XMMATRIX compute_light_projection( XMMATRIX light_view, AABB shadowCasters, XMVE
     //XMVECTOR clipped_frustum[512];
     //XMVECTOR clipped_frustum_count;
 }
+
+
 
 
 
