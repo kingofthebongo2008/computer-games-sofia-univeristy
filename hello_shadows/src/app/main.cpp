@@ -756,7 +756,6 @@ void calc_plane_aabb_intersection_points(const XMFLOAT4& plane,
     const XMFLOAT3& aabb_min, const XMFLOAT3& aabb_max,
     XMFLOAT3* out_points, unsigned& out_point_count)
 {
-    out_point_count = 0;
     float vd, t;
 
     // Test edges along X axis, pointing right.
@@ -894,6 +893,10 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
             AABB     aabb;
             aabb.m_max = XMVectorSet(2, 2, 2, 1);
             aabb.m_min = XMVectorSet(-2, -2, -2, 1);
+
+            aabb.m_min = XMVectorAdd(aabb.m_min, XMVectorSet(0, 0, 0.5, 0));
+            aabb.m_max = XMVectorAdd(aabb.m_max, XMVectorSet(0, 0, 0.5, 0));
+
             XMVECTOR points[36];
 
             //Upload
@@ -1036,31 +1039,44 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
                 XMVECTOR clipped_frustum[512];
                 clipped_frustum_count = 0;
                 XMFLOAT3 clipped_points[512];
-                clipped_frustum_count = 0;
+                uint32_t clipped_frustum_points = 0;
                
                 XMFLOAT3 bmin;
                 XMFLOAT3 bmax;
-                XMFLOAT4 plane;
+                XMFLOAT4 plane[6];
 
-                XMVECTOR nearPlane;
+                XMVECTOR nearPlane[6];
 
-                f.GetPlanes(&nearPlane, nullptr, nullptr,nullptr, nullptr, nullptr);
+                f.GetPlanes(&nearPlane[0], &nearPlane[1], &nearPlane[2], &nearPlane[3], &nearPlane[4], &nearPlane[5]);
 
                 XMStoreFloat3(&bmin, aabb.m_min);
                 XMStoreFloat3(&bmax, aabb.m_max);
-                XMStoreFloat4(&plane, nearPlane);
 
-                calc_plane_aabb_intersection_points(plane, bmin, bmax, &clipped_points[0], clipped_frustum_count);
+                XMStoreFloat4(&plane[0], nearPlane[0]);
+                XMStoreFloat4(&plane[1], nearPlane[1]);
+                XMStoreFloat4(&plane[2], nearPlane[2]);
+                XMStoreFloat4(&plane[3], nearPlane[3]);
+                XMStoreFloat4(&plane[4], nearPlane[4]);
+                XMStoreFloat4(&plane[5], nearPlane[5]);
 
-                for (auto i = 0; i < clipped_frustum_count; ++i)
+                calc_plane_aabb_intersection_points(plane[0], bmin, bmax, &clipped_points[clipped_frustum_points], clipped_frustum_points);
+                calc_plane_aabb_intersection_points(plane[1], bmin, bmax, &clipped_points[clipped_frustum_points], clipped_frustum_points);
+                calc_plane_aabb_intersection_points(plane[2], bmin, bmax, &clipped_points[clipped_frustum_points], clipped_frustum_points);
+                calc_plane_aabb_intersection_points(plane[3], bmin, bmax, &clipped_points[clipped_frustum_points], clipped_frustum_points);
+                calc_plane_aabb_intersection_points(plane[4], bmin, bmax, &clipped_points[clipped_frustum_points], clipped_frustum_points);
+                calc_plane_aabb_intersection_points(plane[5], bmin, bmax, &clipped_points[clipped_frustum_points], clipped_frustum_points);
+
+                for (auto i = 0; i < clipped_frustum_points; ++i)
                 {
-                    XMFLOAT3 p = clipped_points[i];
-                    XMFLOAT4 v = { p.x, p.y, p.z, 1.0f };
-                    //XMFLOAT4 v = { 1.0, 1.0, 1.0, 1.0f };
+                    XMFLOAT3 p  = clipped_points[i];
+                    XMFLOAT4 v0 = { p.x, p.y, p.z, 1.0f };
+                    XMVECTOR v1 = XMLoadFloat4(&v0);
 
-                    clipped_frustum[i] = XMLoadFloat4(&v);
+                    if (true)//f.Contains(v1) == CONTAINS)
+                    {
+                        clipped_frustum[clipped_frustum_count++] = v1;
+                    }
                 }
-
 
                 upload_position         = align(upload_position, 16);
                 clipped_frustum_offset  = upload_position;
