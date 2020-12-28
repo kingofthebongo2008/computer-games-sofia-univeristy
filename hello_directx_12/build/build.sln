@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_deferred_rendering", 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_triangle_bundle", "hello_triangle_bundle\hello_triangle_bundle.vcxproj", "{72EEB080-713C-4BC7-A360-172A460797D6}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "hello_d3d9on12", "hello_d3d9on12\hello_d3d9on12.vcxproj", "{251F1D72-7AAC-46EF-A489-5FB5F2D7CFF5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Release|x64 = Release|x64
@@ -28,6 +30,9 @@ Global
 		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.ActiveCfg = Release|x64
 		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.Build.0 = Release|x64
 		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.Deploy.0 = Release|x64
+		{251F1D72-7AAC-46EF-A489-5FB5F2D7CFF5}.Release|x64.ActiveCfg = Release|x64
+		{251F1D72-7AAC-46EF-A489-5FB5F2D7CFF5}.Release|x64.Build.0 = Release|x64
+		{251F1D72-7AAC-46EF-A489-5FB5F2D7CFF5}.Release|x64.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
