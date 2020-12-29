@@ -1,41 +1,8 @@
 #include "pch.h"
 #include <cstdint>
-#include "build_window_environment.h"
 
 #include "d3dx12.h"
-
-using namespace winrt::Windows::UI::Core;
-using namespace winrt::Windows::ApplicationModel::Core;
-using namespace winrt::Windows::ApplicationModel::Activation;
-using namespace Microsoft::WRL;
-
-//There are many steps required for dx12 triangle to get on the screen
-//1. Swap Chain is needed to bind dx12 backbuffer output to the window management system
-//2. Device is needed
-//3. Command Queue is needed to submit commands
-//4. Memory management for the back buffers.
-//5. Fence is needed to synchronize cpu submission of commands and waiting of the results.
-//6. For shaders. Pipeline State is needed to be setup
-//7. For commands submission allocator and command buffer is needed.
-
-
-namespace sample
-{
-    template <typename to, typename from> to* copy_to_abi_private(const from& w)
-    {
-        void* v = nullptr;
-        winrt::copy_to_abi(w, v);
-
-        return reinterpret_cast<to*>(v);
-    }
-
-    template <typename to, typename from> winrt::com_ptr<to> copy_to_abi(const from& w)
-    {
-        winrt::com_ptr<to> v;
-        v.attach(sample::copy_to_abi_private<IUnknown>(w));
-        return v;
-    }
-}
+/*
 
 //Helper class that assists us using the descriptors
 struct DescriptorHeapCpuView
@@ -84,49 +51,49 @@ inline void ThrowIfFailed(HRESULT hr)
 }
 
 //Debug layer, issues warnings if something broken. Use it when you develop stuff
-static winrt::com_ptr<ID3D12Debug> CreateDebug()
+static Microsoft::WRL::ComPtr <ID3D12Debug> CreateDebug()
 {
-    winrt::com_ptr<ID3D12Debug> r;
+    Microsoft::WRL::ComPtr<ID3D12Debug> r;
+    
     //check if you have installed debug layer, from the option windows components
-    if ( D3D12GetDebugInterface(__uuidof(ID3D12Debug), r.put_void() ) == S_OK)
+    if ( D3D12GetDebugInterface( IID_PPV_ARGS(r.GetAddressOf()) ) == S_OK)
     {
         r->EnableDebugLayer();
     }
     return r;
 }
 
-static winrt::com_ptr<ID3D12Device4> CreateDevice()
+static Microsoft::WRL::ComPtr<ID3D12Device4> CreateDevice()
 {
-    winrt::com_ptr<ID3D12Device4> r;
+    Microsoft::WRL::ComPtr<ID3D12Device4> r;
 
     //One can use d3d12 rendering with d3d11 capable hardware. You will just be missing new functionality.
     //Example, d3d12 on a D3D_FEATURE_LEVEL_9_1 hardare (as some phone are ).
     D3D_FEATURE_LEVEL features = D3D_FEATURE_LEVEL_11_1;
-    ThrowIfFailed(D3D12CreateDevice(nullptr, features, __uuidof(ID3D12Device4), r.put_void()));
-    return r.as<ID3D12Device4>();
-}
-
-
-static winrt::com_ptr<ID3D12CommandQueue> CreateCommandQueue(ID3D12Device* d )
-{
-    winrt::com_ptr<ID3D12CommandQueue> r;
-    D3D12_COMMAND_QUEUE_DESC q = {};
-
-    q.Type = D3D12_COMMAND_LIST_TYPE_DIRECT; //submit copy, raster, compute payloads
-    ThrowIfFailed(d->CreateCommandQueue(&q, __uuidof(ID3D12CommandQueue), r.put_void()));
+    ThrowIfFailed(D3D12CreateDevice(nullptr, features, IID_PPV_ARGS(r.GetAddressOf())));
     return r;
 }
 
-static winrt::com_ptr<IDXGISwapChain3> CreateSwapChain(const CoreWindow& w, ID3D12CommandQueue* d)
+
+static Microsoft::WRL::ComPtr<ID3D12CommandQueue> CreateCommandQueue(ID3D12Device* d )
 {
-    winrt::com_ptr<IDXGIFactory2> f;
-    winrt::com_ptr<IDXGISwapChain1> r;
+    Microsoft::WRL::ComPtr<ID3D12CommandQueue> r;
+    D3D12_COMMAND_QUEUE_DESC q = {};
+
+    q.Type = D3D12_COMMAND_LIST_TYPE_DIRECT; //submit copy, raster, compute payloads
+    ThrowIfFailed(d->CreateCommandQueue(&q, IID_PPV_ARGS(r.GetAddressOf())));
+    return r;
+}
+
+static Microsoft::WRL::ComPtr<IDXGISwapChain1> CreateSwapChain(const HWND w, ID3D12CommandQueue* d)
+{
+    Microsoft::WRL::ComPtr<IDXGIFactory2> f;
+    Microsoft::WRL::ComPtr<IDXGISwapChain1> r;
     
-    ThrowIfFailed(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG,__uuidof(IDXGIFactory2), f.put_void()));
+    ThrowIfFailed(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(f.GetAddressOf())));
 
     DXGI_SWAP_CHAIN_DESC1 desc = {};
 
-	auto e = sample::build_environment(w, winrt::Windows::Graphics::Display::DisplayInformation::GetForCurrentView());
 
     desc.BufferCount	= 2;
     desc.Format			= DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -138,36 +105,36 @@ static winrt::com_ptr<IDXGISwapChain3> CreateSwapChain(const CoreWindow& w, ID3D
     desc.AlphaMode		= DXGI_ALPHA_MODE_IGNORE;
     desc.Scaling		= DXGI_SCALING_NONE;
 
-    ThrowIfFailed(f->CreateSwapChainForCoreWindow(d, sample::copy_to_abi<IUnknown>(w).get(), &desc, nullptr, r.put()));
-    return r.as< IDXGISwapChain3>();
-}
-
-static winrt::com_ptr <ID3D12Fence> CreateFence(ID3D12Device1* device, uint64_t initialValue = 1)
-{
-    winrt::com_ptr<ID3D12Fence> r;
-    ThrowIfFailed(device->CreateFence(initialValue, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), r.put_void()));
+    ThrowIfFailed(f->CreateSwapChainForHwnd(d, w, &desc, nullptr, nullptr, r.GetAddressOf()));
     return r;
 }
 
-static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeap(ID3D12Device1* device)
+static Microsoft::WRL::ComPtr <ID3D12Fence> CreateFence(ID3D12Device1* device, uint64_t initialValue = 1)
 {
-    winrt::com_ptr<ID3D12DescriptorHeap> r;
+    Microsoft::WRL::ComPtr<ID3D12Fence> r;
+    ThrowIfFailed(device->CreateFence(initialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(r.GetAddressOf())));
+    return r;
+}
+
+static Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeap(ID3D12Device1* device)
+{
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> r;
     D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
     d.NumDescriptors = 2;
     d.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-    device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
+    device->CreateDescriptorHeap(&d, IID_PPV_ARGS(r.GetAddressOf())));
     return r;
 }
 
-static winrt::com_ptr <ID3D12DescriptorHeap> CreateDescriptorHeapRendering(ID3D12Device1* device)
+static Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeapRendering(ID3D12Device1* device)
 {
-    winrt::com_ptr<ID3D12DescriptorHeap> r;
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> r;
     D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
     d.NumDescriptors = 2;
     d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-    device->CreateDescriptorHeap(&d, __uuidof(ID3D12DescriptorHeap), r.put_void());
+    device->CreateDescriptorHeap(&d, IID_PPV_ARGS(r.GetAddressOf())));
     return r;
 }
 
@@ -189,11 +156,11 @@ static D3D12_RESOURCE_DESC DescribeSwapChain ( uint32_t width, uint32_t height)
     return                  d;
 }
 
-static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource1(ID3D12Device1* device, uint32_t width, uint32_t height)
+static Microsoft::WRL::ComPtr<ID3D12Resource1> CreateSwapChainResource1(ID3D12Device1* device, uint32_t width, uint32_t height)
 {
     D3D12_RESOURCE_DESC d               = DescribeSwapChain( width, height );
 
-    winrt::com_ptr<ID3D12Resource1>     r;
+    Microsoft::WRL::ComPtr<ID3D12Resource1>     r;
     D3D12_HEAP_PROPERTIES p             = {};
     p.Type                              = D3D12_HEAP_TYPE_DEFAULT;
     D3D12_RESOURCE_STATES       state   = D3D12_RESOURCE_STATE_PRESENT;
@@ -202,16 +169,16 @@ static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource1(ID3D12Device1* d
     v.Color[0] = 1.0f;
     v.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 
-    ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, __uuidof(ID3D12Resource1), r.put_void()));
+    ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, &v, IID_PPV_ARGS(r.GetAddressOf())));
     return r;
 }
 
 //Get the buffer for the swap chain, this is the end result for the window
-static winrt::com_ptr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* device, IDXGISwapChain* chain, uint32_t buffer)
+static Microsoft::WRL::ComPtr<ID3D12Resource1> CreateSwapChainResource(ID3D12Device1* device, IDXGISwapChain* chain, uint32_t buffer)
 {
-    winrt::com_ptr<ID3D12Resource1> r;
+    Microsoft::WRL::ComPtr<ID3D12Resource1> r;
 
-    chain->GetBuffer(buffer, __uuidof(ID3D12Resource1), r.put_void());
+    chain->GetBuffer(buffer, IID_PPV_ARGS(r.GetAddressOf()));
     return r;
 }
 
@@ -225,37 +192,37 @@ static void CreateSwapChainDescriptor(ID3D12Device1* device, ID3D12Resource1* re
 }
 
 //Create the memory manager for the gpu commands
-static winrt::com_ptr <ID3D12CommandAllocator> CreateCommandAllocator(ID3D12Device1* device)
+static Microsoft::WRL::ComPtr <ID3D12CommandAllocator> CreateCommandAllocator(ID3D12Device1* device)
 {
-    winrt::com_ptr<ID3D12CommandAllocator> r;
-    ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), r.put_void()));
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> r;
+    ThrowIfFailed(device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(r.GetAddressOf())));
     return r;
 }
 
 //create an object that will record commands
-static winrt::com_ptr <ID3D12GraphicsCommandList1> CreateCommandList(ID3D12Device1* device, ID3D12CommandAllocator* a)
+static Microsoft::WRL::ComPtr <ID3D12GraphicsCommandList1> CreateCommandList(ID3D12Device1* device, ID3D12CommandAllocator* a)
 {
-    winrt::com_ptr<ID3D12GraphicsCommandList1> r;
-    ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, a, nullptr, __uuidof(ID3D12GraphicsCommandList1), r.put_void()));
+    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList1> r;
+    ThrowIfFailed(device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, a, nullptr, IID_PPV_ARGS(r.GetAddressOf())));
 
     r->Close();
     return r;
 }
 
 //create an object which represents what types of external data the shaders will use. You can imagine f(int x, float y); Root Signature is that we have two parameters on locations 0 and 1 types int and float
-static winrt::com_ptr< ID3D12RootSignature>	 CreateRootSignature(ID3D12Device1* device)
+static Microsoft::WRL::ComPtr< ID3D12RootSignature>	 CreateRootSignature(ID3D12Device1* device)
 {
     static 
     #include <default_graphics_signature.h>
 
-    winrt::com_ptr<ID3D12RootSignature> r;
-    ThrowIfFailed(device->CreateRootSignature( 0, &g_default_graphics_signature[0], sizeof(g_default_graphics_signature), __uuidof(ID3D12RootSignature), r.put_void()));
+    Microsoft::WRL::ComPtr<ID3D12RootSignature> r;
+    ThrowIfFailed(device->CreateRootSignature( 0, &g_default_graphics_signature[0], sizeof(g_default_graphics_signature), IID_PPV_ARGS(r.GetAddressOf())));
     return r;
 }
 
 //create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
 //It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
-static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
+static Microsoft::WRL::ComPtr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12Device1* device, ID3D12RootSignature* root)
 {
     static
     #include <triangle_pixel.h>
@@ -283,9 +250,18 @@ static winrt::com_ptr< ID3D12PipelineState>	 CreateTrianglePipelineState(ID3D12D
     state.VS = { &g_triangle_vertex[0], sizeof(g_triangle_vertex) };
     state.PS = { &g_triangle_pixel[0], sizeof(g_triangle_pixel) };
 
-    winrt::com_ptr<ID3D12PipelineState> r;
+    Microsoft::WRL::ComPtr<ID3D12PipelineState> r;
 
-    ThrowIfFailed(device->CreateGraphicsPipelineState(&state, __uuidof(ID3D12PipelineState), r.put_void()));
+    ThrowIfFailed(device->CreateGraphicsPipelineState(&state, IID_PPV_ARGS(r.GetAddressOf())));
+    return r;
+}
+
+//create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
+//It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
+static Microsoft::WRL::ComPtr< IDirect3D9> CreateD3D9Device(ID3D12Device* device, ID3D12RootSignature* root)
+{
+    Microsoft::WRL::ComPtr<IDirect3D9> r;
+
     return r;
 }
 
@@ -551,41 +527,42 @@ class ViewProvider : public winrt::implements<ViewProvider, IFrameworkView, IFra
     CoreWindow::SizeChanged_revoker				m_size_changed;
     CoreApplicationView::Activated_revoker		m_activated;
     
-    winrt::com_ptr <ID3D12Debug>                m_debug;
-    winrt::com_ptr <ID3D12Device1>				m_device;           //device for gpu resources
-    winrt::com_ptr <IDXGISwapChain3>			m_swap_chain;       //swap chain for 
+    Microsoft::WRL::ComPtr <ID3D12Debug>                m_debug;
+    Microsoft::WRL::ComPtr <ID3D12Device1>				m_device;           //device for gpu resources
+    Microsoft::WRL::ComPtr <IDXGISwapChain3>			m_swap_chain;       //swap chain for 
 
-    winrt::com_ptr <ID3D12Fence>        		m_fence;                     //fence for cpu/gpu synchronization
-    winrt::com_ptr <ID3D12CommandQueue>   		m_queue;                     //queue to the device
+    Microsoft::WRL::ComPtr <ID3D12Fence>        		m_fence;                     //fence for cpu/gpu synchronization
+    Microsoft::WRL::ComPtr <ID3D12CommandQueue>   		m_queue;                     //queue to the device
 
-    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeap;            //descriptor heap for the resources
+    Microsoft::WRL::ComPtr <ID3D12DescriptorHeap>   	m_descriptorHeap;            //descriptor heap for the resources
 
-    winrt::com_ptr <ID3D12DescriptorHeap>   	m_descriptorHeapRendering;   //descriptor heap for the resources
+    Microsoft::WRL::ComPtr <ID3D12DescriptorHeap>   	m_descriptorHeapRendering;   //descriptor heap for the resources
 
     std::mutex                                  m_blockRendering;   //block render thread for the swap chain resizes
 
-    winrt::com_ptr<ID3D12Resource1>             m_swap_chain_buffers[2];
+    Microsoft::WRL::ComPtr<ID3D12Resource1>             m_swap_chain_buffers[2];
     uint64_t                                    m_swap_chain_descriptors[2];
 
     uint32_t									m_back_buffer_width = 0;
     uint32_t									m_back_buffer_height = 0;
 
-    winrt::com_ptr <ID3D12CommandAllocator>   	m_command_allocator[2];		//one per frame
-    winrt::com_ptr <ID3D12GraphicsCommandList1> m_command_list[2];			//one per frame
+    Microsoft::WRL::ComPtr <ID3D12CommandAllocator>   	m_command_allocator[2];		//one per frame
+    Microsoft::WRL::ComPtr <ID3D12GraphicsCommandList1> m_command_list[2];			//one per frame
 
     uint64_t                                    m_frame_index	= 0;
     uint64_t									m_fence_value	= 1;
     HANDLE										m_fence_event = {};
 
     //Rendering
-    winrt::com_ptr< ID3D12RootSignature>		m_root_signature;
-    winrt::com_ptr< ID3D12PipelineState>		m_triangle_state;
+    Microsoft::WRL::ComPtr< ID3D12RootSignature>		m_root_signature;
+    Microsoft::WRL::ComPtr< ID3D12PipelineState>		m_triangle_state;
 };
+
 
 int32_t __stdcall wWinMain( HINSTANCE, HINSTANCE,PWSTR, int32_t )
 {
     ThrowIfFailed(CoInitializeEx(nullptr, COINIT_MULTITHREADED));
-    CoreApplication::Run(ViewProvider());
     CoUninitialize();
     return 0;
 }
+*/

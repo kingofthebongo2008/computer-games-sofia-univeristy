@@ -59,22 +59,6 @@ namespace sample
         return rotation;
     }
 
-	inline window_environment::DisplayOrientations fromWinrt(winrt::Windows::Graphics::Display::DisplayOrientations orientation)
-	{
-		using namespace winrt::Windows::Graphics::Display;
-
-		switch (orientation)
-		{
-			case DisplayOrientations::None: return window_environment::DisplayOrientations::None;
-			case DisplayOrientations::Landscape: return window_environment::DisplayOrientations::Landscape;
-			case DisplayOrientations::Portrait: return window_environment::DisplayOrientations::Portrait;
-			case DisplayOrientations::LandscapeFlipped: return window_environment::DisplayOrientations::LandscapeFlipped;
-			case DisplayOrientations::PortraitFlipped: return window_environment::DisplayOrientations::PortraitFlipped;
-		} 
-
-		return window_environment::DisplayOrientations::None;
-	}
-
     // Converts a length in device-independent pixels (DIPs) to a length in physical pixels.
     inline float convert_dips_to_pixels(float dips, float dpi)
     {
@@ -82,25 +66,24 @@ namespace sample
         return floorf( dips * dpi / dipsPerInch + 0.5f ); // Round to nearest integer.
     }
 
-    window_environment build_environment(const winrt::Windows::UI::Core::CoreWindow& window, const winrt::Windows::Graphics::Display::DisplayInformation& currentDisplayInformation )
+    window_environment build_environment(const HWND window)
     {
-        using namespace winrt::Windows::Graphics::Display;
-
         window_environment result = {};
 
-        winrt::Windows::Foundation::Rect bounds = window.Bounds();
-        result.m_logical_size.Width  = bounds.Width;
-        result.m_logical_size.Height = bounds.Height;
+        RECT rect;
+        GetWindowRect(window, &rect);
+
+        const uint32_t m_dpi = 96.0f;    //todo:fix
+        
+        result.m_logical_size.Width  = static_cast<float>(rect.right  - rect.left) / (m_dpi / 96.0F);
+        result.m_logical_size.Height = static_cast<float>(rect.bottom - rect.top) / (m_dpi / 96.0F);
 
         float f;
 
-        result.m_native_orientation = fromWinrt(currentDisplayInformation.NativeOrientation());
-        result.m_current_orientation = fromWinrt(currentDisplayInformation.CurrentOrientation());
-        result.m_dpi = currentDisplayInformation.LogicalDpi();
+        result.m_dpi = m_dpi;
 
-        f = currentDisplayInformation.LogicalDpi();
 
-        result.m_effective_dpi = result.m_dpi;		// no scaling for now, scaling is used for phones to save power.
+        result.m_effective_dpi              = result.m_dpi;		// no scaling for now, scaling is used for phones to save power.
                                                     // Calculate the necessary render target size in pixels.
         result.m_output_size.Width          = convert_dips_to_pixels(result.m_logical_size.Width, result.m_effective_dpi);
         result.m_output_size.Height         = convert_dips_to_pixels(result.m_logical_size.Height, result.m_effective_dpi);

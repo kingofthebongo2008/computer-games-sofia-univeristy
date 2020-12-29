@@ -17,9 +17,14 @@
     <ClCompile Include="..\..\src\hello_d3d9on12\pch.cpp" />
     <ClCompile Include="..\..\src\hello_d3d9on12\build_window_environment.cpp" />
     <ClCompile Include="..\..\src\hello_d3d9on12\window_environment.cpp" />
+    <ClCompile Include="..\..\src\hello_d3d9on12\application.cpp" />
+    <ClCompile Include="..\..\src\hello_d3d9on12\sample_desktop_window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\hello_d3d9on12\pch.h" />
+    <ClInclude Include="..\..\src\hello_d3d9on12\application.h" />
+    <ClInclude Include="..\..\src\hello_d3d9on12\sample_desktop_window.h" />
+    <ClInclude Include="..\..\src\hello_d3d9on12\window_environment.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="assets\lock_screen_logo.scale-200.png">
@@ -43,9 +48,6 @@
     <Image Include="assets\wide_310x150_logo.scale-200.png">
       <Filter>Assets</Filter>
     </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <AppxManifest Include="package.appxmanifest" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="..\..\src\hello_d3d9on12\shaders\triangle_vertex.hlsl">

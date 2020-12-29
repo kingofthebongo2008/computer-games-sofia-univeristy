@@ -11,23 +11,22 @@
 
 #define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
 
-// Windows Header Files:
-// cppwinrt takes too much time to compile, so it is good to precompile it
 #include <windows.h>
 #include <mutex>
-
-#include <wrl/client.h>
+#include <wrl.h>
 
 #include <d3d12.h>
 #include <dxgi1_5.h>
+#include <d3d9.h>
+#include <d3d9on12.h>
+
+#if WINAPI_FAMILY_DESKTOP_APP == WINAPI_FAMILY
+#include <atlbase.h>
+#include <atlwin.h>
+#endif
 
 
-#include <winrt/base.h>
-#include <winrt/Windows.Foundation.h>
-#include <winrt/Windows.ApplicationModel.Activation.h>
-#include <winrt/Windows.ApplicationModel.Core.h>
-#include <winrt/Windows.UI.Core.h>
-#include <winrt/Windows.UI.ViewManagement.h>
+
 
 
 
