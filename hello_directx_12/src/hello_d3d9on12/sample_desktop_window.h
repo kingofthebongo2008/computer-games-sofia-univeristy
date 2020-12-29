@@ -125,4 +125,35 @@ private:
     virtual void OnExitSizeMove() {};
     virtual void OnDpiChange(_In_ int /* dpi */, _In_ LPRECT /* rect */) {};
     virtual void OnDisplayChange() {};
+
+
+    Microsoft::WRL::ComPtr <ID3D12Debug>                m_debug;
+    Microsoft::WRL::ComPtr <ID3D12Device1>				m_device;           //device for gpu resources
+    Microsoft::WRL::ComPtr <IDXGISwapChain3>			m_swap_chain;       //swap chain for 
+
+    Microsoft::WRL::ComPtr <ID3D12Fence>        		m_fence;                     //fence for cpu/gpu synchronization
+    Microsoft::WRL::ComPtr <ID3D12CommandQueue>   		m_queue;                     //queue to the device
+
+    Microsoft::WRL::ComPtr <ID3D12DescriptorHeap>   	m_descriptorHeap;            //descriptor heap for the resources
+
+    Microsoft::WRL::ComPtr <ID3D12DescriptorHeap>   	m_descriptorHeapRendering;   //descriptor heap for the resources
+
+    std::mutex                                          m_blockRendering;   //block render thread for the swap chain resizes
+
+    Microsoft::WRL::ComPtr<ID3D12Resource1>             m_swap_chain_buffers[2];
+    uint64_t                                            m_swap_chain_descriptors[2];
+
+    uint32_t									        m_back_buffer_width = 0;
+    uint32_t									        m_back_buffer_height = 0;
+
+    Microsoft::WRL::ComPtr <ID3D12CommandAllocator>   	m_command_allocator[2];		//one per frame
+    Microsoft::WRL::ComPtr <ID3D12GraphicsCommandList1> m_command_list[2];			//one per frame
+
+    uint64_t                                            m_frame_index = 0;
+    uint64_t									        m_fence_value = 1;
+    HANDLE										        m_fence_event = {};
+
+    //Rendering
+    Microsoft::WRL::ComPtr< ID3D12RootSignature>		m_root_signature;
+    Microsoft::WRL::ComPtr< ID3D12PipelineState>		m_triangle_state;
 };

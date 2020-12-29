@@ -3,7 +3,7 @@
 
 #include "d3dx12.h"
 /*
-
+#include "d3dx12.h"
 //Helper class that assists us using the descriptors
 struct DescriptorHeapCpuView
 {
