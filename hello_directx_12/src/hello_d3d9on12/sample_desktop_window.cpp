@@ -7,7 +7,7 @@
 
 #include "pch.h"
 #include "sample_desktop_window.h"
-#include <ShellScalingApi.h>
+#include "build_window_environment.h"
 
 CSampleDesktopWindow::CSampleDesktopWindow()
 {
@@ -74,6 +74,8 @@ CSampleDesktopWindow::Initialize(
 void
 CSampleDesktopWindow::SetNewDpi(_In_ float newPerMonitorDpi)
 {
+    m_window_environment = sample::build_environment(m_hWnd);
+
     /*
     if (m_deviceResources && m_deviceResources->GetDpi() != newPerMonitorDpi)
     {
@@ -136,7 +138,7 @@ CSampleDesktopWindow::Render()
         return hr;
     }
 
-    if (false ) //!m_deviceResources->Present())
+    if ( false ) //!m_deviceResources->Present())
     {
         hr = S_OK;// m_deviceResources->GetDxgiFactory()->RegisterOcclusionStatusWindow(m_hWnd, WM_USER, &m_occlusion);
         if (FAILED(hr))
@@ -166,15 +168,7 @@ CSampleDesktopWindow::OnCreate(
 {
     auto cs = reinterpret_cast<CREATESTRUCT *>(lParam);
 
-    auto monitor = MonitorFromWindow(m_hWnd, MONITOR_DEFAULTTONEAREST);
-	UINT dpix;
-	UINT dpiy;
-	if (FAILED(GetDpiForMonitor(monitor, MONITOR_DPI_TYPE::MDT_EFFECTIVE_DPI, &dpix, &dpiy)))
-	{
-		dpix = 96;
-		dpiy = 96;
-	}
-    auto windowDpi = static_cast<float>(dpix);
+    m_window_environment = sample::build_environment(m_hWnd);
 
     // Store a reference to the hWnd so DirectX can render to this surface.
     //m_deviceResources->SetWindow(m_hWnd, windowDpi);
@@ -257,8 +251,8 @@ CSampleDesktopWindow::OnWindowPosChanged(
     if (!(windowPos->flags & SWP_NOSIZE))
     {
         //DeviceResources::Size size;
-        //size.Width = static_cast<float>(clientRect.right - clientRect.left) / (m_deviceResources->GetDpi() / 96.0F);
-        //size.Height = static_cast<float>(clientRect.bottom - clientRect.top) / (m_deviceResources->GetDpi() / 96.0F);
+        //size.Width = static_cast<float>(clientRect.right - clientRect.left)  / (m_window_environment.m_dpi / 96.0F);
+        //size.Height = static_cast<float>(clientRect.bottom - clientRect.top) / (m_window_environment.m_dpi / 96.0F);
         //m_deviceResources->SetLogicalSize(size);
         Render();
     }
@@ -372,11 +366,8 @@ CSampleDesktopWindow::OnPointerDown(
 
     ScreenToClient(&pt);
 
-    //auto localx = static_cast<float>(pt.x) / (m_deviceResources->GetDpi() / 96.0F);
-    //auto localy = static_cast<float>(pt.y) / (m_deviceResources->GetDpi() / 96.0F);
-
-    auto localx = 0;
-    auto localy = 0;
+    auto localx = static_cast<float>(pt.x) / (m_window_environment.m_dpi / 96.0F);
+    auto localy = static_cast<float>(pt.y) / (m_window_environment.m_dpi / 96.0F);
 
     // Call handler implemented by derived class for WM_POINTERDOWN message.
     OnPointerDown(localx, localy);
@@ -402,11 +393,9 @@ CSampleDesktopWindow::OnPointerUp(
 
     ScreenToClient(&pt);
 
-    //auto localX = static_cast<float>(pt.x) / (m_deviceResources->GetDpi() / 96.0F);
-    //auto localY = static_cast<float>(pt.y) / (m_deviceResources->GetDpi() / 96.0F);
+    auto localX = static_cast<float>(pt.x) / (m_window_environment.m_dpi / 96.0F);
+    auto localY = static_cast<float>(pt.y) / (m_window_environment.m_dpi / 96.0F);
 
-    auto localX = 0;
-    auto localY = 0;
 
     // Call handler implemented by derived class for WM_POINTERUP message.
     OnPointerUp(localX, localY);
@@ -479,11 +468,8 @@ LRESULT
 
     ScreenToClient(&pt);
 
-    //auto localx = static_cast<float>(pt.x) / (m_deviceResources->GetDpi() / 96.0F);
-    //auto localy = static_cast<float>(pt.y) / (m_deviceResources->GetDpi() / 96.0F);
-
-    auto localx = 0;
-    auto localy = 0;
+    auto localx = static_cast<float>(pt.x) / (m_window_environment.m_dpi / 96.0F);
+    auto localy = static_cast<float>(pt.y) / (m_window_environment.m_dpi / 96.0F);
 
     // Call handler implemented by derived class for WM_POINTERUPDATE message.
     OnPointerUpdate(localx, localy);

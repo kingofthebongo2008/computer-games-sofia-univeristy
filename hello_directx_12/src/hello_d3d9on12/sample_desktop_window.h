@@ -6,7 +6,8 @@
 //// Copyright (c) Microsoft Corporation. All rights reserved
 
 #pragma once
-#include "pch.h"
+
+#include "window_environment.h"
 
 
 // <summary>
@@ -62,6 +63,8 @@ protected:
     // Store application and display state to optimize rendering and present instructions.
     bool m_visible;
     DWORD m_occlusion;
+
+    sample::window_environment m_window_environment;
 
 private:
     // Draw client area of base Desktop Window.

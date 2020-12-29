@@ -1,8 +1,8 @@
 #pragma once
 #include "pch.h"
 #include "build_window_environment.h"
+#include <ShellScalingApi.h>
 
-#include <dxgi.h>
 
 namespace sample
 {
@@ -73,18 +73,32 @@ namespace sample
         RECT rect;
         GetWindowRect(window, &rect);
 
-        const uint32_t m_dpi = 96.0f;    //todo:fix
+        auto monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+
+        UINT dpix;
+        UINT dpiy;
         
-        result.m_logical_size.Width  = static_cast<float>(rect.right  - rect.left) / (m_dpi / 96.0F);
-        result.m_logical_size.Height = static_cast<float>(rect.bottom - rect.top) / (m_dpi / 96.0F);
+        if (GetDpiForMonitor(monitor, MONITOR_DPI_TYPE::MDT_EFFECTIVE_DPI, &dpix, &dpiy)!= S_OK)
+        {
+            dpix = 96;
+            dpiy = 96;
+        }
+
+        auto windowDpi = static_cast<float>(dpix);
+
+        const uint32_t dpi = dpix;
+        
+        result.m_logical_size.Width  = static_cast<float>(rect.right  - rect.left) / (dpi / 96.0F);
+        result.m_logical_size.Height = static_cast<float>(rect.bottom - rect.top) / (dpi / 96.0F);
 
         float f;
 
-        result.m_dpi = m_dpi;
+        result.m_dpi = dpi;
 
 
         result.m_effective_dpi              = result.m_dpi;		// no scaling for now, scaling is used for phones to save power.
-                                                    // Calculate the necessary render target size in pixels.
+
+        // Calculate the necessary render target size in pixels.
         result.m_output_size.Width          = convert_dips_to_pixels(result.m_logical_size.Width, result.m_effective_dpi);
         result.m_output_size.Height         = convert_dips_to_pixels(result.m_logical_size.Height, result.m_effective_dpi);
 
