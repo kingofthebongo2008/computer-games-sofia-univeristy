@@ -162,4 +162,5 @@ private:
     Microsoft::WRL::ComPtr< ID3D12PipelineState>		m_triangle_state;
 
     Microsoft::WRL::ComPtr<ID3D12Resource1 >            m_font_texture;
+    Microsoft::WRL::ComPtr<ID3D12Resource1 >            m_text_buffer;
 };

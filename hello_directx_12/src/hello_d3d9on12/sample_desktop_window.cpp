@@ -352,7 +352,7 @@ namespace
         Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> r;
         D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-        d.NumDescriptors = 2;
+        d.NumDescriptors = 3;
         d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         device->CreateDescriptorHeap(&d, IID_PPV_ARGS(r.GetAddressOf()));
         return r;
@@ -363,7 +363,7 @@ namespace
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> r;
         D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-        d.NumDescriptors = 2;
+        d.NumDescriptors = 3;
         d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         d.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         device->CreateDescriptorHeap(&d, IID_PPV_ARGS(r.GetAddressOf()));
@@ -568,6 +568,52 @@ namespace
         ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, IID_PPV_ARGS(r.GetAddressOf())));
         return r;
     }
+
+    static Microsoft::WRL::ComPtr< ID3D12Resource1 > CreateUploadFontBuffer(ID3D12Device1* device, uint64_t size, D3D12_RESOURCE_STATES state)
+    {
+        D3D12_RESOURCE_DESC d = {};
+        d.Alignment = 0;
+        d.DepthOrArraySize = 1;
+        d.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        d.Flags = D3D12_RESOURCE_FLAG_NONE;
+        d.Format = DXGI_FORMAT_UNKNOWN;
+        d.Height = 1;
+        d.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        d.MipLevels = 1;
+        d.SampleDesc.Count = 1;
+        d.SampleDesc.Quality = 0;
+        d.Width = size;
+
+        Microsoft::WRL::ComPtr<ID3D12Resource1>     r;
+        D3D12_HEAP_PROPERTIES p = {};
+        p.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+        ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, IID_PPV_ARGS(r.GetAddressOf())));
+        return r;
+    }
+
+    static Microsoft::WRL::ComPtr< ID3D12Resource1 > CreateFontBuffer(ID3D12Device1* device, uint64_t size, D3D12_RESOURCE_STATES state)
+    {
+        D3D12_RESOURCE_DESC d = {};
+        d.Alignment = 0;
+        d.DepthOrArraySize = 1;
+        d.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        d.Flags = D3D12_RESOURCE_FLAG_NONE;
+        d.Format = DXGI_FORMAT_UNKNOWN;
+        d.Height = 1;
+        d.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        d.MipLevels = 1;
+        d.SampleDesc.Count = 1;
+        d.SampleDesc.Quality = 0;
+        d.Width = size;
+
+        Microsoft::WRL::ComPtr<ID3D12Resource1>     r;
+        D3D12_HEAP_PROPERTIES p = {};
+        p.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+        ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, IID_PPV_ARGS(r.GetAddressOf())));
+        return r;
+    }
 }
 
 CSampleDesktopWindow::CSampleDesktopWindow()
@@ -633,10 +679,13 @@ CSampleDesktopWindow::Initialize(
         ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
     }
 
-    const auto image = uc::gx::imaging::read_image(L"font_arial.png");
+    const auto image    = uc::gx::imaging::read_image(L"font_arial.png");
+    const auto v        = font_builder::make_vertices();
+    const auto v_s      = v.size() * sizeof(font_builder::vertex);
 
     //Upload resources
-    m_font_texture = CreateFontTexture(m_device.Get(), image.width(), image.height(), D3D12_RESOURCE_STATE_COPY_DEST);
+    m_font_texture  = CreateFontTexture(m_device.Get(), image.width(), image.height(), D3D12_RESOURCE_STATE_COPY_DEST);
+    m_text_buffer   = CreateFontBuffer(m_device.Get(), v_s, D3D12_RESOURCE_STATE_COPY_DEST);
 
     {
         DescriptorHeapCpuView cpu = CpuView(m_device.Get(), m_descriptorHeapShaders.Get());
@@ -650,34 +699,72 @@ CSampleDesktopWindow::Initialize(
         m_device->CreateShaderResourceView(m_font_texture.Get(), &d, cpu(0));
     }
 
+    {
+        DescriptorHeapCpuView cpu = CpuView(m_device.Get(), m_descriptorHeapShaders.Get());
+        D3D12_SHADER_RESOURCE_VIEW_DESC d = {};
+
+        d.Format                        = DXGI_FORMAT_R32_TYPELESS;
+        d.ViewDimension                 = D3D12_SRV_DIMENSION_BUFFER;
+        d.Buffer.StructureByteStride    = 0;
+        d.Buffer.NumElements            = v_s / 4;
+        d.Buffer.Flags                  = D3D12_BUFFER_SRV_FLAG_RAW;
+        
+        d.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        m_device->CreateShaderResourceView(m_text_buffer.Get(), &d, cpu(1));
+    }
+
 
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator>   	upload_allocator    = CreateCommandAllocator(m_device.Get());
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList1> upload_list          = CreateCommandList(m_device.Get(), upload_allocator.Get());
     Microsoft::WRL::ComPtr<ID3D12Resource1 >			upload_font_texture = CreateUploadFontTexture(m_device.Get(), GetRequiredIntermediateSize(m_font_texture.Get(), 0, 1), D3D12_RESOURCE_STATE_GENERIC_READ);
+    Microsoft::WRL::ComPtr<ID3D12Resource1 > upload_font_buffer             = CreateUploadFontBuffer(m_device.Get(), v_s, D3D12_RESOURCE_STATE_GENERIC_READ);
 
     upload_allocator->Reset();
     upload_list->Reset(upload_allocator.Get(), nullptr);
 
-    D3D12_SUBRESOURCE_DATA d[1] = {};
+    {
 
-    d[0].pData      = image.pixels().get_pixels_cpu();
-    d[0].RowPitch   = image.row_pitch();
-    d[0].SlicePitch = image.slice_pitch();
+        D3D12_SUBRESOURCE_DATA d[1] = {};
 
-    UpdateSubresources(upload_list.Get(), m_font_texture.Get(), upload_font_texture.Get(), 0, 0, 1U, &d[0]);
+        d[0].pData = image.pixels().get_pixels_cpu();
+        d[0].RowPitch = image.row_pitch();
+        d[0].SlicePitch = image.slice_pitch();
+
+        UpdateSubresources(upload_list.Get(), m_font_texture.Get(), upload_font_texture.Get(), 0, 0, 1U, &d[0]);
+    }
 
     {
-        std::array<D3D12_RESOURCE_BARRIER, 1> b;
 
-        for (uint32_t i = 0; i < 1; ++i)
+        D3D12_SUBRESOURCE_DATA d[1] = {};
+
+        d[0].pData      = &v[0];
+        d[0].RowPitch   = v_s;
+        d[0].SlicePitch = v_s;
+
+        UpdateSubresources(upload_list.Get(), m_text_buffer.Get(), upload_font_buffer.Get(), 0, 0, 1U, &d[0]);
+    }
+
+    {
+        std::array<D3D12_RESOURCE_BARRIER, 2> b;
+
         {
-            b[i].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-            b[i].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-            b[i].Transition.pResource = m_font_texture.Get();
-            b[i].Transition.Subresource = 0;
-            b[i].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-            b[i].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+            b[0].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            b[0].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            b[0].Transition.pResource = m_font_texture.Get();
+            b[0].Transition.Subresource = 0;
+            b[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+            b[0].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
+
+        {
+            b[1].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            b[1].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            b[1].Transition.pResource = m_text_buffer.Get();
+            b[1].Transition.Subresource = 0;
+            b[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+            b[1].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        }
+
         upload_list->ResourceBarrier(b.size(), &b[0]);
     }
 
@@ -704,7 +791,7 @@ CSampleDesktopWindow::Initialize(
     {
         DescriptorHeapCpuView cpu = CpuView(m_device.Get(), m_descriptorHeapShaders.Get());
         DescriptorHeapCpuView gpu = CpuView(m_device.Get(), m_descriptorHeapShadersGpu.Get());
-        m_device->CopyDescriptorsSimple(1, gpu(0), cpu(0), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+        m_device->CopyDescriptorsSimple(2, gpu(0), cpu(0), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
 
     // Create main application window.
