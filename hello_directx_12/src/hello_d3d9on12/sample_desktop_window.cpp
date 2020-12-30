@@ -293,6 +293,8 @@ namespace
 
         D3DPRESENT_PARAMETERS p = {};
 
+        //desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        p.BackBufferFormat      = D3DFMT_X8B8G8R8;
         p.BackBufferCount       = 2;
         p.BackBufferWidth       = w;
         p.BackBufferHeight      = h;
