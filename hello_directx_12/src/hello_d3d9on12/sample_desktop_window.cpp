@@ -11,6 +11,7 @@
 
 #include "d3dx12.h"
 #include "cpu_view.h"
+#include <DirectXMath.h>
 
 #include <uc/img/img.h>
 #include <uc/util/utf8_conv.h>
@@ -33,13 +34,13 @@ namespace
         {
             struct font_glyph
             {
-                uint32_t m_x;
-                uint32_t m_y;
-                uint32_t m_width;
-                uint32_t m_height;
-                uint32_t m_origin_x;
-                uint32_t m_origin_y;
-                uint32_t m_advance;
+                float m_x;
+                float m_y;
+                float m_width;
+                float m_height;
+                float m_origin_x;
+                float m_origin_y;
+                float m_advance;
             };
 
             struct font_character
@@ -164,7 +165,7 @@ namespace
                 };
 
                 const std::string text = "This is some text";
-                uint32_t  totalAdvance = 0;
+                int32_t  totalAdvance = 0;
 
                 // Measure how wide the text is
                 for (uint32_t i = 0; i < text.size(); i++)
@@ -186,9 +187,8 @@ namespace
                 }
 
                 // Center the text at the origin
-                uint32_t x = -totalAdvance / 2;
-                uint32_t y = arial.m_size / 2;
-
+                int32_t x = -totalAdvance / 2;
+                int32_t y = arial.m_size / 2;
 
                 std::vector<vertex> vertices;
 
@@ -810,10 +810,8 @@ CSampleDesktopWindow::Initialize(
         m_device->CopyDescriptorsSimple(2, gpu(0), cpu(0), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
 
-
     m_root_signature = CreateRootSignature(m_device.Get());
     m_triangle_state = CreateTrianglePipelineState(m_device.Get(), m_root_signature.Get());
-
 
     // Create main application window.
     m_hWnd = __super::Create(nullptr,  bounds,  title.c_str());
@@ -963,6 +961,14 @@ CSampleDesktopWindow::Render()
     {
         DescriptorHeapGpuView gpu = GpuView(m_device.Get(), m_descriptorHeapShadersGpu.Get());
         commandList->SetGraphicsRootDescriptorTable(0, gpu(0));
+    }
+
+    {
+        DirectX::XMMATRIX m = DirectX::XMMatrixIdentity();
+        DirectX::XMFLOAT4X4A s;
+        DirectX::XMStoreFloat4x4A(&s, m);
+
+        commandList->SetGraphicsRoot32BitConstants(1, 16, &s, 0);
     }
 
     //set the raster pipeline state as a whole, it was prebuilt before

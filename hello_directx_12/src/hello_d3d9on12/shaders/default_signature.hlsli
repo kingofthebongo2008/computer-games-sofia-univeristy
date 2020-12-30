@@ -39,7 +39,8 @@
               "StaticSampler(s7, addressU = TEXTURE_ADDRESS_BORDER, addressV = TEXTURE_ADDRESS_BORDER, addressW = TEXTURE_ADDRESS_BORDER, filter = FILTER_MIN_MAG_MIP_LINEAR, borderColor = STATIC_BORDER_COLOR_OPAQUE_WHITE )"
 
 #define MyRS3 "RootFlags( 0 ), " \
-              "DescriptorTable( SRV(t1, numDescriptors = 2))" 
+              "DescriptorTable( SRV(t1, numDescriptors = 2))," \
+              "RootConstants(num32BitConstants=16, b0)"
 
 #endif
 
