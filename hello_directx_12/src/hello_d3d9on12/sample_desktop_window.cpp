@@ -794,6 +794,11 @@ CSampleDesktopWindow::Initialize(
         m_device->CopyDescriptorsSimple(2, gpu(0), cpu(0), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
 
+
+    m_root_signature = CreateRootSignature(m_device.Get());
+    m_triangle_state = CreateTrianglePipelineState(m_device.Get(), m_root_signature.Get());
+
+
     // Create main application window.
     m_hWnd = __super::Create(nullptr,  bounds,  title.c_str());
 
@@ -830,8 +835,6 @@ CSampleDesktopWindow::SetNewDpi(_In_ float newPerMonitorDpi)
         m_deviceResources->SetDpi(newPerMonitorDpi);
     }
     */
-
-
 }
 
 // Main message loop for application.
@@ -912,7 +915,6 @@ CSampleDesktopWindow::Render()
         commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
     }
 
-
     {
         //set the scissor test separately (which parts of the view port will survive)
         {
@@ -934,13 +936,13 @@ CSampleDesktopWindow::Render()
     }
 
     //set the type of the parameters that we will use in the shader
-    //commandList->SetGraphicsRootSignature(m_root_signature.get());
+    commandList->SetGraphicsRootSignature(m_root_signature.Get());
 
     //set the type of the parameters that we will use in the shader
     {
         ID3D12DescriptorHeap* heaps[1] = { m_descriptorHeapShadersGpu.Get() };
 
-        //commandList->SetDescriptorHeaps(1, heaps);
+        commandList->SetDescriptorHeaps(1, heaps);
     }
 
     {
@@ -950,7 +952,7 @@ CSampleDesktopWindow::Render()
 
 
     //set the raster pipeline state as a whole, it was prebuilt before
-    //commandList->SetPipelineState(m_triangle_state.get());
+    commandList->SetPipelineState(m_triangle_state.Get());
 
     float constants[4] = {};
 
@@ -962,9 +964,9 @@ CSampleDesktopWindow::Render()
     //commandList->SetGraphicsRoot32BitConstants(1, 4, &constants[0], 0);
 
     //set the types of the triangles we will use
-    //commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     //draw the triangle
-    //commandList->DrawInstanced(3, 1, 0, 0);
+    commandList->DrawInstanced(3, 1, 0, 0);
 
     //insert pregenerated commands
     //commandList->ExecuteBundle(m_bundle_command_list.get());

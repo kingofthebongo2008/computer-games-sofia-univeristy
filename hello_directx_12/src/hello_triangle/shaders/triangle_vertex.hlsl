@@ -6,7 +6,7 @@ struct interpolated_value
     float3 m_color    : TEXCOORD0;
 };
 
-[RootSignature( MyRS1 ) ]
+[RootSignature( MyRS2 ) ]
 interpolated_value main(uint v : SV_VERTEXID)
 {
 	interpolated_value r = (interpolated_value)0;
