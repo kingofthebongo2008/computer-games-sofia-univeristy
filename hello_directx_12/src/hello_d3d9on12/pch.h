@@ -25,6 +25,9 @@
 #include <atlwin.h>
 #endif
 
+#include <array>
+#include <vector>
+
 
 
 
