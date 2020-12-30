@@ -195,7 +195,20 @@ namespace
                 // Add a quad for each character
                 for (uint32_t i = 0; i < text.size(); i++)
                 {
-                    font_glyph c = arial.m_characters[text[i]].m_glyph;
+                    char ch = text[i];
+                    uint32_t g_i = 0;
+
+                    //find glyph
+                    for (auto g = 0; g < arial.m_characters.size(); ++g)
+                    {
+                        if (ch == arial.m_characters[g].m_character)
+                        {
+                            g_i = g;
+                            break;
+                        }
+                    }
+
+                    font_glyph c = arial.m_characters[g_i].m_glyph;
 
                     // p0 --- p1
                     // | \     |
