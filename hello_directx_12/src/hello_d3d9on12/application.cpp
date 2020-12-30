@@ -65,9 +65,10 @@ WINAPI WinMain(
     // Initialize the main application window using
     // a default size and window title.
     hr = CalcInitialWindowBounds(1610, 910, &initialBounds);
+    
     if (SUCCEEDED(hr))
     {
-//        InitCommonControls();
+        hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
         hr = dynamicDpiWindow->Initialize(initialBounds, L"Dynamic DPI Sample Window");
     }
 
@@ -75,6 +76,8 @@ WINAPI WinMain(
     if (SUCCEEDED(hr))
     {
         hr = dynamicDpiWindow->Run();
+
+        CoUninitialize();
     }
 
     return hr;

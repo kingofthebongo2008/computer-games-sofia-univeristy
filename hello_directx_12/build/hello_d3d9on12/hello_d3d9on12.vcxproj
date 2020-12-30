@@ -45,7 +45,7 @@
     <ClCompile>
       <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
-      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(IntDir);..\..\src\hello_d3d9on12\3rdparty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -84,17 +84,14 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
   </ItemGroup>
-
- <ItemGroup>
-    <Content  Include="..\..\src\hello_d3d9on12\data\font_arial.png">
+  <ItemGroup>
+    <Content Include="..\..\src\hello_d3d9on12\data\font_arial.png">
       <Link>$([MSBuild]::MakeRelative($(TargetDir),font_arial.png))</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <DeploymentContent>true</DeploymentContent>
       <Visible>false</Visible>
-    </Content >
+    </Content>
   </ItemGroup>
-
-
   <ItemGroup>
     <FxCompile Include="..\..\src\hello_d3d9on12\shaders\triangle_pixel.hlsl">
       <VariableName>g_%(Filename)</VariableName>
