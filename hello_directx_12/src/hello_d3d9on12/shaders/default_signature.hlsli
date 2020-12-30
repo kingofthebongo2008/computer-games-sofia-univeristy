@@ -40,7 +40,8 @@
 
 #define MyRS3 "RootFlags( 0 ), " \
               "DescriptorTable( SRV(t1, numDescriptors = 2))," \
-              "RootConstants(num32BitConstants=16, b0)"
+              "RootConstants(num32BitConstants=16, b0), " \
+              "StaticSampler(s0, addressU = TEXTURE_ADDRESS_CLAMP,  addressV = TEXTURE_ADDRESS_CLAMP, addressW = TEXTURE_ADDRESS_CLAMP, filter = FILTER_MIN_MAG_MIP_LINEAR )" 
 
 #endif
 

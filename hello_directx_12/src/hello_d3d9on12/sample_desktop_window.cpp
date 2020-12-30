@@ -475,6 +475,20 @@ namespace
             static
 #include <triangle_vertex.h>
 
+        const D3D12_RENDER_TARGET_BLEND_DESC premulBlendDesc =
+        {
+             TRUE, FALSE,
+             D3D12_BLEND_ONE, D3D12_BLEND_INV_SRC_ALPHA, D3D12_BLEND_OP_ADD,
+             D3D12_BLEND_ONE, D3D12_BLEND_INV_SRC_ALPHA, D3D12_BLEND_OP_ADD,
+             D3D12_LOGIC_OP_NOOP,
+             D3D12_COLOR_WRITE_ENABLE_ALL
+        };
+
+        D3D12_BLEND_DESC blend = {};
+        blend.RenderTarget[0] = premulBlendDesc;
+
+
+
         D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
         state.pRootSignature = root;
         state.SampleMask = UINT_MAX;
@@ -487,7 +501,7 @@ namespace
         state.NumRenderTargets = 1;
         state.RTVFormats[0] = DXGI_FORMAT_B8G8R8A8_UNORM;
         state.SampleDesc.Count = 1;
-        state.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+        state.BlendState = blend;// CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 
         state.DepthStencilState.DepthEnable = FALSE;
         state.DepthStencilState.StencilEnable = FALSE;
@@ -925,7 +939,7 @@ CSampleDesktopWindow::Render()
 
     //do the clear, fill the memory with a value
     {
-        FLOAT c[4] = { 0.0f, 1.f,0.f,0.f };
+        FLOAT c[4] = { 0.2f, 0.2f,0.2f,0.f };
         commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
     }
 
@@ -964,10 +978,15 @@ CSampleDesktopWindow::Render()
     }
 
     {
-        DirectX::XMMATRIX m = DirectX::XMMatrixIdentity();
-        DirectX::XMFLOAT4X4A s;
-        DirectX::XMStoreFloat4x4A(&s, m);
+        using namespace DirectX;
+       
+        XMFLOAT4X4A s;
+        XMMATRIX p = XMMatrixPerspectiveFovLH(60.0f * XM_PI / 180.0f, m_back_buffer_width / m_back_buffer_height, 1.0f, 1000.f);
+        XMMATRIX r  = XMMatrixRotationX(XM_PI);
+        XMMATRIX m  = XMMatrixTranslation(0, 0, 450);
+        XMMATRIX vp = XMMatrixMultiply(XMMatrixMultiply(r,m), p);
 
+        XMStoreFloat4x4A(&s, XMMatrixTranspose(vp));
         commandList->SetGraphicsRoot32BitConstants(1, 16, &s, 0);
     }
 
