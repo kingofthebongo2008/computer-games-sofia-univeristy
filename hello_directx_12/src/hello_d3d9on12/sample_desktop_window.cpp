@@ -20,19 +20,24 @@ namespace
     namespace font_builder
     {
 
-        void read_font()
+        struct vertex
         {
-            const std::wstring w    = L"font_arial.png";
-            const auto image        = uc::gx::imaging::read_image(w.c_str());
+            float m_x;
+            float m_y;
+            float m_u;
+            float m_v;
+        };
 
+        std::vector<vertex> make_vertices()
+        {
             struct font_glyph
             {
                 uint32_t m_x;
                 uint32_t m_y;
                 uint32_t m_width;
                 uint32_t m_height;
-                uint32_t m_orign_x;
-                uint32_t m_orign_y;
+                uint32_t m_origin_x;
+                uint32_t m_origin_y;
                 uint32_t m_advance;
             };
 
@@ -157,134 +162,86 @@ namespace
                     }
                 };
 
+                const std::string text = "This is some text";
+                uint32_t  totalAdvance = 0;
 
-            __debugbreak();
+                // Measure how wide the text is
+                for (uint32_t i = 0; i < text.size(); i++)
+                {
+                    char ch = text[i];
+                    uint32_t g_i = 0;
 
-            /*
-    var font = {
-  "name": "Arial", 
-  "size" : 64, 
-  "bold" : false, 
-  "italic" : false, 
-  "width" : 1071, 
-  "height" : 340, 
-  "characters" : {
-    "0" : {"x":271, "y" : 82, "width" : 53, "height" : 69, "originX" : 9, "originY" : 57, "advance" : 35}, 
-    "1" : {"x":1024, "y" : 151, "width" : 40, "height" : 68, "originX" : 4, "originY" : 57, "advance" : 35}, 
-    "2" : {"x":766, "y" : 151, "width" : 53, "height" : 68, "originX" : 9, "originY" : 57, "advance" : 35}, 
-    "3" : {"x":59, "y" : 82, "width" : 53, "height" : 69, "originX" : 9, "originY" : 57, "advance" : 35}, 
-    "4" : {"x":658, "y" : 151, "width" : 54, "height" : 68, "originX" : 10, "originY" : 57, "advance" : 35}, 
-    "5" : {"x":819, "y" : 151, "width" : 53, "height" : 68, "originX" : 9, "originY" : 56, "advance" : 35}, 
-    "6" : {"x":324, "y" : 82, "width" : 53, "height" : 69, "originX" : 9, "originY" : 57, "advance" : 35}, 
-    "7" : {"x":116, "y" : 219, "width" : 52, "height" : 67, "originX" : 8, "originY" : 56, "advance" : 35}, 
-    "8" : {"x":112, "y" : 82, "width" : 53, "height" : 69, "originX" : 9, "originY" : 57, "advance" : 35}, 
-    "9" : {"x":165, "y" : 82, "width" : 53, "height" : 69, "originX" : 9, "originY" : 57, "advance" : 35}, 
-    " " : {"x":514, "y" : 287, "width" : 22, "height" : 22, "originX" : 11, "originY" : 11, "advance" : 18}, 
-    "!" : {"x":0, "y" : 219, "width" : 30, "height" : 68, "originX" : 6, "originY" : 57, "advance" : 18}, 
-    "\"" : {"x":199, "y" : 287, "width" : 39, "height" : 39, "originX" : 8, "originY" : 57, "advance" : 22}, 
-    "#" : {"x":882, "y" : 0, "width" : 57, "height" : 70, "originX" : 11, "originY" : 58, "advance" : 35}, 
-    "$" : {"x":374, "y" : 0, "width" : 53, "height" : 79, "originX" : 9, "originY" : 61, "advance" : 35}, 
-    "%" : {"x":495, "y" : 0, "width" : 72, "height" : 71, "originX" : 8, "originY" : 58, "advance" : 57}, 
-    "&" : {"x":762, "y" : 0, "width" : 61, "height" : 70, "originX" : 9, "originY" : 58, "advance" : 42}, 
-    "'" : {"x":238, "y" : 287, "width" : 29, "height" : 39, "originX" : 8, "originY" : 57, "advance" : 12}, 
-    "(" : {"x":164, "y" : 0, "width" : 38, "height" : 82, "originX" : 7, "originY" : 58, "advance" : 21}, 
-    ")" : {"x":202, "y" : 0, "width" : 38, "height" : 82, "originX" : 7, "originY" : 58, "advance" : 21}, 
-    "*" : {"x":103, "y" : 287, "width" : 43, "height" : 42, "originX" : 9, "originY" : 58, "advance" : 25}, 
-    "+" : {"x":0, "y" : 287, "width" : 53, "height" : 53, "originX" : 8, "originY" : 49, "advance" : 37}, 
-    ", " : {"x":267, "y" : 287, "width" : 29, "height" : 38, "originX" : 6, "originY" : 18, "advance" : 18}, 
-    "-" : {"x":414, "y" : 287, "width" : 40, "height" : 28, "originX" : 9, "originY" : 31, "advance" : 21}, 
-    "." : {"x":385, "y" : 287, "width" : 29, "height" : 29, "originX" : 5, "originY" : 18, "advance" : 18}, 
-    "/" : {"x":991, "y" : 0, "width" : 40, "height" : 70, "originX" : 11, "originY" : 58, "advance" : 18}, 
-    ":" : {"x":934, "y" : 219, "width" : 29, "height" : 55, "originX" : 5, "originY" : 44, "advance" : 18}, 
-    ";" : {"x":207, "y" : 219, "width" : 29, "height" : 65, "originX" : 6, "originY" : 44, "advance" : 18}, 
-    "<" : {"x":1016, "y" : 219, "width" : 53, "height" : 53, "originX" : 8, "originY" : 49, "advance" : 37}, 
-    "=" : {"x":146, "y" : 287, "width" : 53, "height" : 41, "originX" : 8, "originY" : 43, "advance" : 37}, 
-    ">" : {"x":963, "y" : 219, "width" : 53, "height" : 53, "originX" : 8, "originY" : 49, "advance" : 37}, 
-    "?" : {"x":481, "y" : 82, "width" : 52, "height" : 69, "originX" : 8, "originY" : 58, "advance" : 35}, 
-    "@" : {"x":0, "y" : 0, "width" : 82, "height" : 82, "originX" : 8, "originY" : 58, "advance" : 65}, 
-    "A" : {"x":875, "y" : 82, "width" : 66, "height" : 68, "originX" : 11, "originY" : 57, "advance" : 42}, 
-    "B" : {"x":543, "y" : 151, "width" : 58, "height" : 68, "originX" : 7, "originY" : 57, "advance" : 42}, 
-    "C" : {"x":699, "y" : 0, "width" : 63, "height" : 70, "originX" : 8, "originY" : 58, "advance" : 46}, 
-    "D" : {"x":127, "y" : 151, "width" : 61, "height" : 68, "originX" : 6, "originY" : 57, "advance" : 46}, 
-    "E" : {"x":601, "y" : 151, "width" : 57, "height" : 68, "originX" : 6, "originY" : 57, "advance" : 42}, 
-    "F" : {"x":712, "y" : 151, "width" : 54, "height" : 68, "originX" : 6, "originY" : 57, "advance" : 39}, 
-    "G" : {"x":634, "y" : 0, "width" : 65, "height" : 70, "originX" : 8, "originY" : 58, "advance" : 50}, 
-    "H" : {"x":367, "y" : 151, "width" : 59, "height" : 68, "originX" : 6, "originY" : 57, "advance" : 46}, 
-    "I" : {"x":59, "y" : 219, "width" : 29, "height" : 68, "originX" : 5, "originY" : 57, "advance" : 18}, 
-    "J" : {"x":637, "y" : 82, "width" : 48, "height" : 69, "originX" : 9, "originY" : 57, "advance" : 32}, 
-    "K" : {"x":188, "y" : 151, "width" : 61, "height" : 68, "originX" : 7, "originY" : 57, "advance" : 42}, 
-    "L" : {"x":872, "y" : 151, "width" : 52, "height" : 68, "originX" : 7, "originY" : 57, "advance" : 35}, 
-    "M" : {"x":808, "y" : 82, "width" : 67, "height" : 68, "originX" : 7, "originY" : 57, "advance" : 53}, 
-    "N" : {"x":308, "y" : 151, "width" : 59, "height" : 68, "originX" : 6, "originY" : 57, "advance" : 46}, 
-    "O" : {"x":567, "y" : 0, "width" : 67, "height" : 70, "originX" : 8, "originY" : 58, "advance" : 50}, 
-    "P" : {"x":485, "y" : 151, "width" : 58, "height" : 68, "originX" : 6, "originY" : 57, "advance" : 42}, 
-    "Q" : {"x":427, "y" : 0, "width" : 68, "height" : 73, "originX" : 9, "originY" : 58, "advance" : 50}, 
-    "R" : {"x":64, "y" : 151, "width" : 63, "height" : 68, "originX" : 6, "originY" : 57, "advance" : 46}, 
-    "S" : {"x":823, "y" : 0, "width" : 59, "height" : 70, "originX" : 8, "originY" : 58, "advance" : 42}, 
-    "T" : {"x":249, "y" : 151, "width" : 59, "height" : 68, "originX" : 10, "originY" : 57, "advance" : 39}, 
-    "U" : {"x":0, "y" : 82, "width" : 59, "height" : 69, "originX" : 6, "originY" : 57, "advance" : 46}, 
-    "V" : {"x":1006, "y" : 82, "width" : 64, "height" : 68, "originX" : 11, "originY" : 57, "advance" : 42}, 
-    "W" : {"x":727, "y" : 82, "width" : 81, "height" : 68, "originX" : 10, "originY" : 57, "advance" : 60}, 
-    "X" : {"x":0, "y" : 151, "width" : 64, "height" : 68, "originX" : 11, "originY" : 57, "advance" : 42}, 
-    "Y" : {"x":941, "y" : 82, "width" : 65, "height" : 68, "originX" : 11, "originY" : 57, "advance" : 42}, 
-    "Z" : {"x":426, "y" : 151, "width" : 59, "height" : 68, "originX" : 10, "originY" : 57, "advance" : 39}, 
-    "[" : {"x":339, "y" : 0, "width" : 35, "height" : 81, "originX" : 7, "originY" : 57, "advance" : 18}, 
-    "\\" : {"x":1031, "y" : 0, "width" : 40, "height" : 70, "originX" : 11, "originY" : 58, "advance" : 18}, 
-    "]" : {"x":304, "y" : 0, "width" : 35, "height" : 81, "originX" : 10, "originY" : 57, "advance" : 18}, 
-    "^" : {"x":53, "y" : 287, "width" : 50, "height" : 47, "originX" : 10, "originY" : 58, "advance" : 30}, 
-    "_" : {"x":454, "y" : 287, "width" : 60, "height" : 27, "originX" : 12, "originY" : 3, "advance" : 35}, 
-    "`" : {"x":351, "y" : 287, "width" : 34, "height" : 31, "originX" : 8, "originY" : 57, "advance" : 21}, 
-    "a" : {"x":290, "y" : 219, "width" : 53, "height" : 57, "originX" : 9, "originY" : 45, "advance" : 35}, 
-    "b" : {"x":429, "y" : 82, "width" : 52, "height" : 69, "originX" : 7, "originY" : 57, "advance" : 35}, 
-    "c" : {"x":396, "y" : 219, "width" : 52, "height" : 57, "originX" : 9, "originY" : 45, "advance" : 32}, 
-    "d" : {"x":585, "y" : 82, "width" : 52, "height" : 69, "originX" : 9, "originY" : 57, "advance" : 35}, 
-    "e" : {"x":343, "y" : 219, "width" : 53, "height" : 57, "originX" : 9, "originY" : 45, "advance" : 35}, 
-    "f" : {"x":685, "y" : 82, "width" : 42, "height" : 69, "originX" : 11, "originY" : 58, "advance" : 18}, 
-    "g" : {"x":939, "y" : 0, "width" : 52, "height" : 70, "originX" : 9, "originY" : 45, "advance" : 35}, 
-    "h" : {"x":974, "y" : 151, "width" : 50, "height" : 68, "originX" : 7, "originY" : 57, "advance" : 35}, 
-    "i" : {"x":30, "y" : 219, "width" : 29, "height" : 68, "originX" : 7, "originY" : 57, "advance" : 14}, 
-    "j" : {"x":240, "y" : 0, "width" : 36, "height" : 82, "originX" : 14, "originY" : 57, "advance" : 14}, 
-    "k" : {"x":924, "y" : 151, "width" : 50, "height" : 68, "originX" : 7, "originY" : 57, "advance" : 32}, 
-    "l" : {"x":88, "y" : 219, "width" : 28, "height" : 68, "originX" : 7, "originY" : 57, "advance" : 14}, 
-    "m" : {"x":498, "y" : 219, "width" : 68, "height" : 56, "originX" : 7, "originY" : 45, "advance" : 53}, 
-    "n" : {"x":566, "y" : 219, "width" : 50, "height" : 56, "originX" : 7, "originY" : 45, "advance" : 35}, 
-    "o" : {"x":236, "y" : 219, "width" : 54, "height" : 57, "originX" : 9, "originY" : 45, "advance" : 35}, 
-    "p" : {"x":533, "y" : 82, "width" : 52, "height" : 69, "originX" : 7, "originY" : 45, "advance" : 35}, 
-    "q" : {"x":377, "y" : 82, "width" : 52, "height" : 69, "originX" : 9, "originY" : 45, "advance" : 35}, 
-    "r" : {"x":666, "y" : 219, "width" : 41, "height" : 56, "originX" : 7, "originY" : 45, "advance" : 21}, 
-    "s" : {"x":448, "y" : 219, "width" : 50, "height" : 57, "originX" : 9, "originY" : 45, "advance" : 32}, 
-    "t" : {"x":168, "y" : 219, "width" : 39, "height" : 67, "originX" : 10, "originY" : 56, "advance" : 18}, 
-    "u" : {"x":616, "y" : 219, "width" : 50, "height" : 56, "originX" : 7, "originY" : 44, "advance" : 35}, 
-    "v" : {"x":829, "y" : 219, "width" : 53, "height" : 55, "originX" : 10, "originY" : 44, "advance" : 32}, 
-    "w" : {"x":707, "y" : 219, "width" : 68, "height" : 55, "originX" : 11, "originY" : 44, "advance" : 46}, 
-    "x" : {"x":775, "y" : 219, "width" : 54, "height" : 55, "originX" : 11, "originY" : 44, "advance" : 32}, 
-    "y" : {"x":218, "y" : 82, "width" : 53, "height" : 69, "originX" : 10, "originY" : 44, "advance" : 32}, 
-    "z" : {"x":882, "y" : 219, "width" : 52, "height" : 55, "originX" : 10, "originY" : 44, "advance" : 32}, 
-    "{" : {"x":123, "y" : 0, "width" : 41, "height" : 82, "originX" : 9, "originY" : 58, "advance" : 21}, 
-    "|" : {"x":276, "y" : 0, "width" : 28, "height" : 82, "originX" : 5, "originY" : 58, "advance" : 16}, 
-    "}" : {"x":82, "y" : 0, "width" : 41, "height" : 82, "originX" : 10, "originY" : 58, "advance" : 21}, 
-    "~" : {"x":296, "y" : 287, "width" : 55, "height" : 32, "originX" : 9, "originY" : 39, "advance" : 37}
-  }
-            };
-            */
+                    //find glyph
+                    for (auto g = 0; g < arial.m_characters.size(); ++g)
+                    {
+                        if (ch == arial.m_characters[g].m_character)
+                        {
+                            g_i = g;
+                            break;
+                        }
+                    }
 
+                    totalAdvance += arial.m_characters[g_i].m_glyph.m_advance;
+                }
+
+                // Center the text at the origin
+                uint32_t x = -totalAdvance / 2;
+                uint32_t y = arial.m_size / 2;
+
+
+                std::vector<vertex> vertices;
+
+                // Add a quad for each character
+                for (uint32_t i = 0; i < text.size(); i++)
+                {
+                    font_glyph c = arial.m_characters[text[i]].m_glyph;
+
+                    // p0 --- p1
+                    // | \     |
+                    // |   \   |
+                    // |     \ |
+                    // p2 --- p3
+
+                    float x0 = x - c.m_origin_x;
+                    float y0 = y - c.m_origin_y;
+                    float s0 = c.m_x / arial.m_width;
+                    float t0 = c.m_y / arial.m_height;
+
+                    float x1 = x - c.m_origin_x + c.m_width;
+                    float y1 = y - c.m_origin_y;
+                    float s1 = (c.m_x + c.m_width) / arial.m_width;
+                    float t1 = c.m_y / arial.m_height;
+
+                    float x2 = x - c.m_origin_x;
+                    float y2 = y - c.m_origin_y + c.m_height;
+                    float s2 = c.m_x / arial.m_width;
+                    float t2 = (c.m_y + c.m_height) / arial.m_height;
+
+                    float x3 = x - c.m_origin_x + c.m_width;
+                    float y3 = y - c.m_origin_y + c.m_height;
+                    float s3 = (c.m_x + c.m_width) / arial.m_width;
+                    float t3 = (c.m_y + c.m_height) / arial.m_height;
+
+                    //clockwise
+                    vertices.push_back({ x0, y0, s0, t0 });
+                    vertices.push_back({ x1, y1, s1, t1 });
+                    vertices.push_back({ x3, y3, s3, t3 });
+
+                    vertices.push_back({ x0, y0, s0, t0 });
+                    vertices.push_back({ x3, y3, s3, t3 });
+                    vertices.push_back({ x2, y2, s2, t2 });
+                    x += c.m_advance;
+                }
+
+                return vertices;
         }
 
+        void make_texture()
+        {
+            const std::wstring w = L"font_arial.png";
+            const auto image = uc::gx::imaging::read_image(w.c_str());
+        }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     //Helper class that assists us using the descriptors
     struct DescriptorHeapCpuView
@@ -580,6 +537,52 @@ namespace
     
         return r;
     }
+
+    static Microsoft::WRL::ComPtr< ID3D12Resource1 > CreateFontTexture(ID3D12Device1* device, uint32_t width, uint32_t height, D3D12_RESOURCE_STATES state)
+    {
+        D3D12_RESOURCE_DESC d = {};
+        d.Alignment = 0;
+        d.DepthOrArraySize = 1;
+        d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+        d.Flags = D3D12_RESOURCE_FLAG_NONE;
+        d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        d.Height = height;
+        d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+        d.MipLevels = 1;
+        d.SampleDesc.Count = 1;
+        d.SampleDesc.Quality = 0;
+        d.Width = width;
+
+        Microsoft::WRL::ComPtr<ID3D12Resource1>     r;
+        D3D12_HEAP_PROPERTIES p = {};
+        p.Type = D3D12_HEAP_TYPE_DEFAULT;
+
+        ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, IID_PPV_ARGS(r.GetAddressOf())));
+        return r;
+    }
+
+    static Microsoft::WRL::ComPtr< ID3D12Resource1 > CreateUploadCubeTexture(ID3D12Device1* device, uint64_t size, D3D12_RESOURCE_STATES state)
+    {
+        D3D12_RESOURCE_DESC d = {};
+        d.Alignment = 0;
+        d.DepthOrArraySize = 1;
+        d.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        d.Flags = D3D12_RESOURCE_FLAG_NONE;
+        d.Format = DXGI_FORMAT_UNKNOWN;
+        d.Height = 1;
+        d.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        d.MipLevels = 1;
+        d.SampleDesc.Count = 1;
+        d.SampleDesc.Quality = 0;
+        d.Width = size;
+
+        Microsoft::WRL::ComPtr<ID3D12Resource1>     r;
+        D3D12_HEAP_PROPERTIES p = {};
+        p.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+        ThrowIfFailed(device->CreateCommittedResource(&p, D3D12_HEAP_FLAG_NONE, &d, state, nullptr, IID_PPV_ARGS(r.GetAddressOf())));
+        return r;
+    }
 }
 
 CSampleDesktopWindow::CSampleDesktopWindow()
@@ -616,7 +619,7 @@ CSampleDesktopWindow::Initialize(
     )
 {
 
-    font_builder::read_font();
+    //font_builder::read_font();
     m_debug = CreateDebug();
     m_device = CreateDevice();
     
