@@ -159,4 +159,6 @@ private:
     //Rendering
     Microsoft::WRL::ComPtr< ID3D12RootSignature>		m_root_signature;
     Microsoft::WRL::ComPtr< ID3D12PipelineState>		m_triangle_state;
+
+    Microsoft::WRL::ComPtr<ID3D12Resource1 >            m_font_texture;
 };

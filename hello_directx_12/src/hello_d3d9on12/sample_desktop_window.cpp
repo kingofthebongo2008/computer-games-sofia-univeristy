@@ -545,7 +545,7 @@ namespace
         d.DepthOrArraySize = 1;
         d.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
         d.Flags = D3D12_RESOURCE_FLAG_NONE;
-        d.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        d.Format = DXGI_FORMAT_R8_UNORM;
         d.Height = height;
         d.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
         d.MipLevels = 1;
@@ -561,7 +561,7 @@ namespace
         return r;
     }
 
-    static Microsoft::WRL::ComPtr< ID3D12Resource1 > CreateUploadCubeTexture(ID3D12Device1* device, uint64_t size, D3D12_RESOURCE_STATES state)
+    static Microsoft::WRL::ComPtr< ID3D12Resource1 > CreateUploadFontTexture(ID3D12Device1* device, uint64_t size, D3D12_RESOURCE_STATES state)
     {
         D3D12_RESOURCE_DESC d = {};
         d.Alignment = 0;
@@ -627,7 +627,6 @@ CSampleDesktopWindow::Initialize(
 
     m_d3d9 = CreateD3D9(m_device.Get(),  m_queue.Get());
     
-
     m_descriptorHeap = CreateDescriptorHeap(m_device.Get());
 
     m_descriptorHeapRendering = CreateDescriptorHeapRendering(m_device.Get());
@@ -647,6 +646,74 @@ CSampleDesktopWindow::Initialize(
     {
         ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
     }
+
+    const auto image = uc::gx::imaging::read_image(L"font_arial.png");
+
+    //Upload resources
+    m_font_texture = CreateFontTexture(m_device.Get(), image.width(), image.height(), D3D12_RESOURCE_STATE_COPY_DEST);
+
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator>   	upload_allocator    = CreateCommandAllocator(m_device.Get());
+    Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList1> upload_list          = CreateCommandList(m_device.Get(), upload_allocator.Get());
+    Microsoft::WRL::ComPtr<ID3D12Resource1 >			upload_font_texture = CreateUploadFontTexture(m_device.Get(), GetRequiredIntermediateSize(m_font_texture.Get(), 0, 1), D3D12_RESOURCE_STATE_GENERIC_READ);
+
+    upload_allocator->Reset();
+    upload_list->Reset(upload_allocator.Get(), nullptr);
+
+    D3D12_SUBRESOURCE_DATA d[1] = {};
+
+    d[0].pData      = image.pixels().get_pixels_cpu();
+    d[0].RowPitch   = image.row_pitch();
+    d[0].SlicePitch = image.slice_pitch();
+
+    UpdateSubresources(upload_list.Get(), m_font_texture.Get(), upload_font_texture.Get(), 0, 0, 1U, &d[0]);
+
+    {
+        std::array<D3D12_RESOURCE_BARRIER, 1> b;
+
+        for (uint32_t i = 0; i < 1; ++i)
+        {
+            b[i].Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+            b[i].Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+            b[i].Transition.pResource = m_font_texture.Get();
+            b[i].Transition.Subresource = 0;
+            b[i].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+            b[i].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+        }
+        upload_list->ResourceBarrier(b.size(), &b[0]);
+    }
+
+
+    upload_list->Close();   //close the list
+
+    {
+        //form group of several command lists
+        ID3D12CommandList* lists[] = { upload_list.Get() };
+        m_queue->ExecuteCommandLists(1, lists); //Execute what we have, submission of commands to the gpu
+    }
+
+    //Tell the gpu to signal the cpu after it finishes executing the commands that we have just submitted
+    ThrowIfFailed(m_queue->Signal(m_fence.Get(), m_fence_value + 1));
+
+    //Now block the cpu until the gpu completes the previous frame
+    if (m_fence->GetCompletedValue() < m_fence_value + 2)
+    {
+        ThrowIfFailed(m_fence->SetEventOnCompletion(m_fence_value + 1, m_fence_event));
+        WaitForSingleObject(m_fence_event, INFINITE);
+    }
+
+    m_fence_value = m_fence_value + 2;
+
+    /*
+    {
+        DescriptorHeapCpuView cpu = CpuView(m_device.Get(), m_descriptorHeapShaders.get());
+        DescriptorHeapCpuView gpu = CpuView(m_device.Get(), m_descriptorHeapShadersGpu.get());
+
+        m_device->CopyDescriptorsSimple(1, gpu(0), cpu(0), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    }
+    */
+
+
+
 
     // Create main application window.
     m_hWnd = __super::Create(nullptr,  bounds,  title.c_str());
