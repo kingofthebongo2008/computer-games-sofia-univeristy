@@ -129,6 +129,7 @@ private:
 
     Microsoft::WRL::ComPtr <ID3D12Debug>                m_debug;
     Microsoft::WRL::ComPtr <ID3D12Device1>				m_device;           //device for gpu resources
+    Microsoft::WRL::ComPtr<IDXGIFactory2>               m_dxgi_factory;
     Microsoft::WRL::ComPtr <IDXGISwapChain3>			m_swap_chain;       //swap chain for 
 
     Microsoft::WRL::ComPtr <ID3D12Fence>        		m_fence;                     //fence for cpu/gpu synchronization

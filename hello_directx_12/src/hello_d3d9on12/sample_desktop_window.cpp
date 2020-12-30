@@ -84,7 +84,7 @@ namespace
     }
 
 
-    static Microsoft::WRL::ComPtr<ID3D12CommandQueue> CreateCommandQueue(ID3D12Device* d)
+    static Microsoft::WRL::ComPtr<ID3D12CommandQueue> CreateCommandQueue(ID3D12Device * const d)
     {
         Microsoft::WRL::ComPtr<ID3D12CommandQueue> r;
         D3D12_COMMAND_QUEUE_DESC q = {};
@@ -94,15 +94,20 @@ namespace
         return r;
     }
 
-    static Microsoft::WRL::ComPtr<IDXGISwapChain1> CreateSwapChain(const HWND w, ID3D12CommandQueue* d)
+    static Microsoft::WRL::ComPtr<IDXGIFactory2> CreateFactory()
     {
         Microsoft::WRL::ComPtr<IDXGIFactory2> f;
-        Microsoft::WRL::ComPtr<IDXGISwapChain1> r;
-
         ThrowIfFailed(CreateDXGIFactory2(DXGI_CREATE_FACTORY_DEBUG, IID_PPV_ARGS(f.GetAddressOf())));
+        return f;
+    }
+
+    static Microsoft::WRL::ComPtr<IDXGISwapChain3> CreateSwapChain(const HWND w, IDXGIFactory2* const f, ID3D12CommandQueue * const d)
+    {
+        Microsoft::WRL::ComPtr<IDXGISwapChain1> r;
 
         DXGI_SWAP_CHAIN_DESC1 desc = {};
 
+        auto e = sample::build_environment(w);
 
         desc.BufferCount = 2;
         desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
@@ -115,7 +120,10 @@ namespace
         desc.Scaling = DXGI_SCALING_NONE;
 
         ThrowIfFailed(f->CreateSwapChainForHwnd(d, w, &desc, nullptr, nullptr, r.GetAddressOf()));
-        return r;
+
+        Microsoft::WRL::ComPtr<IDXGISwapChain3> r_;
+        ThrowIfFailed(r.As< IDXGISwapChain3 >(&r_));
+        return r_;
     }
 
     static Microsoft::WRL::ComPtr <ID3D12Fence> CreateFence(ID3D12Device1* device, uint64_t initialValue = 1)
@@ -132,7 +140,7 @@ namespace
 
         d.NumDescriptors = 2;
         d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-        device->CreateDescriptorHeap(&d, IID_PPV_ARGS(r.GetAddressOf())));
+        device->CreateDescriptorHeap(&d, IID_PPV_ARGS(r.GetAddressOf()));
         return r;
     }
 
@@ -143,7 +151,7 @@ namespace
 
         d.NumDescriptors = 2;
         d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-        device->CreateDescriptorHeap(&d, IID_PPV_ARGS(r.GetAddressOf())));
+        device->CreateDescriptorHeap(&d, IID_PPV_ARGS(r.GetAddressOf()));
         return r;
     }
 
@@ -284,6 +292,19 @@ CSampleDesktopWindow::CSampleDesktopWindow()
 
 CSampleDesktopWindow::~CSampleDesktopWindow()
 {
+    if (m_device)
+    {
+        //Tell the gpu to signal the cpu after it finishes executing the commands that we have just submitted
+        ThrowIfFailed(m_queue->Signal(m_fence.Get(), m_fence_value + 1));
+
+        //Now block the cpu until the gpu completes the previous frame
+        if (m_fence->GetCompletedValue() < m_fence_value + 1)
+        {
+            ThrowIfFailed(m_fence->SetEventOnCompletion(m_fence_value + 1, m_fence_event));
+            WaitForSingleObject(m_fence_event, INFINITE);
+        }
+    }
+
     /*
     if (m_deviceResources)
     {
@@ -303,15 +324,31 @@ CSampleDesktopWindow::Initialize(
     _In_    std::wstring title
     )
 {
-    // Create device resources required to render content.
-    //m_deviceResources = std::make_shared<DeviceResources>();
-    //if (!m_deviceResources)
-    {
-      //  return HRESULT_FROM_WIN32(GetLastError());
-    }
 
-    CreateDeviceIndependentResources();
-    CreateDeviceResources();
+    m_debug = CreateDebug();
+    m_device = CreateDevice();
+
+    m_queue = CreateCommandQueue(m_device.Get());
+
+    m_descriptorHeap = CreateDescriptorHeap(m_device.Get());
+
+    m_descriptorHeapRendering = CreateDescriptorHeapRendering(m_device.Get());
+
+    //if you have many threads that generate commands. 1 per thread per frame
+    m_command_allocator[0] = CreateCommandAllocator(m_device.Get());
+    m_command_allocator[1] = CreateCommandAllocator(m_device.Get());
+
+    m_command_list[0] = CreateCommandList(m_device.Get(), m_command_allocator[0].Get());
+    m_command_list[1] = CreateCommandList(m_device.Get(), m_command_allocator[1].Get());
+
+    //fence, sync from the gpu and cpu
+    m_fence = CreateFence(m_device.Get());
+    m_fence_event = CreateEvent(nullptr, false, false, nullptr);
+
+    if (m_fence_event == nullptr)
+    {
+        ThrowIfFailed(HRESULT_FROM_WIN32(GetLastError()));
+    }
 
     // Create main application window.
     m_hWnd = __super::Create(nullptr, bounds, title.c_str());
@@ -405,9 +442,44 @@ CSampleDesktopWindow::Render()
         return hr;
     }
 
-    if ( false ) //!m_deviceResources->Present())
+    bool occluded = false;
+
     {
-        hr = S_OK;// m_deviceResources->GetDxgiFactory()->RegisterOcclusionStatusWindow(m_hWnd, WM_USER, &m_occlusion);
+        // The first argument instructs DXGI to block until VSync, putting the application
+        // to sleep until the next VSync. This ensures we don't waste any cycles rendering
+        // frames that will never be displayed to the screen.
+        HRESULT hr = m_swap_chain->Present(1, 0);
+
+        // Discard the contents of the render target.
+        // This is a valid operation only when the existing contents will be entirely
+        // overwritten. If dirty or scroll rects are used, this call should be removed.
+        //m_d3dContext->DiscardView(m_d3dRenderTargetView.Get());
+
+        // Discard the contents of the depth stencil.
+        //m_d3dContext->DiscardView(m_d3dDepthStencilView.Get());
+
+        // If the device was removed either by a disconnection or a driver upgrade, we
+        // must recreate all device resources.
+        if (hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET)
+        {
+            ThrowIfFailed(E_FAIL);
+            //HandleDeviceLost();
+        }
+        else if (hr == DXGI_STATUS_OCCLUDED)
+        {
+            occluded = false;
+        }
+        else
+        {
+            ThrowIfFailed(hr);
+        }
+
+        occluded = true;
+    }
+
+    if ( occluded )
+    {
+        hr = m_dxgi_factory->RegisterOcclusionStatusWindow(m_hWnd, WM_USER, &m_occlusion);
         if (FAILED(hr))
         {
             return hr;
@@ -451,24 +523,24 @@ CSampleDesktopWindow::OnCreate(
     SetWindowLong(GWL_EXSTYLE, cs->dwExStyle);
 
 
-    m_swap_chain = CreateSwapChain(w, m_queue.get());
+    m_dxgi_factory = CreateFactory();
+    m_swap_chain = CreateSwapChain(m_hWnd, m_dxgi_factory.Get(), m_queue.Get());
     m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
 
-
     //Now recreate the swap chain with the new dimensions, we must have back buffer as the window size
-    m_back_buffer_width = static_cast<UINT>(e.m_back_buffer_size.Width);
-    m_back_buffer_height = static_cast<UINT>(e.m_back_buffer_size.Height);
+    m_back_buffer_width = static_cast<UINT>(m_window_environment.m_back_buffer_size.Width);
+    m_back_buffer_height = static_cast<UINT>(m_window_environment.m_back_buffer_size.Height);
 
     //allocate memory for the view
-    m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 0);
-    m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.get(), m_swap_chain.get(), 1);
+    m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.Get(), m_swap_chain.Get(), 0);
+    m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.Get(), m_swap_chain.Get(), 1);
 
     m_swap_chain_buffers[0]->SetName(L"Buffer 0");
     m_swap_chain_buffers[1]->SetName(L"Buffer 1");
 
     //create render target views, that will be used for rendering
-    CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[0].get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 0);
-    CreateSwapChainDescriptor(m_device.get(), m_swap_chain_buffers[1].get(), CpuView(m_device.get(), m_descriptorHeap.get()) + 1);
+    CreateSwapChainDescriptor(m_device.Get(), m_swap_chain_buffers[0].Get(), CpuView(m_device.Get(), m_descriptorHeap.Get()) + 0);
+    CreateSwapChainDescriptor(m_device.Get(), m_swap_chain_buffers[1].Get(), CpuView(m_device.Get(), m_descriptorHeap.Get()) + 1);
 
     //Where are located the descriptors
     m_swap_chain_descriptors[0] = 0;
@@ -627,11 +699,11 @@ CSampleDesktopWindow::OnOcclusion(
 {
     //ASSERT(m_occlusion);
 
-    //if (S_OK == m_deviceResources->GetSwapChain()->Present(0, DXGI_PRESENT_TEST))
+    if (S_OK == m_swap_chain->Present(0, DXGI_PRESENT_TEST))
     {
-      //  m_deviceResources->GetDxgiFactory()->UnregisterOcclusionStatus(m_occlusion);
-       // m_occlusion = 0;
-       // m_visible = true;
+        m_dxgi_factory->UnregisterOcclusionStatus(m_occlusion);
+        m_occlusion = 0;
+        m_visible = true;
     }
 
     bHandled = TRUE;
