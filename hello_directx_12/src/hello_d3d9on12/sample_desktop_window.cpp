@@ -10,6 +10,7 @@
 #include "build_window_environment.h"
 
 #include "d3dx12.h"
+#include "cpu_view.h"
 
 #include <uc/img/img.h>
 #include <uc/util/utf8_conv.h>
@@ -243,34 +244,6 @@ namespace
         }
     }
 
-    //Helper class that assists us using the descriptors
-    struct DescriptorHeapCpuView
-    {
-        DescriptorHeapCpuView(D3D12_CPU_DESCRIPTOR_HANDLE  base,  uint64_t offset) : m_base(base),  m_offset(offset)
-        {
-
-        }
-
-        D3D12_CPU_DESCRIPTOR_HANDLE operator () (size_t index) const
-        {
-            return { m_base.ptr + index * m_offset };
-        }
-
-        D3D12_CPU_DESCRIPTOR_HANDLE operator + (size_t index) const
-        {
-            return { m_base.ptr + index * m_offset };
-        }
-
-        D3D12_CPU_DESCRIPTOR_HANDLE m_base = {};
-        uint64_t                    m_offset;
-    };
-
-    DescriptorHeapCpuView CpuView(ID3D12Device* d,  ID3D12DescriptorHeap* heap)
-    {
-        D3D12_DESCRIPTOR_HEAP_DESC desc = heap->GetDesc();
-        return DescriptorHeapCpuView(heap->GetCPUDescriptorHandleForHeapStart(),  d->GetDescriptorHandleIncrementSize(desc.Type));
-    }
-
     struct exception : public std::exception
     {
         exception(HRESULT h) : m_h(h)
@@ -374,14 +347,26 @@ namespace
         return r;
     }
 
-    static Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeapRendering(ID3D12Device1* device)
+    static Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeapShaders(ID3D12Device1* device)
+    {
+        Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> r;
+        D3D12_DESCRIPTOR_HEAP_DESC d = {};
+
+        d.NumDescriptors = 2;
+        d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        device->CreateDescriptorHeap(&d, IID_PPV_ARGS(r.GetAddressOf()));
+        return r;
+    }
+
+    static Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> CreateDescriptorHeapShadersGpu(ID3D12Device1* device)
     {
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> r;
         D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
         d.NumDescriptors = 2;
-        d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-        device->CreateDescriptorHeap(&d,  IID_PPV_ARGS(r.GetAddressOf()));
+        d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+        d.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+        device->CreateDescriptorHeap(&d, IID_PPV_ARGS(r.GetAddressOf()));
         return r;
     }
 
@@ -629,7 +614,8 @@ CSampleDesktopWindow::Initialize(
     
     m_descriptorHeap = CreateDescriptorHeap(m_device.Get());
 
-    m_descriptorHeapRendering = CreateDescriptorHeapRendering(m_device.Get());
+    m_descriptorHeapShaders = CreateDescriptorHeapShaders(m_device.Get());
+    m_descriptorHeapShadersGpu = CreateDescriptorHeapShadersGpu(m_device.Get());
 
     //if you have many threads that generate commands. 1 per thread per frame
     m_command_allocator[0] = CreateCommandAllocator(m_device.Get());
@@ -651,6 +637,19 @@ CSampleDesktopWindow::Initialize(
 
     //Upload resources
     m_font_texture = CreateFontTexture(m_device.Get(), image.width(), image.height(), D3D12_RESOURCE_STATE_COPY_DEST);
+
+    {
+        DescriptorHeapCpuView cpu = CpuView(m_device.Get(), m_descriptorHeapShaders.Get());
+        D3D12_SHADER_RESOURCE_VIEW_DESC d = {};
+        d.Format = DXGI_FORMAT_R8_UNORM;
+        d.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+        d.TextureCube.MipLevels = 1;
+        d.TextureCube.MostDetailedMip = 0;
+
+        d.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+        m_device->CreateShaderResourceView(m_font_texture.Get(), &d, cpu(0));
+    }
+
 
     Microsoft::WRL::ComPtr<ID3D12CommandAllocator>   	upload_allocator    = CreateCommandAllocator(m_device.Get());
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList1> upload_list          = CreateCommandList(m_device.Get(), upload_allocator.Get());
@@ -682,7 +681,6 @@ CSampleDesktopWindow::Initialize(
         upload_list->ResourceBarrier(b.size(), &b[0]);
     }
 
-
     upload_list->Close();   //close the list
 
     {
@@ -703,17 +701,11 @@ CSampleDesktopWindow::Initialize(
 
     m_fence_value = m_fence_value + 2;
 
-    /*
     {
-        DescriptorHeapCpuView cpu = CpuView(m_device.Get(), m_descriptorHeapShaders.get());
-        DescriptorHeapCpuView gpu = CpuView(m_device.Get(), m_descriptorHeapShadersGpu.get());
-
+        DescriptorHeapCpuView cpu = CpuView(m_device.Get(), m_descriptorHeapShaders.Get());
+        DescriptorHeapCpuView gpu = CpuView(m_device.Get(), m_descriptorHeapShadersGpu.Get());
         m_device->CopyDescriptorsSimple(1, gpu(0), cpu(0), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     }
-    */
-
-
-
 
     // Create main application window.
     m_hWnd = __super::Create(nullptr,  bounds,  title.c_str());
@@ -751,6 +743,8 @@ CSampleDesktopWindow::SetNewDpi(_In_ float newPerMonitorDpi)
         m_deviceResources->SetDpi(newPerMonitorDpi);
     }
     */
+
+
 }
 
 // Main message loop for application.
@@ -790,21 +784,122 @@ HRESULT
 CSampleDesktopWindow::Render()
 {
     HRESULT hr = S_OK;
-    //auto d2dContext = m_deviceResources->GetD2DDeviceContext();
 
-    //d2dContext->BeginDraw();
+    std::lock_guard lock(m_blockRendering);
+    
+    //reset the command generators for this frame if they have data, which was already used by the gpu
+    ID3D12CommandAllocator* allocator = m_command_allocator[m_frame_index].Get();
+    ID3D12GraphicsCommandList1* commandList = m_command_list[m_frame_index].Get();
+    allocator->Reset();
+    commandList->Reset(allocator, nullptr);
 
-    // Draw window background.
-    //d2dContext->Clear(D2D1::ColorF(0.8764F,  0.8764F,  0.8882F));
-
-    // Draw client area as implemented by any derived classes.
-    Draw();
-
-    //hr = d2dContext->EndDraw();
-
-    if (FAILED(hr))
+    // Set Descriptor heaps
     {
-        return hr;
+        //ID3D12DescriptorHeap* heaps[] = { m_descriptorHeap.get()};
+        //commandList->SetDescriptorHeaps(1, heaps);
+    }
+
+    //get the pointer to the gpu memory
+    D3D12_CPU_DESCRIPTOR_HANDLE back_buffer = CpuView(m_device.Get(), m_descriptorHeap.Get()) + m_swap_chain_descriptors[m_frame_index];
+
+    //Transition resources for writing. flush caches
+    {
+        D3D12_RESOURCE_BARRIER barrier = {};
+
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource = m_swap_chain_buffers[m_frame_index].Get();
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        commandList->ResourceBarrier(1, &barrier);
+    }
+
+    //Mark the resources in the rasterizer output
+    {
+        commandList->OMSetRenderTargets(1, &back_buffer, TRUE, nullptr);
+    }
+
+    //do the clear, fill the memory with a value
+    {
+        FLOAT c[4] = { 0.0f, 1.f,0.f,0.f };
+        commandList->ClearRenderTargetView(back_buffer, c, 0, nullptr);
+    }
+
+
+    {
+        //set the scissor test separately (which parts of the view port will survive)
+        {
+            D3D12_RECT r = { 0, 0, static_cast<int32_t>(m_back_buffer_width), static_cast<int32_t>(m_back_buffer_height) };
+            commandList->RSSetScissorRects(1, &r);
+        }
+
+        //set the viewport. 
+        {
+            D3D12_VIEWPORT v;
+            v.TopLeftX = 0;
+            v.TopLeftY = 0;
+            v.MinDepth = 0.0f;
+            v.MaxDepth = 1.0f;
+            v.Width = static_cast<float>(m_back_buffer_width);
+            v.Height = static_cast<float>(m_back_buffer_height);
+            commandList->RSSetViewports(1, &v);
+        }
+    }
+
+    //set the type of the parameters that we will use in the shader
+    //commandList->SetGraphicsRootSignature(m_root_signature.get());
+
+    //set the type of the parameters that we will use in the shader
+    {
+        ID3D12DescriptorHeap* heaps[1] = { m_descriptorHeapShadersGpu.Get() };
+
+        //commandList->SetDescriptorHeaps(1, heaps);
+    }
+
+    {
+        DescriptorHeapGpuView gpu = GpuView(m_device.Get(), m_descriptorHeapShadersGpu.Get());
+        //commandList->SetGraphicsRootDescriptorTable(0, gpu(0));
+    }
+
+
+    //set the raster pipeline state as a whole, it was prebuilt before
+    //commandList->SetPipelineState(m_triangle_state.get());
+
+    float constants[4] = {};
+
+    constants[0] = static_cast<float>(m_back_buffer_width);
+    constants[1] = static_cast<float>(m_back_buffer_height);
+    constants[2] = static_cast<float>(0);
+    constants[3] = static_cast<float>(0);
+
+    //commandList->SetGraphicsRoot32BitConstants(1, 4, &constants[0], 0);
+
+    //set the types of the triangles we will use
+    //commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    //draw the triangle
+    //commandList->DrawInstanced(3, 1, 0, 0);
+
+    //insert pregenerated commands
+    //commandList->ExecuteBundle(m_bundle_command_list.get());
+
+    //Transition resources for presenting, flush the gpu caches
+    {
+        D3D12_RESOURCE_BARRIER barrier = {};
+
+        barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+        barrier.Transition.pResource = m_swap_chain_buffers[m_frame_index].Get();
+        barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PRESENT;
+        barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+        barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        commandList->ResourceBarrier(1, &barrier);
+    }
+
+    commandList->Close();   //close the list
+
+    {
+        //form group of several command lists
+        ID3D12CommandList* lists[] = { commandList };
+        m_queue->ExecuteCommandLists(1, lists); //Execute what we have, submission of commands to the gpu
     }
 
     bool occluded = false;
@@ -854,6 +949,20 @@ CSampleDesktopWindow::Render()
             m_visible = false;
         }
     }
+
+    //Tell the gpu to signal the cpu after it finishes executing the commands that we have just submitted
+    ThrowIfFailed(m_queue->Signal(m_fence.Get(), m_fence_value));
+
+    //Now block the cpu until the gpu completes the previous frame
+    if (m_fence->GetCompletedValue() < m_fence_value)
+    {
+        ThrowIfFailed(m_fence->SetEventOnCompletion(m_fence_value, m_fence_event));
+        WaitForSingleObject(m_fence_event, INFINITE);
+    }
+
+    //prepare for the next frame
+    m_fence_value = m_fence_value + 1;
+    m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
 
     return hr;
 }
@@ -978,10 +1087,51 @@ CSampleDesktopWindow::OnWindowPosChanged(
     GetClientRect(&clientRect);
     if (!(windowPos->flags & SWP_NOSIZE))
     {
-        //DeviceResources::Size size;
-        //size.Width = static_cast<float>(clientRect.right - clientRect.left)  / (m_window_environment.m_dpi / 96.0F);
-        //size.Height = static_cast<float>(clientRect.bottom - clientRect.top) / (m_window_environment.m_dpi / 96.0F);
-        //m_deviceResources->SetLogicalSize(size);
+        //add this if you are rendering in another thread
+        //std::lock_guard lock(m_blockRendering);
+
+        m_window_environment = sample::build_environment(m_hWnd);
+
+        auto e = m_window_environment;;
+
+        //Now wait for the gpu to finish what it has from the main thread
+
+        //Insert in the gpu a command after all submitted commands so far.
+        ThrowIfFailed(m_queue->Signal(m_fence.Get(), m_fence_value + 1));
+
+        //Wait for the gpu to notify us back that it had passed. Now it is idle
+        ThrowIfFailed(m_fence->SetEventOnCompletion(m_fence_value + 1, m_fence_event));
+        WaitForSingleObject(m_fence_event, INFINITE);
+
+        //Prepare to unblock the rendering
+        m_fence_value = m_fence_value + 1;
+        m_frame_index = 0;
+
+        //Now recreate the swap chain with the new dimensions, we must have back buffer as the window size
+        m_back_buffer_width = static_cast<UINT>(e.m_back_buffer_size.Width);
+        m_back_buffer_height = static_cast<UINT>(e.m_back_buffer_size.Height);
+
+        m_swap_chain_buffers[0] = nullptr;
+        m_swap_chain_buffers[1] = nullptr;
+
+        ThrowIfFailed(m_swap_chain->ResizeBuffers(2, m_back_buffer_width, m_back_buffer_height, DXGI_FORMAT_B8G8R8A8_UNORM, 0));
+
+        //allocate memory for the swap chain again
+        m_swap_chain_buffers[0] = CreateSwapChainResource(m_device.Get(), m_swap_chain.Get(), 0);
+        m_swap_chain_buffers[1] = CreateSwapChainResource(m_device.Get(), m_swap_chain.Get(), 1);
+
+        //set names so we can see them in pix
+        m_swap_chain_buffers[0]->SetName(L"Buffer 0");
+        m_swap_chain_buffers[1]->SetName(L"Buffer 1");
+
+        //create render target views, that will be used for rendering
+        CreateSwapChainDescriptor(m_device.Get(), m_swap_chain_buffers[0].Get(), CpuView(m_device.Get(), m_descriptorHeap.Get()) + 0);
+        CreateSwapChainDescriptor(m_device.Get(), m_swap_chain_buffers[1].Get(), CpuView(m_device.Get(), m_descriptorHeap.Get()) + 1);
+
+        m_swap_chain_descriptors[0] = 0;
+        m_swap_chain_descriptors[1] = 1;
+
+
         Render();
     }
 

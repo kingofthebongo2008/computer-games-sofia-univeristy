@@ -134,12 +134,13 @@ private:
     Microsoft::WRL::ComPtr< IDirect3D9>                 m_d3d9;
     Microsoft::WRL::ComPtr< IDirect3DDevice9>           m_d3d9_device;
 
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>   	    m_descriptorHeap;				//descriptor heap for the resources
+
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>   	    m_descriptorHeapShaders;		//descriptor heap for the resources
+    Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>   	    m_descriptorHeapShadersGpu;		//descriptor heap for the gpu resources
+
     Microsoft::WRL::ComPtr <ID3D12Fence>        		m_fence;                     //fence for cpu/gpu synchronization
     Microsoft::WRL::ComPtr <ID3D12CommandQueue>   		m_queue;                     //queue to the device
-
-    Microsoft::WRL::ComPtr <ID3D12DescriptorHeap>   	m_descriptorHeap;            //descriptor heap for the resources
-
-    Microsoft::WRL::ComPtr <ID3D12DescriptorHeap>   	m_descriptorHeapRendering;   //descriptor heap for the resources
 
     std::mutex                                          m_blockRendering;   //block render thread for the swap chain resizes
 
