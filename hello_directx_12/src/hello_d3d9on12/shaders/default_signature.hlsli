@@ -6,7 +6,7 @@
               "UAV(u0), " \
               "DescriptorTable( CBV(b1, numDescriptors = 5))," \
               "DescriptorTable( UAV(u1, numDescriptors = 2))," \
-              "DescriptorTable( SRV(t1, numDescriptors = 8))," \
+              "DescriptorTable( SRV(t1, numDescriptors = 2))," \
               "DescriptorTable( SRV(t9, numDescriptors = 2) ), " \
               "RootConstants(num32BitConstants=1, b9), " \
               "DescriptorTable( UAV(u3), UAV(u4), UAV(u5)), " \
@@ -25,7 +25,7 @@
               "UAV(u0), " \
               "DescriptorTable( CBV(b1, numDescriptors = 5))," \
               "DescriptorTable( UAV(u1, numDescriptors = 2))," \
-              "DescriptorTable( SRV(t1, numDescriptors = 8))," \
+              "DescriptorTable( SRV(t1, numDescriptors = 2))," \
               "DescriptorTable( SRV(t9, numDescriptors = 2) ), " \
               "RootConstants(num32BitConstants=1, b9), " \
               "DescriptorTable( UAV(u3), UAV(u4), UAV(u5)), " \
@@ -37,6 +37,9 @@
               "StaticSampler(s5, addressU = TEXTURE_ADDRESS_WRAP,   addressV = TEXTURE_ADDRESS_WRAP, addressW = TEXTURE_ADDRESS_WRAP,  filter = FILTER_MIN_MAG_MIP_LINEAR )," \
               "StaticSampler(s6, addressU = TEXTURE_ADDRESS_BORDER, addressV = TEXTURE_ADDRESS_BORDER, addressW = TEXTURE_ADDRESS_BORDER, filter = FILTER_MIN_MAG_MIP_LINEAR, borderColor = STATIC_BORDER_COLOR_OPAQUE_BLACK )," \
               "StaticSampler(s7, addressU = TEXTURE_ADDRESS_BORDER, addressV = TEXTURE_ADDRESS_BORDER, addressW = TEXTURE_ADDRESS_BORDER, filter = FILTER_MIN_MAG_MIP_LINEAR, borderColor = STATIC_BORDER_COLOR_OPAQUE_WHITE )"
+
+#define MyRS3 "RootFlags( 0 ), " \
+              "DescriptorTable( SRV(t1, numDescriptors = 2))" 
 
 #endif
 

@@ -1,6 +1,6 @@
 #include "default_signature.hlsli"
 
-[RootSignature( MyRS1 ) ]
+[RootSignature( MyRS3 ) ]
 void main()
 {
 }

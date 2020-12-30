@@ -3,10 +3,10 @@
 struct interpolated_value
 {
 	float4 m_position : SV_POSITION;
-    float3 m_color    : TEXCOORD0;
+        float3 m_color    : TEXCOORD0;
 };
 
-[RootSignature( MyRS2 ) ]
+[RootSignature( MyRS3 ) ]
 interpolated_value main(uint v : SV_VERTEXID)
 {
 	interpolated_value r = (interpolated_value)0;

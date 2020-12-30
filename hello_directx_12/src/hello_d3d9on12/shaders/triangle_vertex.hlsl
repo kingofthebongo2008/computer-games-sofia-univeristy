@@ -2,36 +2,22 @@
 
 struct interpolated_value
 {
-	float4 m_position : SV_POSITION;
-    float3 m_color    : TEXCOORD0;
+	float4 m_position  : SV_POSITION;
+    float2 m_uv        : TEXCOORD0;
 };
 
-[RootSignature( MyRS1 ) ]
+ByteAddressBuffer geom : register(t2);
+
+
+
+[RootSignature( MyRS3 ) ]
 interpolated_value main(uint v : SV_VERTEXID)
 {
 	interpolated_value r = (interpolated_value)0;
-	r.m_position = float4(0.0f, 0.0f, 0.0f, 1.0f);
 
-	if (v == 0)
-	{
-		r.m_position    = float4(0.0f, 0.5f, 0.5f, 1.0f);
-        r.m_color       = float3(1.0f, 0.0f, 0.0f);
-		return r;
-	}
-
-	if (v == 1)
-	{
-		r.m_position    = float4(-0.5f, 0.0f, 0.5f, 1.0f);
-        r.m_color       = float3(0.0f, 1.0f, 0.0f);
-		return r;
-	}
-
-	if (v == 2)
-	{
-		r.m_position    = float4(0.5f, 0.0f, 0.5f, 1.0f);
-        r.m_color       = float3(0.0f, 0.0f, 1.0f);
-		return r;
-	}
+	uint4 vtx			 = geom.Load4(v * 16);
+	r.m_position		 = float4(asfloat(vtx.xy), 0, 1);
+	r.m_uv			     = asfloat(vtx.zw);
 
 	return r;
 }

@@ -163,4 +163,7 @@ private:
 
     Microsoft::WRL::ComPtr<ID3D12Resource1 >            m_font_texture;
     Microsoft::WRL::ComPtr<ID3D12Resource1 >            m_text_buffer;
+    uint32_t                                            m_text_triangles;
+    uint32_t                                            m_text_vertex_count;
+
 };

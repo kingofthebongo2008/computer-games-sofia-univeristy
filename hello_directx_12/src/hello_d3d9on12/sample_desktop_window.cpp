@@ -352,7 +352,7 @@ namespace
         Microsoft::WRL::ComPtr <ID3D12DescriptorHeap> r;
         D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-        d.NumDescriptors = 3;
+        d.NumDescriptors = 8;
         d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         device->CreateDescriptorHeap(&d, IID_PPV_ARGS(r.GetAddressOf()));
         return r;
@@ -363,7 +363,7 @@ namespace
         Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> r;
         D3D12_DESCRIPTOR_HEAP_DESC d = {};
 
-        d.NumDescriptors = 3;
+        d.NumDescriptors = 8;
         d.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
         d.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
         device->CreateDescriptorHeap(&d, IID_PPV_ARGS(r.GetAddressOf()));
@@ -462,7 +462,7 @@ namespace
             static
 #include <triangle_vertex.h>
 
-            D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
+        D3D12_GRAPHICS_PIPELINE_STATE_DESC state = {};
         state.pRootSignature = root;
         state.SampleMask = UINT_MAX;
         state.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
@@ -683,9 +683,12 @@ CSampleDesktopWindow::Initialize(
     const auto v        = font_builder::make_vertices();
     const auto v_s      = v.size() * sizeof(font_builder::vertex);
 
+    m_text_triangles    = (v.size()  / 6) * 2; //letters by two triangles
+    m_text_vertex_count = v.size();
     //Upload resources
     m_font_texture  = CreateFontTexture(m_device.Get(), image.width(), image.height(), D3D12_RESOURCE_STATE_COPY_DEST);
     m_text_buffer   = CreateFontBuffer(m_device.Get(), v_s, D3D12_RESOURCE_STATE_COPY_DEST);
+    
 
     {
         DescriptorHeapCpuView cpu = CpuView(m_device.Get(), m_descriptorHeapShaders.Get());
@@ -753,7 +756,7 @@ CSampleDesktopWindow::Initialize(
             b[0].Transition.pResource = m_font_texture.Get();
             b[0].Transition.Subresource = 0;
             b[0].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-            b[0].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+            b[0].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
         }
 
         {
@@ -762,7 +765,7 @@ CSampleDesktopWindow::Initialize(
             b[1].Transition.pResource = m_text_buffer.Get();
             b[1].Transition.Subresource = 0;
             b[1].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-            b[1].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+            b[1].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
         }
 
         upload_list->ResourceBarrier(b.size(), &b[0]);
@@ -941,15 +944,13 @@ CSampleDesktopWindow::Render()
     //set the type of the parameters that we will use in the shader
     {
         ID3D12DescriptorHeap* heaps[1] = { m_descriptorHeapShadersGpu.Get() };
-
         commandList->SetDescriptorHeaps(1, heaps);
     }
 
     {
         DescriptorHeapGpuView gpu = GpuView(m_device.Get(), m_descriptorHeapShadersGpu.Get());
-        //commandList->SetGraphicsRootDescriptorTable(0, gpu(0));
+        commandList->SetGraphicsRootDescriptorTable(0, gpu(0));
     }
-
 
     //set the raster pipeline state as a whole, it was prebuilt before
     commandList->SetPipelineState(m_triangle_state.Get());
@@ -966,7 +967,7 @@ CSampleDesktopWindow::Render()
     //set the types of the triangles we will use
     commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     //draw the triangle
-    commandList->DrawInstanced(3, 1, 0, 0);
+    commandList->DrawInstanced(m_text_vertex_count, 1, 0, 0);
 
     //insert pregenerated commands
     //commandList->ExecuteBundle(m_bundle_command_list.get());
