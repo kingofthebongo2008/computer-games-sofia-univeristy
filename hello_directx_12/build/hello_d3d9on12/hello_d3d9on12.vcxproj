@@ -84,6 +84,17 @@
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
   </ItemGroup>
+
+ <ItemGroup>
+    <Content  Include="..\..\src\hello_d3d9on12\data\font_arial.png">
+      <Link>$([MSBuild]::MakeRelative($(TargetDir),font_arial.png))</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <DeploymentContent>true</DeploymentContent>
+      <Visible>false</Visible>
+    </Content >
+  </ItemGroup>
+
+
   <ItemGroup>
     <FxCompile Include="..\..\src\hello_d3d9on12\shaders\triangle_pixel.hlsl">
       <VariableName>g_%(Filename)</VariableName>

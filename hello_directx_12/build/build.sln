@@ -32,7 +32,6 @@ Global
 		{72EEB080-713C-4BC7-A360-172A460797D6}.Release|x64.Deploy.0 = Release|x64
 		{251F1D72-7AAC-46EF-A489-5FB5F2D7CFF5}.Release|x64.ActiveCfg = Release|x64
 		{251F1D72-7AAC-46EF-A489-5FB5F2D7CFF5}.Release|x64.Build.0 = Release|x64
-		{251F1D72-7AAC-46EF-A489-5FB5F2D7CFF5}.Release|x64.Deploy.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
