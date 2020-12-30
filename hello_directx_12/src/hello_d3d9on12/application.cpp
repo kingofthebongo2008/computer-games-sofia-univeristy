@@ -64,7 +64,7 @@ WINAPI WinMain(
 
     // Initialize the main application window using
     // a default size and window title.
-    hr = CalcInitialWindowBounds(1600, 900, &initialBounds);
+    hr = CalcInitialWindowBounds(1610, 910, &initialBounds);
     if (SUCCEEDED(hr))
     {
 //        InitCommonControls();

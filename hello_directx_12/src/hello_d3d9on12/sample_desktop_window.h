@@ -131,6 +131,8 @@ private:
     Microsoft::WRL::ComPtr <ID3D12Device1>				m_device;           //device for gpu resources
     Microsoft::WRL::ComPtr<IDXGIFactory2>               m_dxgi_factory;
     Microsoft::WRL::ComPtr <IDXGISwapChain3>			m_swap_chain;       //swap chain for 
+    Microsoft::WRL::ComPtr< IDirect3D9>                 m_d3d9;
+    Microsoft::WRL::ComPtr< IDirect3DDevice9>           m_d3d9_device;
 
     Microsoft::WRL::ComPtr <ID3D12Fence>        		m_fence;                     //fence for cpu/gpu synchronization
     Microsoft::WRL::ComPtr <ID3D12CommandQueue>   		m_queue;                     //queue to the device

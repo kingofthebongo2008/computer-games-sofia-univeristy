@@ -273,12 +273,36 @@ namespace
         return r;
     }
 
-    //create a state for the rasterizer. that will be set a whole big monolitic block. Below the driver optimizes it in the most compact form for it. 
-    //It can be something as 16 DWORDS that gpu will read and trigger its internal rasterizer state
-    static Microsoft::WRL::ComPtr< IDirect3D9> CreateD3D9Device(ID3D12Device* device, ID3D12RootSignature* root)
+    static Microsoft::WRL::ComPtr< IDirect3D9> CreateD3D9(ID3D12Device* const device, ID3D12CommandQueue* const queue)
     {
         Microsoft::WRL::ComPtr<IDirect3D9> r;
 
+        D3D9ON12_ARGS args = {};
+        args.Enable9On12        = TRUE;
+        args.pD3D12Device       = device;
+        args.NumQueues          = 1;
+        args.ppD3D12Queues[0]   = queue;
+
+        r.Attach(Direct3DCreate9On12(D3D_SDK_VERSION, &args, 1));
+        return r;
+    }
+
+    static Microsoft::WRL::ComPtr< IDirect3DDevice9> CreateD3D9Device(IDirect3D9* const d3d9, const HWND window, uint32_t w, uint32_t h )
+    {
+        Microsoft::WRL::ComPtr<IDirect3DDevice9> r;
+
+        D3DPRESENT_PARAMETERS p = {};
+
+        p.BackBufferCount       = 2;
+        p.BackBufferWidth       = w;
+        p.BackBufferHeight      = h;
+        p.Windowed              = TRUE;
+        p.SwapEffect            = D3DSWAPEFFECT_DISCARD;
+        p.hDeviceWindow         = 0;
+        p.PresentationInterval  = 0;
+
+        ThrowIfFailed(d3d9->CreateDevice(0, D3DDEVTYPE_HAL, window, 0, &p, r.GetAddressOf()));
+    
         return r;
     }
 }
@@ -304,14 +328,6 @@ CSampleDesktopWindow::~CSampleDesktopWindow()
             WaitForSingleObject(m_fence_event, INFINITE);
         }
     }
-
-    /*
-    if (m_deviceResources)
-    {
-        m_deviceResources->SetWindow(nullptr, 96.0F);
-        m_deviceResources.reset();
-    }
-    */
 }
 
 // <summary>
@@ -327,8 +343,11 @@ CSampleDesktopWindow::Initialize(
 
     m_debug = CreateDebug();
     m_device = CreateDevice();
-
+    
     m_queue = CreateCommandQueue(m_device.Get());
+
+    m_d3d9 = CreateD3D9(m_device.Get(), m_queue.Get());
+    
 
     m_descriptorHeap = CreateDescriptorHeap(m_device.Get());
 
@@ -523,9 +542,11 @@ CSampleDesktopWindow::OnCreate(
     SetWindowLong(GWL_EXSTYLE, cs->dwExStyle);
 
 
-    m_dxgi_factory = CreateFactory();
-    m_swap_chain = CreateSwapChain(m_hWnd, m_dxgi_factory.Get(), m_queue.Get());
-    m_frame_index = m_swap_chain->GetCurrentBackBufferIndex();
+    //m_d3d9_device   = CreateD3D9Device(m_d3d9.Get(), m_hWnd, m_window_environment.m_back_buffer_size.Width, m_window_environment.m_back_buffer_size.Height);
+
+    m_dxgi_factory  = CreateFactory();
+    m_swap_chain    = CreateSwapChain(m_hWnd, m_dxgi_factory.Get(), m_queue.Get());
+    m_frame_index   = m_swap_chain->GetCurrentBackBufferIndex();
 
     //Now recreate the swap chain with the new dimensions, we must have back buffer as the window size
     m_back_buffer_width = static_cast<UINT>(m_window_environment.m_back_buffer_size.Width);
